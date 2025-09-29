@@ -1,0 +1,660 @@
+// Mindmap Engine - Core logic for mindmap rendering and manipulation
+class MindmapEngine {
+    constructor() {
+        this.nodes = null;
+        this.nodeData = {};
+        this.positions = {};
+        this.selectedNode = null;
+        this.scale = 1.0;
+        this.canvas = null;
+        this.ctx = null;
+        this.animationFrameId = null;
+        this.isDirty = false;
+        this.nodeWidths = {};
+        this.connectionPaths = [];
+
+        this.initCanvas();
+        this.setupAnimationLoop();
+    }
+
+    initCanvas() {
+        this.canvas = document.getElementById('connectionCanvas');
+        this.ctx = this.canvas.getContext('2d');
+
+        // Enable hardware acceleration
+        this.ctx.imageSmoothingEnabled = true;
+        this.ctx.imageSmoothingQuality = 'high';
+
+        // Set canvas size
+        this.canvas.width = 4000;
+        this.canvas.height = 3000;
+    }
+
+    setupAnimationLoop() {
+        const animate = () => {
+            if (this.isDirty) {
+                this.drawConnections();
+                this.isDirty = false;
+            }
+            this.animationFrameId = requestAnimationFrame(animate);
+        };
+        animate();
+    }
+
+    parseOutline(text) {
+        const lines = text.split('\n').filter(line => line.trim());
+        if (lines.length === 0) return { id: 'root', title: 'Root', children: [], level: -1 };
+
+        let nodeId = 0;
+
+        // Parse first line for root
+        const firstLineParts = lines[0].split('|');
+        const rootTitle = firstLineParts[0].replace(/\*\*/g, '').replace(/^#+\s*/, '').replace(/^\d+\.\s*/, '').trim();
+        const rootDescription = firstLineParts[1] ? firstLineParts[1].trim() : '';
+
+        const root = {
+            id: `node-${nodeId++}`,
+            title: rootTitle,
+            description: rootDescription,
+            children: [],
+            level: 0,
+            expanded: false
+        };
+
+        // Initialize root node data
+        if (!this.nodeData[root.id]) {
+            this.nodeData[root.id] = {
+                notes: rootDescription,
+                images: [],
+                showInfo: false
+            };
+        }
+
+        const stack = [root];
+
+        for (let i = 1; i < lines.length; i++) {
+            const line = lines[i];
+            if (!line.trim()) continue;
+
+            const level = this.getIndentLevel(line);
+            const parts = line.split('|');
+            const titlePart = parts[0];
+            const description = parts[1] ? parts[1].trim() : '';
+            const title = this.cleanTitle(titlePart);
+
+            if (title) {
+                const node = {
+                    id: `node-${nodeId++}`,
+                    title: title,
+                    description: description,
+                    children: [],
+                    level: level,
+                    expanded: false
+                };
+
+                // Initialize node data
+                if (!this.nodeData[node.id]) {
+                    this.nodeData[node.id] = {
+                        notes: description,
+                        images: [],
+                        showInfo: false
+                    };
+                }
+
+                // Find parent at appropriate level
+                while (stack.length > 1 && stack[stack.length - 1].level >= level) {
+                    stack.pop();
+                }
+
+                // Add as child to the current top of stack
+                if (stack.length > 0) {
+                    stack[stack.length - 1].children.push(node);
+                    stack.push(node);
+                }
+            }
+        }
+
+        return root;
+    }
+
+    getIndentLevel(line) {
+        const match = line.match(/^(\s*)/);
+        const spaces = match ? match[1].length : 0;
+        const trimmed = line.trim();
+
+        if (/^#+\s/.test(trimmed)) {
+            const headerLevel = trimmed.match(/^(#+)/)[1].length;
+            return headerLevel - 1;
+        }
+
+        if (/^\d+\./.test(trimmed)) {
+            return 1;
+        }
+
+        if (trimmed.startsWith('*') || trimmed.startsWith('-')) {
+            if (spaces === 0) return 2;
+            return 2 + Math.floor(spaces / 3);
+        }
+
+        if (spaces > 0) {
+            return 2 + Math.floor(spaces / 3);
+        }
+
+        return 1;
+    }
+
+    cleanTitle(line) {
+        return line.trim()
+            .replace(/^\d+\.\s*/, '')
+            .replace(/^#+\s*/, '')
+            .replace(/^\*+\s*/, '')
+            .replace(/^\-\s*/, '')
+            .replace(/\*\*/g, '')
+            .split('|')[0]
+            .trim();
+    }
+
+    getNodeWidth(level) {
+        const widths = {
+            0: 180,
+            1: 160,
+            2: 140,
+            3: 130,
+            4: 120
+        };
+        return widths[Math.min(level, 4)] || 120;
+    }
+
+    calculateNodePositions(root, startX = 250, startY = 600) {
+        const positions = {};
+        const levelWidth = 280;
+        const nodeHeight = 80;
+        const verticalGap = 120;
+
+        // Improved positioning algorithm
+        const positionNode = (node, x, y, level = 0) => {
+            const nodeWidth = this.getNodeWidth(level);
+            positions[node.id] = { x, y, level, width: nodeWidth };
+            this.nodeWidths[node.id] = nodeWidth;
+
+            if (node.children && node.children.length > 0 && node.expanded) {
+                const childX = x + levelWidth;
+
+                // Calculate dynamic spacing based on number of children
+                let gap = verticalGap;
+                if (node.children.length > 5) {
+                    gap = Math.max(80, verticalGap - (node.children.length - 5) * 5);
+                }
+
+                const totalHeight = (node.children.length - 1) * gap;
+                let startY = y - totalHeight / 2;
+
+                node.children.forEach((child, index) => {
+                    const childY = startY + index * gap;
+                    positionNode(child, childX, childY, level + 1);
+                });
+            }
+        };
+
+        positionNode(root, startX, startY);
+        return positions;
+    }
+
+    drawConnections() {
+        if (!this.ctx || !this.nodes) return;
+
+        // Clear canvas
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+
+        // Set connection styles
+        this.ctx.strokeStyle = '#DC6900';
+        this.ctx.lineWidth = 2.5;
+        this.ctx.lineCap = 'round';
+        this.ctx.lineJoin = 'round';
+        this.ctx.globalAlpha = 0.6;
+
+        // Store paths for interaction
+        this.connectionPaths = [];
+
+        const drawNodeConnections = (node) => {
+            if (!node || !node.children || node.children.length === 0) return;
+            if (!node.expanded) return;
+
+            const parentPos = this.positions[node.id];
+            if (!parentPos) return;
+
+            node.children.forEach(child => {
+                const childPos = this.positions[child.id];
+                if (!childPos) return;
+
+                const parentWidth = parentPos.width || this.getNodeWidth(parentPos.level);
+
+                // Connection points
+                const startX = parentPos.x + (parentWidth / 2) - 5;
+                const startY = parentPos.y;
+                const endX = childPos.x - (childPos.width / 2) + 5;
+                const endY = childPos.y;
+
+                // Draw smooth Bézier curve
+                this.ctx.beginPath();
+                this.ctx.moveTo(startX, startY);
+
+                // Control points for smooth curve
+                const controlX1 = startX + (endX - startX) * 0.6;
+                const controlY1 = startY;
+                const controlX2 = startX + (endX - startX) * 0.4;
+                const controlY2 = endY;
+
+                this.ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, endX, endY);
+                this.ctx.stroke();
+
+                // Draw connection points
+                this.ctx.fillStyle = '#DC6900';
+                this.ctx.globalAlpha = 0.8;
+
+                // Start circle
+                this.ctx.beginPath();
+                this.ctx.arc(startX, startY, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // End circle
+                this.ctx.beginPath();
+                this.ctx.arc(endX, endY, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                this.ctx.globalAlpha = 0.6;
+
+                // Store path for potential interactions
+                this.connectionPaths.push({
+                    from: node.id,
+                    to: child.id,
+                    path: { startX, startY, controlX1, controlY1, controlX2, controlY2, endX, endY }
+                });
+
+                // Recursively draw child connections
+                if (child.expanded && child.children) {
+                    drawNodeConnections(child);
+                }
+            });
+        };
+
+        drawNodeConnections(this.nodes);
+    }
+
+    renderNodes(root) {
+        const container = document.getElementById('nodesContainer');
+        container.innerHTML = '';
+
+        this.nodes = root;
+        this.positions = this.calculateNodePositions(root);
+        this.isDirty = true;
+
+        const createNodeElement = (node, level = 0) => {
+            const pos = this.positions[node.id];
+            if (!pos) return;
+
+            const nodeEl = document.createElement('div');
+            nodeEl.className = 'node';
+            nodeEl.style.position = 'absolute';
+            nodeEl.style.left = pos.x + 'px';
+            nodeEl.style.top = pos.y + 'px';
+            nodeEl.style.transform = 'translate(-50%, -50%)';
+            nodeEl.setAttribute('data-node-id', node.id);
+
+            const hasChildren = node.children && node.children.length > 0;
+            const levelClass = level === 0 ? 'central' : `level-${level}`;
+
+            const nodeContent = document.createElement('div');
+            nodeContent.className = `node-content ${levelClass}`;
+
+            // Double-click for editing
+            nodeContent.ondblclick = (e) => {
+                e.stopPropagation();
+                this.editNode(node.id, node.title);
+            };
+
+            // Right-click context menu
+            nodeContent.oncontextmenu = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                this.showContextMenu(e, node.id, node.title);
+            };
+
+            // Click to select
+            nodeContent.onclick = (e) => {
+                e.stopPropagation();
+                this.selectNode(node.id);
+            };
+
+            // Create actions
+            const actionsDiv = document.createElement('div');
+            actionsDiv.className = 'node-actions';
+            actionsDiv.innerHTML = `
+                <button class="action-btn" onclick="mindmapEngine.editNode('${node.id}', '${node.title.replace(/'/g, "\\'")}')">Editar</button>
+                <button class="action-btn" onclick="mindmapEngine.toggleInfo('${node.id}')">Info</button>
+            `;
+            nodeContent.appendChild(actionsDiv);
+
+            // Create text span
+            const textSpan = document.createElement('span');
+            textSpan.className = 'node-text';
+            textSpan.textContent = node.title;
+            nodeContent.appendChild(textSpan);
+
+            // Add toggle if has children
+            if (hasChildren) {
+                const toggleSpan = document.createElement('span');
+                toggleSpan.className = 'toggle-icon';
+                toggleSpan.textContent = node.expanded ? '−' : '+';
+                toggleSpan.onclick = (e) => {
+                    e.stopPropagation();
+                    this.toggleNode(node.id);
+                };
+                nodeContent.appendChild(toggleSpan);
+            }
+
+            nodeEl.appendChild(nodeContent);
+
+            // Extra info panel
+            const extraInfo = document.createElement('div');
+            extraInfo.className = `node-extra-info ${this.nodeData[node.id]?.showInfo ? 'visible' : ''}`;
+            extraInfo.id = `info-${node.id}`;
+
+            const data = this.nodeData[node.id] || {};
+            let infoHTML = '';
+
+            if (data.notes || (data.images && data.images.length > 0)) {
+                if (data.notes) {
+                    const formattedNotes = data.notes
+                        .replace(/</g, '&lt;')
+                        .replace(/>/g, '&gt;')
+                        .replace(/\n/g, '<br>');
+                    infoHTML += `<div class="note-text">${formattedNotes}</div>`;
+                }
+                if (data.images && data.images.length > 0) {
+                    infoHTML += '<div class="images">';
+                    data.images.forEach((img, idx) => {
+                        if (img && img.startsWith('data:image')) {
+                            infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
+                        }
+                    });
+                    infoHTML += '</div>';
+                }
+            } else {
+                infoHTML = '<div class="note-text" style="color: #999; font-style: italic;">Sin información adicional</div>';
+            }
+
+            extraInfo.innerHTML = infoHTML;
+            nodeEl.appendChild(extraInfo);
+
+            if (data.showInfo) {
+                nodeEl.classList.add('info-expanded');
+            }
+
+            container.appendChild(nodeEl);
+
+            // Render children if expanded
+            if (node.children && node.expanded) {
+                node.children.forEach(child => {
+                    createNodeElement(child, level + 1);
+                });
+            }
+        };
+
+        createNodeElement(root);
+    }
+
+    toggleNode(nodeId) {
+        const node = this.findNode(nodeId, this.nodes);
+        if (node && node.children && node.children.length > 0) {
+            node.expanded = !node.expanded;
+            this.renderNodes(this.nodes);
+        }
+    }
+
+    selectNode(nodeId) {
+        // Remove previous selection
+        document.querySelectorAll('.node.selected').forEach(n => {
+            n.classList.remove('selected');
+        });
+
+        // Add selection to current node
+        const nodeEl = document.querySelector(`[data-node-id="${nodeId}"]`);
+        if (nodeEl) {
+            nodeEl.classList.add('selected');
+            this.selectedNode = nodeId;
+        }
+    }
+
+    editNode(nodeId, nodeTitle) {
+        window.currentEditingNode = nodeId;
+        const modal = document.getElementById('editModal');
+        const overlay = document.getElementById('modalOverlay');
+        const data = this.nodeData[nodeId] || { notes: '', images: [] };
+        const node = this.findNode(nodeId, this.nodes);
+
+        document.getElementById('modalTitle').textContent = `Editar: ${nodeTitle}`;
+        document.getElementById('modalNodeTitle').value = node ? node.title : nodeTitle;
+        document.getElementById('modalNotes').value = data.notes || '';
+
+        const imagesContainer = document.getElementById('modalImages');
+        imagesContainer.innerHTML = '';
+
+        if (data.images && data.images.length > 0) {
+            data.images.forEach((img, idx) => {
+                const imgDiv = document.createElement('div');
+                imgDiv.className = 'uploaded-image';
+                imgDiv.innerHTML = `
+                    <img src="${img}" alt="Image ${idx + 1}">
+                    <button class="remove-image" onclick="mindmapEngine.removeImage(${idx})">×</button>
+                `;
+                imagesContainer.appendChild(imgDiv);
+            });
+        }
+
+        setTimeout(() => {
+            modal.classList.add('active');
+            overlay.classList.add('active');
+        }, 10);
+    }
+
+    toggleInfo(nodeId) {
+        if (!this.nodeData[nodeId]) {
+            this.nodeData[nodeId] = { notes: '', images: [], showInfo: false };
+        }
+
+        this.nodeData[nodeId].showInfo = !this.nodeData[nodeId].showInfo;
+
+        const container = document.getElementById('mindmapContainer');
+        const scrollLeft = container.scrollLeft;
+        const scrollTop = container.scrollTop;
+
+        this.renderNodes(this.nodes);
+
+        setTimeout(() => {
+            container.scrollLeft = scrollLeft;
+            container.scrollTop = scrollTop;
+        }, 50);
+    }
+
+    expandAll() {
+        const expand = (node) => {
+            if (node.children && node.children.length > 0) {
+                node.expanded = true;
+                node.children.forEach(child => expand(child));
+            }
+        };
+        expand(this.nodes);
+        this.renderNodes(this.nodes);
+    }
+
+    collapseAll() {
+        const collapse = (node) => {
+            if (node.children && node.children.length > 0) {
+                node.expanded = false;
+                node.children.forEach(child => collapse(child));
+            }
+        };
+        collapse(this.nodes);
+        this.renderNodes(this.nodes);
+    }
+
+    findNode(nodeId, nodeOrArray) {
+        if (!nodeOrArray) return null;
+
+        if (Array.isArray(nodeOrArray)) {
+            for (let node of nodeOrArray) {
+                const found = this.findNode(nodeId, node);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        if (nodeOrArray.id === nodeId) return nodeOrArray;
+        if (nodeOrArray.children) {
+            for (let child of nodeOrArray.children) {
+                const found = this.findNode(nodeId, child);
+                if (found) return found;
+            }
+        }
+        return null;
+    }
+
+    showContextMenu(e, nodeId, nodeTitle) {
+        const menu = document.getElementById('contextMenu');
+        menu.style.left = e.clientX + 'px';
+        menu.style.top = e.clientY + 'px';
+
+        window.contextNodeId = nodeId;
+        window.contextNodeTitle = nodeTitle;
+
+        setTimeout(() => {
+            menu.classList.add('active');
+        }, 10);
+
+        // Hide menu when clicking elsewhere
+        const hideMenu = () => {
+            menu.classList.remove('active');
+            document.removeEventListener('click', hideMenu);
+        };
+
+        setTimeout(() => {
+            document.addEventListener('click', hideMenu);
+        }, 100);
+    }
+
+    addChildNode(parentId) {
+        const parent = this.findNode(parentId, this.nodes);
+        if (!parent) return;
+
+        const newNode = {
+            id: `node-${Date.now()}`,
+            title: 'Nuevo Nodo',
+            description: '',
+            children: [],
+            level: parent.level + 1,
+            expanded: false
+        };
+
+        if (!parent.children) {
+            parent.children = [];
+        }
+
+        parent.children.push(newNode);
+        parent.expanded = true;
+
+        this.nodeData[newNode.id] = {
+            notes: '',
+            images: [],
+            showInfo: false
+        };
+
+        this.renderNodes(this.nodes);
+
+        // Auto-edit the new node
+        setTimeout(() => {
+            this.editNode(newNode.id, newNode.title);
+        }, 100);
+    }
+
+    deleteNode(nodeId) {
+        if (this.nodes.id === nodeId) {
+            alert('No puedes eliminar el nodo raíz');
+            return;
+        }
+
+        const deleteFromParent = (parent) => {
+            if (!parent.children) return false;
+
+            const index = parent.children.findIndex(child => child.id === nodeId);
+            if (index !== -1) {
+                parent.children.splice(index, 1);
+                delete this.nodeData[nodeId];
+                return true;
+            }
+
+            for (let child of parent.children) {
+                if (deleteFromParent(child)) return true;
+            }
+
+            return false;
+        };
+
+        if (deleteFromParent(this.nodes)) {
+            this.renderNodes(this.nodes);
+        }
+    }
+
+    removeImage(index) {
+        if (window.currentEditingNode && this.nodeData[window.currentEditingNode]) {
+            this.nodeData[window.currentEditingNode].images.splice(index, 1);
+            const node = this.findNode(window.currentEditingNode, this.nodes);
+            if (node) {
+                this.editNode(window.currentEditingNode, node.title);
+            }
+        }
+    }
+
+    exportData() {
+        return {
+            nodes: this.nodes,
+            nodeData: this.nodeData,
+            timestamp: new Date().toISOString()
+        };
+    }
+
+    importData(data) {
+        this.nodes = data.nodes;
+        this.nodeData = data.nodeData || {};
+        this.renderNodes(this.nodes);
+    }
+
+    saveNodeData() {
+        const nodeId = window.currentEditingNode;
+        if (!nodeId) return;
+
+        const node = this.findNode(nodeId, this.nodes);
+        if (node) {
+            const newTitle = document.getElementById('modalNodeTitle').value.trim();
+            if (newTitle) {
+                node.title = newTitle;
+            }
+        }
+
+        if (!this.nodeData[nodeId]) {
+            this.nodeData[nodeId] = { notes: '', images: [], showInfo: false };
+        }
+
+        this.nodeData[nodeId].notes = document.getElementById('modalNotes').value;
+        this.nodeData[nodeId].showInfo = true;
+
+        this.renderNodes(this.nodes);
+
+        // Close modal
+        document.getElementById('editModal').classList.remove('active');
+        document.getElementById('modalOverlay').classList.remove('active');
+    }
+}
+
+// Create global instance
+window.mindmapEngine = new MindmapEngine();

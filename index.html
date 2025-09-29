@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWC Mindmap Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="drag-region"></div>
+            <h1><span class="pwc-logo">pwc</span> Mindmap Pro</h1>
+            <div class="controls">
+                <button class="btn expand-all-btn" id="expandAllBtn">Expandir Todo</button>
+                <button class="btn collapse-all-btn" id="collapseAllBtn">Colapsar Todo</button>
+                <button class="btn" id="resetViewBtn">Restablecer Vista</button>
+                <button class="btn" id="exportDataBtn">Exportar</button>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="input-panel" id="inputPanel">
+                <h3>Entrada de Esquema</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+                    <label class="file-upload-label" for="fileInput">
+                        📄 Cargar archivo
+                    </label>
+                    <input type="file" id="fileInput" accept=".md,.txt,.pmap,.json" style="display: none;">
+                </div>
+                <textarea id="outlineInput" placeholder="Pega tu esquema o carga un archivo...">IA Responsable
+1. Principios Fundamentales
+* Equidad y No Discriminación | Asegurar que los sistemas de IA no perpetúen ni amplifiquen sesgos existentes
+   * Prevención de sesgos | Técnicas de detección y mitigación de sesgos en datos y algoritmos
+   * Resultados equitativos | Garantizar impacto justo en diferentes grupos demográficos
+   * Diseño inclusivo | Considerar diversidad desde la fase de diseño
+* Transparencia | Los sistemas deben ser comprensibles y auditables
+   * IA Explicable (XAI) | Métodos para interpretar decisiones de modelos complejos
+   * Interpretabilidad de modelos | Balance entre precisión y explicabilidad
+   * Documentación de decisiones | Registro completo del proceso de toma de decisiones
+* Responsabilidad | Establecer líneas claras de responsabilidad
+   * Propiedad clara | Definir quién es responsable de cada componente
+   * Pistas de auditoría | Mantener registros detallados de todas las operaciones
+   * Asignación de responsabilidades | Matriz RACI para proyectos de IA
+* Privacidad y Seguridad | Proteger datos y sistemas contra amenazas
+   * Protección de datos | Implementar principios de privacidad por diseño
+   * Gestión de consentimiento | Sistemas robustos para obtener y gestionar consentimientos
+   * Medidas de ciberseguridad | Protección contra ataques adversariales
+* Diseño Centrado en el Humano | La IA debe aumentar capacidades humanas
+   * Supervisión humana | Mantener humanos en el loop para decisiones críticas
+   * Empoderamiento del usuario | Dar control y agencia a los usuarios finales
+   * Aumento no reemplazo | Enfoque en complementar habilidades humanas
+2. Riesgos y Desafíos
+* Riesgos Técnicos | Desafíos inherentes a los sistemas de IA
+   * Sesgo algorítmico | Sesgos en datos de entrenamiento y diseño de algoritmos
+   * Deriva del modelo | Degradación del rendimiento con el tiempo
+   * Ataques adversariales | Vulnerabilidades a manipulación maliciosa
+   * Problema de caja negra | Falta de interpretabilidad en modelos complejos
+* Riesgos Sociales | Impacto en la sociedad y las personas
+   * Desplazamiento laboral | Automatización y pérdida de empleos
+   * Brecha digital | Acceso desigual a tecnologías de IA
+   * Difusión de desinformación | Uso de IA para crear y difundir información falsa
+   * Preocupaciones de vigilancia | Uso de IA para monitoreo masivo</textarea>
+                <button class="generate-btn" id="generateBtn">GENERAR MAPA MENTAL</button>
+            </div>
+
+            <button class="toggle-panel-btn" id="togglePanelBtn">◀</button>
+
+            <div class="mindmap-container" id="mindmapContainer">
+                <div class="mindmap-wrapper" id="mindmapWrapper">
+                    <canvas id="connectionCanvas" class="connection-canvas"></canvas>
+                    <div class="mindmap-nodes" id="nodesContainer"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="help-text" id="helpText">
+        💡 Doble clic: Editar nodo | Clic derecho: Menú contextual | ⌘+scroll: Zoom
+    </div>
+
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-item" id="contextEdit">
+            ✏️ Editar Nodo
+        </div>
+        <div class="context-menu-item" id="contextToggleInfo">
+            ℹ️ Ver/Ocultar Info
+        </div>
+        <div class="context-menu-item" id="contextToggleChildren">
+            🔄 Expandir/Colapsar
+        </div>
+        <div class="context-menu-item" id="contextAddChild">
+            ➕ Agregar Hijo
+        </div>
+        <div class="context-menu-item" id="contextDelete">
+            🗑️ Eliminar Nodo
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="modalOverlay"></div>
+    <div class="edit-modal" id="editModal">
+        <div class="modal-header">
+            <h3 id="modalTitle">Editar Nodo</h3>
+            <button class="close-modal" id="closeModalBtn">✕</button>
+        </div>
+        <div class="modal-content">
+            <label>📝 Título del Nodo</label>
+            <input type="text" id="modalNodeTitle" class="node-title-input" placeholder="Título del nodo...">
+
+            <label>📋 Notas Adicionales</label>
+            <textarea id="modalNotes" placeholder="Agrega notas detalladas sobre este nodo..."></textarea>
+
+            <div class="upload-section">
+                <label>🖼️ Imágenes</label>
+                <label class="upload-label" for="imageUpload">
+                    📷 Cargar Imagen
+                </label>
+                <input type="file" id="imageUpload" accept="image/*" multiple>
+
+                <div class="uploaded-images" id="modalImages"></div>
+            </div>
+
+            <button class="save-btn" id="saveNodeBtn">💾 Guardar Cambios</button>
+        </div>
+    </div>
+
+    <!-- Shortcuts modal -->
+    <div class="shortcuts-modal" id="shortcutsModal">
+        <div class="modal-header">
+            <h3>Atajos de Teclado</h3>
+            <button class="close-modal" id="closeShortcutsBtn">✕</button>
+        </div>
+        <div class="shortcuts-content">
+            <div class="shortcut-group">
+                <h4>Navegación</h4>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">⌘ + scroll</span>
+                    <span class="shortcut-desc">Zoom in/out</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">⌘ + 0</span>
+                    <span class="shortcut-desc">Restablecer zoom</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">Espacio + arrastrar</span>
+                    <span class="shortcut-desc">Mover vista</span>
+                </div>
+            </div>
+
+            <div class="shortcut-group">
+                <h4>Nodos</h4>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">Tab</span>
+                    <span class="shortcut-desc">Agregar nodo hijo</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">Enter</span>
+                    <span class="shortcut-desc">Agregar nodo hermano</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">⌘ + Enter</span>
+                    <span class="shortcut-desc">Editar nodo seleccionado</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">Delete</span>
+                    <span class="shortcut-desc">Eliminar nodo</span>
+                </div>
+            </div>
+
+            <div class="shortcut-group">
+                <h4>Vista</h4>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">⌘ + Shift + E</span>
+                    <span class="shortcut-desc">Expandir todo</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">⌘ + Shift + C</span>
+                    <span class="shortcut-desc">Colapsar todo</span>
+                </div>
+                <div class="shortcut-item">
+                    <span class="shortcut-keys">⌘ + \</span>
+                    <span class="shortcut-desc">Mostrar/ocultar barra lateral</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="renderer.js"></script>
+    <script src="mindmap-engine.js"></script>
+</body>
+</html>
