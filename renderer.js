@@ -7,9 +7,14 @@ class MindmapRenderer {
         this.dragStart = { x: 0, y: 0, scrollLeft: 0, scrollTop: 0 };
         this.isSpacePressed = false;
 
+        // Project management
+        this.projects = [];
+        this.currentProject = null;
+
         this.init();
         this.setupEventListeners();
         this.setupElectronIntegration();
+        this.loadProjects();
     }
 
     init() {
@@ -33,6 +38,10 @@ class MindmapRenderer {
             this.generateMindmap();
         });
 
+        document.getElementById('addProjectBtn').addEventListener('click', () => {
+            this.addNewProject();
+        });
+
         document.getElementById('expandAllBtn').addEventListener('click', () => {
             window.mindmapEngine.expandAll();
         });
@@ -43,6 +52,18 @@ class MindmapRenderer {
 
         document.getElementById('resetViewBtn').addEventListener('click', () => {
             this.resetView();
+        });
+
+        document.getElementById('centerViewBtn').addEventListener('click', () => {
+            this.centerView();
+        });
+
+        document.getElementById('zoomInBtn').addEventListener('click', () => {
+            this.zoomIn();
+        });
+
+        document.getElementById('zoomOutBtn').addEventListener('click', () => {
+            this.zoomOut();
         });
 
         document.getElementById('exportDataBtn').addEventListener('click', () => {
@@ -245,11 +266,12 @@ class MindmapRenderer {
         const container = document.getElementById('mindmapContainer');
         const wrapper = document.getElementById('mindmapWrapper');
 
-        // Zoom with mouse wheel
+        // Zoom with mouse wheel - Reduced sensitivity
         container.addEventListener('wheel', (e) => {
             if (e.metaKey || e.ctrlKey) {
                 e.preventDefault();
-                const delta = e.deltaY > 0 ? 0.95 : 1.05;
+                // Reduced sensitivity: smaller delta change
+                const delta = e.deltaY > 0 ? 0.98 : 1.02;
                 this.scale *= delta;
                 this.scale = Math.min(Math.max(this.scale, 0.3), 3);
 
@@ -259,6 +281,9 @@ class MindmapRenderer {
 
                 wrapper.style.transformOrigin = `${x}px ${y}px`;
                 wrapper.style.transform = `scale(${this.scale})`;
+
+                // Update canvas scale
+                window.mindmapEngine.isDirty = true;
             }
         });
 
@@ -381,7 +406,7 @@ class MindmapRenderer {
             return;
         }
 
-        window.mindmapEngine.nodeData = {};
+        // Don't clear nodeData - let parser initialize it
         const root = window.mindmapEngine.parseOutline(input);
         window.mindmapEngine.renderNodes(root);
     }
@@ -459,20 +484,57 @@ class MindmapRenderer {
         const container = document.getElementById('mindmapContainer');
         this.scale = 1.0;
         wrapper.style.transform = `scale(${this.scale})`;
-        wrapper.style.transformOrigin = '250px 600px';
-        container.scrollTo(0, 400);
+        wrapper.style.transformOrigin = '300px 1500px';
+        container.scrollTo(0, 1300);
+    }
+
+    centerView() {
+        const container = document.getElementById('mindmapContainer');
+        const wrapper = document.getElementById('mindmapWrapper');
+
+        // Center on the root node position (300, 1500)
+        const centerX = 300 - (container.clientWidth / 2);
+        const centerY = 1500 - (container.clientHeight / 2);
+
+        container.scrollTo({
+            left: Math.max(0, centerX),
+            top: Math.max(0, centerY),
+            behavior: 'smooth'
+        });
     }
 
     zoomIn() {
-        this.scale *= 1.2;
+        const wrapper = document.getElementById('mindmapWrapper');
+        const container = document.getElementById('mindmapContainer');
+
+        this.scale *= 1.15;
         this.scale = Math.min(this.scale, 3);
-        document.getElementById('mindmapWrapper').style.transform = `scale(${this.scale})`;
+
+        // Maintain center point
+        const centerX = container.scrollLeft + container.clientWidth / 2;
+        const centerY = container.scrollTop + container.clientHeight / 2;
+
+        wrapper.style.transformOrigin = `${centerX}px ${centerY}px`;
+        wrapper.style.transform = `scale(${this.scale})`;
+
+        window.mindmapEngine.isDirty = true;
     }
 
     zoomOut() {
-        this.scale *= 0.8;
+        const wrapper = document.getElementById('mindmapWrapper');
+        const container = document.getElementById('mindmapContainer');
+
+        this.scale *= 0.85;
         this.scale = Math.max(this.scale, 0.3);
-        document.getElementById('mindmapWrapper').style.transform = `scale(${this.scale})`;
+
+        // Maintain center point
+        const centerX = container.scrollLeft + container.clientWidth / 2;
+        const centerY = container.scrollTop + container.clientHeight / 2;
+
+        wrapper.style.transformOrigin = `${centerX}px ${centerY}px`;
+        wrapper.style.transform = `scale(${this.scale})`;
+
+        window.mindmapEngine.isDirty = true;
     }
 
     resetZoom() {
@@ -607,9 +669,190 @@ class MindmapRenderer {
     showPreferences() {
         alert('Panel de preferencias en desarrollo');
     }
+
+    // Project Management Methods
+    loadProjects() {
+        // Load projects from localStorage
+        const savedProjects = localStorage.getItem('mindmap-projects');
+        if (savedProjects) {
+            this.projects = JSON.parse(savedProjects);
+        } else {
+            // Initialize with default projects
+            this.projects = [
+                {
+                    id: 'default',
+                    name: 'ENTRADA DE ESQUEMA',
+                    content: document.getElementById('outlineInput').value
+                },
+                {
+                    id: 'ia-responsable',
+                    name: 'Inteligencia Artificial Responsable',
+                    content: `IA Responsable | La práctica integral de diseñar, desarrollar e implementar sistemas de inteligencia artificial de manera ética y responsable, considerando su impacto en la sociedad, economía y medio ambiente. Implica establecer principios, procesos y mecanismos de gobernanza que aseguren que la IA beneficie a la humanidad mientras se minimizan los riesgos potenciales y se respetan los derechos humanos fundamentales.
+1. Principios Fundamentales | Directrices esenciales que garantizan que los sistemas de IA beneficien a la humanidad mientras minimizan los riesgos potenciales. Estos principios sirven como base ética y operativa para todo el ciclo de vida de los sistemas de IA, desde su concepción hasta su implementación y monitoreo continuo.
+* Equidad y No Discriminación | Garantizar que los sistemas de IA traten a todos los individuos y grupos de manera equitativa sin sesgos injustos.
+   * Prevención de sesgos | Técnicas y metodologías sistemáticas para identificar, medir y eliminar prejuicios injustos en algoritmos de IA.
+   * Resultados equitativos | Asegurar que los beneficios y oportunidades generados por la IA se distribuyan de manera justa entre todos los grupos demográficos.
+   * Diseño inclusivo | Crear sistemas de IA accesibles y beneficiosos para poblaciones diversas, incluyendo personas con discapacidades.
+* Transparencia | Hacer que los sistemas de IA sean comprensibles y sus procesos de toma de decisiones sean claros para usuarios y stakeholders.
+   * IA Explicable (XAI) | Métodos y técnicas que hacen las decisiones de la IA interpretables y comprensibles para humanos.
+   * Interpretabilidad de modelos | Comprender cómo los modelos de IA llegan a conclusiones específicas, incluyendo la importancia relativa de diferentes características.
+   * Documentación de decisiones | Registro completo y auditable de los procesos de decisión de la IA para responsabilidad y revisión posterior.
+* Responsabilidad | Marcos claros de responsabilidad para el desarrollo, implementación y operación de sistemas de IA.
+   * Propiedad clara | Definir inequívocamente quién es responsable de los resultados y consecuencias de los sistemas de IA.
+   * Pistas de auditoría | Registros integrales y a prueba de manipulaciones de todas las decisiones y procesos de los sistemas de IA.
+   * Asignación de responsabilidades | Roles y responsabilidades explícitos para la gobernanza y supervisión de la IA en toda la organización.
+* Privacidad y Seguridad | Proteger la información personal y garantizar la integridad de los sistemas de IA contra amenazas internas y externas.
+   * Protección de datos | Salvaguardar la información personal utilizada en sistemas de IA mediante técnicas de encriptación, anonimización y control de acceso.
+   * Gestión de consentimiento | Asegurar la autorización adecuada y transparente para el uso de datos en sistemas de IA, respetando la autonomía del usuario.
+   * Medidas de ciberseguridad | Proteger los sistemas de IA contra ataques maliciosos, manipulación y uso no autorizado mediante defensas multicapa.
+* Diseño Centrado en el Humano | Priorizar las necesidades humanas y mantener el control humano significativo sobre las decisiones de la IA.
+   * Supervisión humana | Mantener control humano significativo y apropiado sobre las decisiones de la IA, especialmente en contextos de alto riesgo.
+   * Empoderamiento del usuario | Habilitar a los usuarios para comprender, controlar y beneficiarse de sus interacciones con sistemas de IA.
+   * Aumento no reemplazo | La IA debe mejorar y amplificar las capacidades humanas en lugar de sustituir completamente a los trabajadores.
+2. Riesgos y Desafíos de la IA | Impactos negativos potenciales que requieren gestión proactiva y mitigación sistemática.
+* Riesgos Técnicos | Desafíos que surgen del diseño, desarrollo y operación de sistemas de IA, relacionados con limitaciones inherentes de la tecnología actual.
+   * Sesgo algorítmico | Injusticia sistemática en las predicciones o decisiones de la IA que puede perpetuar o amplificar discriminación existente.
+   * Deriva del modelo | Degradación del rendimiento del modelo cuando las condiciones del mundo real cambian respecto a los datos de entrenamiento originales.
+   * Ataques adversariales | Entradas maliciosas diseñadas específicamente para engañar a los sistemas de IA y causar clasificaciones erróneas.
+   * Problema de caja negra | Incapacidad para entender o explicar el proceso de toma de decisiones en modelos complejos de IA.
+* Riesgos Sociales | Impactos más amplios en la sociedad derivados del despliegue masivo de IA que pueden afectar estructuras sociales, económicas y culturales.
+   * Desplazamiento laboral | Automatización que reemplaza trabajadores humanos en múltiples industrias, potencialmente causando desempleo masivo.
+   * Brecha digital | Acceso desigual a los beneficios de la IA entre diferentes poblaciones, exacerbando desigualdades existentes.
+   * Difusión de desinformación | Contenido falso o engañoso generado o amplificado por IA que puede manipular opinión pública.
+   * Preocupaciones de vigilancia | Violaciones de privacidad mediante monitoreo potenciado por IA que puede erosionar libertades civiles.
+* Riesgos Éticos | Desafíos morales fundamentales en el desarrollo y uso de IA que cuestionan valores humanos básicos y normas sociales.
+   * Armas autónomas | Sistemas de IA capaces de seleccionar y atacar objetivos sin intervención humana.
+   * Manipulación y persuasión | IA utilizada para influir indebidamente en el comportamiento humano, socavando la autonomía.
+   * Violaciones del consentimiento | Uso de datos personales sin autorización adecuada, violando la privacidad y autonomía individual.
+   * Amenazas a la dignidad humana | Aplicaciones de IA que deshumanizan, objetifican o reducen a las personas a puntos de datos.
+* Riesgos Legales y de Cumplimiento | Desafíos regulatorios y legales en un panorama normativo en rápida evolución.
+   * Incertidumbres de responsabilidad | Falta de claridad sobre quién es legalmente responsable cuando la IA causa daños o toma decisiones erróneas.
+   * Problemas de propiedad intelectual | Preguntas sobre la propiedad del contenido generado por IA y el uso de material protegido en entrenamiento.
+   * Incumplimiento regulatorio | Falta de adherencia a las regulaciones de IA en evolución, resultando en sanciones y daño reputacional.
+3. Panorama Regulatorio | Leyes, regulaciones y estándares que gobiernan el desarrollo y uso de IA a nivel global, regional y nacional.
+* Regulaciones Globales | Marcos y acuerdos internacionales que buscan armonizar enfoques de gobernanza de IA entre países.
+   * Ley de IA de la UE | Regulación integral basada en riesgos para IA en Europa, estableciendo requisitos diferenciados según el nivel de riesgo.
+   * Implicaciones del GDPR | Requisitos de protección de datos que afectan significativamente a los sistemas de IA.
+   * Regulaciones de IA de China | Enfoque chino hacia la gobernanza de IA enfocado en seguridad nacional y estabilidad social.
+   * Iniciativas federales de EE.UU. | Esfuerzos de política y regulación de IA estadounidenses, balanceando innovación con protección de derechos.
+* Estándares de la Industria | Estándares técnicos y mejores prácticas desarrollados por organizaciones de normalización.
+   * ISO/IEC 23053 y 23894 | Estándares internacionales para confiabilidad en IA que establecen marco para sistemas robustos y éticos.
+   * Estándares IEEE | Estándares de ingeniería profesional para IA ética desarrollados por la comunidad técnica global.
+   * Guías específicas del sector | Marcos de gobernanza de IA adaptados a necesidades y riesgos únicos de industrias específicas.
+* Marcos Nacionales | Estrategias y regulaciones de IA específicas de cada país que reflejan prioridades y valores nacionales.
+   * Directiva de Canadá | Directrices del gobierno canadiense para el uso de IA en servicios públicos, enfatizando transparencia.
+   * Marco de IA del Reino Unido | Enfoque británico pro-innovación para la regulación de IA, favoreciendo principios sobre reglas prescriptivas.
+   * Modelo de Singapur | Marco de gobernanza de Singapur para ética en IA, balanceando innovación con gestión de riesgos.
+4. Marcos y Metodologías | Enfoques estructurados y sistemáticos para implementar IA responsable en organizaciones.
+* Marcos Éticos | Fundamentos filosóficos y principios morales que guían el desarrollo ético de IA.
+   * IEEE Diseño Éticamente Alineado | Estándares de ingeniería comprehensivos para sistemas de IA éticos que priorizan el bienestar humano.
+   * Principios de IA de Asilomar | 23 principios desarrollados por la comunidad de investigación de IA para el desarrollo beneficioso de IA.
+   * Declaración de Montreal | Principios centrados en el humano para el desarrollo de IA que beneficie a todos.
+* Marcos de Gobernanza | Estructuras organizacionales y procesos para supervisión efectiva de IA a nivel institucional.
+   * Gestión de Riesgos de IA del NIST | Marco estadounidense integral para identificar, evaluar y gestionar riesgos relacionados con IA.
+   * Principios de IA de la OCDE | Directrices internacionales para IA confiable adoptadas por países miembros y socios.
+   * Ética de IA de UNESCO | Estándares éticos globales para IA adoptados por 193 estados miembros.
+* Herramientas de Evaluación | Métodos y técnicas para evaluar sistemas de IA contra criterios éticos y de desempeño.
+   * Evaluaciones de impacto | Análisis sistemático de efectos potenciales del despliegue de IA en individuos, sociedad y ambiente.
+   * Matrices de riesgo | Herramientas estructuradas para evaluar y priorizar riesgos relacionados con IA basados en probabilidad e impacto.
+   * Comités de revisión ética | Grupos independientes multidisciplinarios que revisan proyectos de IA para conformidad ética.
+5. Oportunidades y Beneficios | Impactos positivos transformadores de la adopción responsable de IA en economía, sociedad y organizaciones.
+* Crecimiento Económico | Contribución de la IA al desarrollo económico, productividad, e innovación a escala macro y micro.
+   * Aceleración de innovación | IA catalizando ciclos de investigación y desarrollo más rápidos en todas las industrias.
+   * Ganancias de productividad | Mejora dramática de eficiencia operacional mediante automatización inteligente y optimización de procesos.
+   * Creación de nuevos mercados | Surgimiento de productos, servicios, y modelos de negocio completamente nuevos habilitados por IA.
+* Bien Social | Aplicaciones de IA que abordan desafíos sociales críticos y mejoran calidad de vida para todos.
+   * Avance en salud | IA revolucionando diagnóstico médico, desarrollo de tratamientos, y prestación de atención sanitaria.
+   * Accesibilidad educativa | Aprendizaje personalizado y adaptativo que hace educación de calidad accesible para todos.
+   * Monitoreo ambiental | IA rastreando y abordando cambio climático, pérdida de biodiversidad, y degradación ambiental.
+* Ventajas Empresariales | Beneficios competitivos tangibles de adoptar prácticas de IA responsable que crean valor empresarial sostenible.
+   * Diferenciación competitiva | Destacar en el mercado mediante prácticas éticas de IA que resuenan con consumidores conscientes.
+   * Construcción de confianza | Ganar y mantener confianza de clientes, empleados, inversores y sociedad mediante transparencia.
+   * Mitigación de riesgos | Evitar daños reputacionales, legales, y financieros mediante gestión proactiva de riesgos de IA.`
+                }
+            ];
+        }
+
+        this.renderProjects();
+        if (this.projects.length > 0) {
+            this.loadProject(this.projects[0].id);
+        }
+    }
+
+    renderProjects() {
+        const projectList = document.getElementById('projectList');
+        projectList.innerHTML = '';
+
+        this.projects.forEach(project => {
+            const projectItem = document.createElement('div');
+            projectItem.className = 'project-item';
+            projectItem.textContent = project.name;
+            projectItem.dataset.id = project.id;
+
+            if (this.currentProject === project.id) {
+                projectItem.classList.add('active');
+            }
+
+            projectItem.addEventListener('click', () => {
+                this.loadProject(project.id);
+            });
+
+            projectList.appendChild(projectItem);
+        });
+    }
+
+    loadProject(projectId) {
+        const project = this.projects.find(p => p.id === projectId);
+        if (!project) return;
+
+        this.currentProject = projectId;
+        // Clear nodeData when switching projects
+        window.mindmapEngine.nodeData = {};
+        document.getElementById('outlineInput').value = project.content;
+        this.renderProjects();
+        this.generateMindmap();
+    }
+
+    addNewProject() {
+        const name = prompt('Nombre del nuevo proyecto:');
+        if (!name) return;
+
+        const newProject = {
+            id: 'project-' + Date.now(),
+            name: name,
+            content: `${name}
+1. Idea Principal
+* Subtema 1
+* Subtema 2`
+        };
+
+        this.projects.push(newProject);
+        this.saveProjects();
+        this.renderProjects();
+        this.loadProject(newProject.id);
+    }
+
+    saveProjects() {
+        // Save current project content
+        if (this.currentProject) {
+            const project = this.projects.find(p => p.id === this.currentProject);
+            if (project) {
+                project.content = document.getElementById('outlineInput').value;
+            }
+        }
+
+        localStorage.setItem('mindmap-projects', JSON.stringify(this.projects));
+    }
 }
 
 // Initialize renderer when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.mindmapRenderer = new MindmapRenderer();
+
+    // Auto-save project content when textarea changes
+    document.getElementById('outlineInput').addEventListener('input', () => {
+        if (window.mindmapRenderer) {
+            window.mindmapRenderer.saveProjects();
+        }
+    });
 });

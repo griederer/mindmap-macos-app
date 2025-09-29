@@ -15,12 +15,23 @@
             <div class="controls">
                 <button class="btn expand-all-btn" id="expandAllBtn">Expandir Todo</button>
                 <button class="btn collapse-all-btn" id="collapseAllBtn">Colapsar Todo</button>
+                <button class="btn" id="centerViewBtn">🎯 Centrar</button>
+                <button class="btn" id="zoomOutBtn">🔍−</button>
+                <button class="btn" id="zoomInBtn">🔍+</button>
                 <button class="btn" id="resetViewBtn">Restablecer Vista</button>
                 <button class="btn" id="exportDataBtn">Exportar</button>
             </div>
         </div>
 
         <div class="main-content">
+            <div class="projects-panel" id="projectsPanel">
+                <h3>Proyectos</h3>
+                <div class="project-list" id="projectList">
+                    <!-- Projects will be added dynamically -->
+                </div>
+                <button class="btn add-project-btn" id="addProjectBtn">+ Nuevo Proyecto</button>
+            </div>
+
             <div class="input-panel" id="inputPanel">
                 <h3>Entrada de Esquema</h3>
                 <div style="display: flex; gap: 10px; margin-bottom: 12px;">
@@ -30,38 +41,135 @@
                     <input type="file" id="fileInput" accept=".md,.txt,.pmap,.json" style="display: none;">
                 </div>
                 <textarea id="outlineInput" placeholder="Pega tu esquema o carga un archivo...">IA Responsable
-1. Principios Fundamentales
-* Equidad y No Discriminación | Asegurar que los sistemas de IA no perpetúen ni amplifiquen sesgos existentes
-   * Prevención de sesgos | Técnicas de detección y mitigación de sesgos en datos y algoritmos
-   * Resultados equitativos | Garantizar impacto justo en diferentes grupos demográficos
-   * Diseño inclusivo | Considerar diversidad desde la fase de diseño
-* Transparencia | Los sistemas deben ser comprensibles y auditables
-   * IA Explicable (XAI) | Métodos para interpretar decisiones de modelos complejos
-   * Interpretabilidad de modelos | Balance entre precisión y explicabilidad
-   * Documentación de decisiones | Registro completo del proceso de toma de decisiones
-* Responsabilidad | Establecer líneas claras de responsabilidad
-   * Propiedad clara | Definir quién es responsable de cada componente
-   * Pistas de auditoría | Mantener registros detallados de todas las operaciones
-   * Asignación de responsabilidades | Matriz RACI para proyectos de IA
-* Privacidad y Seguridad | Proteger datos y sistemas contra amenazas
-   * Protección de datos | Implementar principios de privacidad por diseño
-   * Gestión de consentimiento | Sistemas robustos para obtener y gestionar consentimientos
-   * Medidas de ciberseguridad | Protección contra ataques adversariales
-* Diseño Centrado en el Humano | La IA debe aumentar capacidades humanas
-   * Supervisión humana | Mantener humanos en el loop para decisiones críticas
-   * Empoderamiento del usuario | Dar control y agencia a los usuarios finales
-   * Aumento no reemplazo | Enfoque en complementar habilidades humanas
-2. Riesgos y Desafíos
-* Riesgos Técnicos | Desafíos inherentes a los sistemas de IA
-   * Sesgo algorítmico | Sesgos en datos de entrenamiento y diseño de algoritmos
-   * Deriva del modelo | Degradación del rendimiento con el tiempo
-   * Ataques adversariales | Vulnerabilidades a manipulación maliciosa
-   * Problema de caja negra | Falta de interpretabilidad en modelos complejos
-* Riesgos Sociales | Impacto en la sociedad y las personas
-   * Desplazamiento laboral | Automatización y pérdida de empleos
-   * Brecha digital | Acceso desigual a tecnologías de IA
-   * Difusión de desinformación | Uso de IA para crear y difundir información falsa
-   * Preocupaciones de vigilancia | Uso de IA para monitoreo masivo</textarea>
+1. Core Principles
+* Fairness & Non-discrimination
+   * Bias prevention | Techniques for detecting and mitigating biases in data and algorithms
+   * Equitable outcomes | Ensuring fair impact across different demographic groups
+   * Inclusive design | Considering diversity from the design phase
+* Transparency
+   * Explainable AI (XAI) | Methods for interpreting decisions of complex models
+   * Model interpretability | Balance between accuracy and explainability
+   * Decision documentation | Complete record of decision-making process
+* Accountability
+   * Clear ownership | Defining who is responsible for each component
+   * Audit trails | Maintaining detailed records of all operations
+   * Responsibility assignment | RACI matrix for AI projects
+* Privacy & Security
+   * Data protection | Implementing privacy-by-design principles
+   * Consent management | Robust systems for obtaining and managing consent
+   * Cybersecurity measures | Protection against adversarial attacks
+* Human-Centered Design
+   * Human oversight | Keeping humans in the loop for critical decisions
+   * User empowerment | Giving control and agency to end users
+   * Augmentation not replacement | Focus on complementing human capabilities
+2. AI Risks & Challenges
+* Technical Risks
+   * Algorithmic bias | Biases in training data and algorithm design
+   * Model drift | Performance degradation over time
+   * Adversarial attacks | Vulnerabilities to malicious manipulation
+   * Black box problem | Lack of interpretability in complex models
+* Social Risks
+   * Job displacement | Automation and job loss
+   * Digital divide | Unequal access to AI technologies
+   * Misinformation spread | Use of AI to create and spread false information
+   * Surveillance concerns | Use of AI for mass monitoring
+* Ethical Risks
+   * Autonomous weapons | Development of lethal autonomous weapons systems
+   * Manipulation & persuasion | Using AI to manipulate human behavior
+   * Consent violations | Processing data without proper consent
+   * Human dignity threats | Systems that dehumanize or objectify people
+* Legal & Compliance Risks
+   * Liability uncertainties | Unclear responsibility for AI-caused harm
+   * Intellectual property issues | Copyright and patent concerns in AI training
+   * Regulatory non-compliance | Failing to meet emerging AI regulations
+3. Regulatory Landscape
+* Global Regulations
+   * EU AI Act | Comprehensive regulation for AI systems in Europe
+   * GDPR implications | Data protection requirements for AI systems
+   * China AI regulations | Algorithmic recommendation and deepfake regulations
+   * US federal initiatives | NIST framework and federal AI strategies
+* Industry Standards
+   * ISO/IEC 23053 & 23894 | International standards for AI governance
+   * IEEE standards | Ethical design and algorithmic bias standards
+   * Sector-specific guidelines | Healthcare, finance, and transportation AI rules
+* National Frameworks
+   * Canada's Directive on Automated Decision-Making | Requirements for government AI use
+   * UK's AI governance framework | Principles-based approach to AI regulation
+   * Singapore's Model AI Governance Framework | Voluntary adoption framework
+4. Frameworks & Methodologies
+* Ethics Frameworks
+   * IEEE Ethically Aligned Design | Comprehensive framework for ethical AI development
+   * Asilomar AI Principles | Research community principles for beneficial AI
+   * Montreal Declaration | Human-centered approach to AI development
+* Governance Frameworks
+   * NIST AI Risk Management Framework | Systematic approach to AI risk management
+   * OECD AI Principles | International principles for trustworthy AI
+   * UNESCO AI Ethics Recommendations | Global framework for AI ethics
+* Assessment Tools
+   * Impact assessments | Evaluating AI system effects on stakeholders
+   * Risk matrices | Systematic risk identification and evaluation
+   * Ethical review boards | Independent oversight of AI projects
+   * Audit protocols | Standardized procedures for AI system audits
+5. Opportunities & Benefits
+* Economic Growth
+   * Innovation acceleration | Faster research and development cycles
+   * Productivity gains | Automation of routine and complex tasks
+   * New market creation | Entirely new industries and business models
+   * Cost optimization | Reduced operational costs across industries
+* Social Good
+   * Healthcare advancement | Improved diagnosis, treatment, and drug discovery
+   * Education accessibility | Personalized learning and broader access to education
+   * Environmental monitoring | Better tracking and response to environmental changes
+   * Disaster response | Enhanced prediction and response to natural disasters
+* Business Advantages
+   * Competitive differentiation | Unique value propositions through AI capabilities
+   * Trust building | Enhanced reputation through responsible AI practices
+   * Risk mitigation | Better identification and management of business risks
+   * Sustainable practices | Optimization of resource use and environmental impact
+6. Implementation Strategies
+* Organizational Level
+   * AI ethics committees | Cross-functional teams for ethical oversight
+   * Training programs | Education on responsible AI practices
+   * Policy development | Internal guidelines and procedures
+   * Culture transformation | Building ethics into organizational culture
+* Technical Implementation
+   * Privacy-preserving techniques | Differential privacy and secure computation
+   * Federated learning | Distributed learning without data sharing
+   * Differential privacy | Mathematical guarantees for individual privacy
+   * Homomorphic encryption | Computation on encrypted data
+* Design Approaches
+   * Value-sensitive design | Incorporating stakeholder values in design
+   * Participatory design | Including affected communities in development
+   * Inclusive development | Ensuring diverse perspectives and needs
+   * Continuous monitoring | Ongoing assessment of system performance and impact
+7. Key Stakeholders
+* Internal
+   * Leadership & executives | Strategic decision-making and resource allocation
+   * Data scientists & developers | Technical implementation and model development
+   * Ethics officers | Oversight and guidance on ethical considerations
+   * Legal & compliance teams | Regulatory compliance and risk management
+* External
+   * Regulators | Government agencies overseeing AI development and deployment
+   * End users | Individuals and organizations affected by AI systems
+   * Civil society | NGOs and advocacy groups representing public interests
+   * Academic institutions | Research and education on AI ethics and governance
+   * Industry consortiums | Collaborative efforts for standards and best practices
+8. Tools & Resources
+* Technical Tools
+   * Bias detection software | Automated tools for identifying algorithmic bias
+   * Explainability toolkits | Libraries and frameworks for model interpretability
+   * Privacy-enhancing technologies | Tools for protecting individual privacy
+   * Model cards & datasheets | Documentation standards for AI models and datasets
+* Governance Tools
+   * Ethics checklists | Step-by-step guides for ethical AI development
+   * Risk assessment templates | Standardized formats for evaluating AI risks
+   * Audit frameworks | Systematic approaches for AI system audits
+   * Documentation standards | Best practices for AI system documentation
+* Monitoring & Evaluation
+   * Performance metrics | Quantitative measures of AI system effectiveness
+   * Fairness indicators | Metrics for assessing algorithmic fairness
+   * Impact measurements | Tools for evaluating societal and individual impact
+   * Continuous improvement processes | Frameworks for ongoing system enhancement</textarea>
                 <button class="generate-btn" id="generateBtn">GENERAR MAPA MENTAL</button>
             </div>
 

@@ -165,38 +165,81 @@ class MindmapEngine {
         return widths[Math.min(level, 4)] || 120;
     }
 
-    calculateNodePositions(root, startX = 250, startY = 600) {
+    calculateNodePositions(root, startX = 300, startY = 1500) {
         const positions = {};
-        const levelWidth = 280;
-        const nodeHeight = 80;
-        const verticalGap = 120;
+        const levelWidth = 320;
+        const minNodeHeight = 70;
+        const verticalPadding = 40;
+        const infoBoxMinHeight = 280;
 
-        // Improved positioning algorithm
-        const positionNode = (node, x, y, level = 0) => {
-            const nodeWidth = this.getNodeWidth(level);
-            positions[node.id] = { x, y, level, width: nodeWidth };
-            this.nodeWidths[node.id] = nodeWidth;
+        // Calculate height including info boxes
+        const calculateHeight = (node) => {
+            let baseHeight = minNodeHeight;
 
-            if (node.children && node.children.length > 0 && node.expanded) {
-                const childX = x + levelWidth;
+            if (this.nodeData[node.id]?.showInfo) {
+                const data = this.nodeData[node.id];
+                let infoHeight = 150;
 
-                // Calculate dynamic spacing based on number of children
-                let gap = verticalGap;
-                if (node.children.length > 5) {
-                    gap = Math.max(80, verticalGap - (node.children.length - 5) * 5);
+                if (data.notes) {
+                    const lines = data.notes.split('\n').length;
+                    const chars = data.notes.length;
+                    infoHeight += Math.min(250, lines * 25 + chars / 8);
                 }
 
-                const totalHeight = (node.children.length - 1) * gap;
-                let startY = y - totalHeight / 2;
+                if (data.images && data.images.length > 0) {
+                    const rows = Math.ceil(data.images.length / 3);
+                    infoHeight += rows * 100 + 30;
+                }
+
+                baseHeight += Math.max(infoBoxMinHeight, infoHeight);
+            }
+
+            if (!node.children || node.children.length === 0 || !node.expanded) {
+                return baseHeight;
+            }
+
+            let totalHeight = 0;
+            node.children.forEach(child => {
+                totalHeight += calculateHeight(child);
+            });
+
+            let padding = verticalPadding;
+            if (node.children.some(child => this.nodeData[child.id]?.showInfo)) {
+                padding = verticalPadding * 2;
+            }
+
+            totalHeight += (node.children.length - 1) * padding;
+
+            return Math.max(baseHeight, totalHeight);
+        };
+
+        // Position nodes recursively
+        const traverse = (node, x, y, parentId = null, level = 0) => {
+            positions[node.id] = { x, y, parentId, level };
+
+            if (node.children && node.children.length > 0 && node.expanded) {
+                const childrenHeights = node.children.map(child => calculateHeight(child));
+
+                let padding = verticalPadding;
+                if (node.children.some(child => this.nodeData[child.id]?.showInfo)) {
+                    padding = verticalPadding * 2;
+                }
+
+                const totalHeight = childrenHeights.reduce((sum, h) => sum + h, 0) +
+                                  (node.children.length - 1) * padding;
+
+                let currentY = y - totalHeight / 2;
 
                 node.children.forEach((child, index) => {
-                    const childY = startY + index * gap;
-                    positionNode(child, childX, childY, level + 1);
+                    const childHeight = childrenHeights[index];
+                    const childY = currentY + childHeight / 2;
+                    traverse(child, x + levelWidth, childY, node.id, level + 1);
+                    currentY += childHeight + padding;
                 });
             }
         };
 
-        positionNode(root, startX, startY);
+        traverse(root, startX, startY);
         return positions;
     }
 
@@ -206,19 +249,8 @@ class MindmapEngine {
         // Clear canvas
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
 
-        // Set connection styles
-        this.ctx.strokeStyle = '#DC6900';
-        this.ctx.lineWidth = 2.5;
-        this.ctx.lineCap = 'round';
-        this.ctx.lineJoin = 'round';
-        this.ctx.globalAlpha = 0.6;
-
-        // Store paths for interaction
-        this.connectionPaths = [];
-
         const drawNodeConnections = (node) => {
-            if (!node || !node.children || node.children.length === 0) return;
-            if (!node.expanded) return;
+            if (!node || !node.children || node.children.length === 0 || !node.expanded) return;
 
             const parentPos = this.positions[node.id];
             if (!parentPos) return;
@@ -227,54 +259,25 @@ class MindmapEngine {
                 const childPos = this.positions[child.id];
                 if (!childPos) return;
 
-                const parentWidth = parentPos.width || this.getNodeWidth(parentPos.level);
+                // Calculate connection points based on node widths
+                const parentWidth = this.getNodeWidth(parentPos.level);
+                const childWidth = this.getNodeWidth(childPos.level);
 
-                // Connection points
-                const startX = parentPos.x + (parentWidth / 2) - 5;
+                const startX = parentPos.x + (parentWidth / 2);
                 const startY = parentPos.y;
-                const endX = childPos.x - (childPos.width / 2) + 5;
+                const endX = childPos.x - (childWidth / 2);
                 const endY = childPos.y;
 
-                // Draw smooth Bézier curve
+                // Draw straight horizontal line
                 this.ctx.beginPath();
                 this.ctx.moveTo(startX, startY);
-
-                // Control points for smooth curve
-                const controlX1 = startX + (endX - startX) * 0.6;
-                const controlY1 = startY;
-                const controlX2 = startX + (endX - startX) * 0.4;
-                const controlY2 = endY;
-
-                this.ctx.bezierCurveTo(controlX1, controlY1, controlX2, controlY2, endX, endY);
+                this.ctx.lineTo(endX, endY);
+                this.ctx.strokeStyle = 'rgba(245, 184, 149, 0.3)';
+                this.ctx.lineWidth = 2;
                 this.ctx.stroke();
 
-                // Draw connection points
-                this.ctx.fillStyle = '#DC6900';
-                this.ctx.globalAlpha = 0.8;
-
-                // Start circle
-                this.ctx.beginPath();
-                this.ctx.arc(startX, startY, 3, 0, Math.PI * 2);
-                this.ctx.fill();
-
-                // End circle
-                this.ctx.beginPath();
-                this.ctx.arc(endX, endY, 3, 0, Math.PI * 2);
-                this.ctx.fill();
-
-                this.ctx.globalAlpha = 0.6;
-
-                // Store path for potential interactions
-                this.connectionPaths.push({
-                    from: node.id,
-                    to: child.id,
-                    path: { startX, startY, controlX1, controlY1, controlX2, controlY2, endX, endY }
-                });
-
                 // Recursively draw child connections
-                if (child.expanded && child.children) {
-                    drawNodeConnections(child);
-                }
+                drawNodeConnections(child);
             });
         };
 
@@ -283,125 +286,177 @@ class MindmapEngine {
 
     renderNodes(root) {
         const container = document.getElementById('nodesContainer');
-        container.innerHTML = '';
 
         this.nodes = root;
         this.positions = this.calculateNodePositions(root);
         this.isDirty = true;
 
-        const createNodeElement = (node, level = 0) => {
+        // Build map of existing nodes
+        const existingNodes = container.querySelectorAll('.node');
+        const existingNodeMap = new Map();
+
+        existingNodes.forEach(node => {
+            const nodeId = node.dataset.nodeId;
+            if (nodeId) {
+                existingNodeMap.set(nodeId, node);
+            }
+        });
+
+        // Track which nodes should exist after this render
+        const nodesToKeep = new Set();
+
+        const updateOrCreateNode = (node, level = 0) => {
             const pos = this.positions[node.id];
             if (!pos) return;
 
-            const nodeEl = document.createElement('div');
-            nodeEl.className = 'node';
-            nodeEl.style.position = 'absolute';
+            nodesToKeep.add(node.id);
+
+            // Check if node already exists
+            let nodeEl = existingNodeMap.get(node.id);
+            const isNewNode = !nodeEl;
+
+            if (isNewNode) {
+                // Create new node
+                nodeEl = document.createElement('div');
+                nodeEl.className = 'node';
+                nodeEl.style.position = 'absolute';
+                nodeEl.setAttribute('data-node-id', node.id);
+                container.appendChild(nodeEl);
+            }
+
+            // Update position (will animate if node exists)
             nodeEl.style.left = pos.x + 'px';
             nodeEl.style.top = pos.y + 'px';
             nodeEl.style.transform = 'translate(-50%, -50%)';
-            nodeEl.setAttribute('data-node-id', node.id);
 
+            // Update or create content
             const hasChildren = node.children && node.children.length > 0;
             const levelClass = level === 0 ? 'central' : `level-${level}`;
 
-            const nodeContent = document.createElement('div');
-            nodeContent.className = `node-content ${levelClass}`;
+            let nodeContent = nodeEl.querySelector('.node-content');
+            if (!nodeContent || isNewNode) {
+                nodeEl.innerHTML = ''; // Clear if recreating
+                nodeContent = document.createElement('div');
+                nodeContent.className = `node-content ${levelClass}`;
 
-            // Double-click for editing
-            nodeContent.ondblclick = (e) => {
-                e.stopPropagation();
-                this.editNode(node.id, node.title);
-            };
-
-            // Right-click context menu
-            nodeContent.oncontextmenu = (e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                this.showContextMenu(e, node.id, node.title);
-            };
-
-            // Click to select
-            nodeContent.onclick = (e) => {
-                e.stopPropagation();
-                this.selectNode(node.id);
-            };
-
-            // Create actions
-            const actionsDiv = document.createElement('div');
-            actionsDiv.className = 'node-actions';
-            actionsDiv.innerHTML = `
-                <button class="action-btn" onclick="mindmapEngine.editNode('${node.id}', '${node.title.replace(/'/g, "\\'")}')">Editar</button>
-                <button class="action-btn" onclick="mindmapEngine.toggleInfo('${node.id}')">Info</button>
-            `;
-            nodeContent.appendChild(actionsDiv);
-
-            // Create text span
-            const textSpan = document.createElement('span');
-            textSpan.className = 'node-text';
-            textSpan.textContent = node.title;
-            nodeContent.appendChild(textSpan);
-
-            // Add toggle if has children
-            if (hasChildren) {
-                const toggleSpan = document.createElement('span');
-                toggleSpan.className = 'toggle-icon';
-                toggleSpan.textContent = node.expanded ? '−' : '+';
-                toggleSpan.onclick = (e) => {
+                // Double-click for editing
+                nodeContent.ondblclick = (e) => {
                     e.stopPropagation();
-                    this.toggleNode(node.id);
+                    this.editNode(node.id, node.title);
                 };
-                nodeContent.appendChild(toggleSpan);
-            }
 
-            nodeEl.appendChild(nodeContent);
+                // Right-click context menu
+                nodeContent.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.showContextMenu(e, node.id, node.title);
+                };
 
-            // Extra info panel
-            const extraInfo = document.createElement('div');
-            extraInfo.className = `node-extra-info ${this.nodeData[node.id]?.showInfo ? 'visible' : ''}`;
-            extraInfo.id = `info-${node.id}`;
+                // Click to select
+                nodeContent.onclick = (e) => {
+                    e.stopPropagation();
+                    this.selectNode(node.id);
+                };
 
-            const data = this.nodeData[node.id] || {};
-            let infoHTML = '';
+                // Create actions
+                const actionsDiv = document.createElement('div');
+                actionsDiv.className = 'node-actions';
+                actionsDiv.innerHTML = `
+                    <button class="action-btn" onclick="mindmapEngine.editNode('${node.id}', '${node.title.replace(/'/g, "\\'")}')">Editar</button>
+                    <button class="action-btn" onclick="mindmapEngine.toggleInfo('${node.id}')">Info</button>
+                `;
+                nodeContent.appendChild(actionsDiv);
 
-            if (data.notes || (data.images && data.images.length > 0)) {
-                if (data.notes) {
-                    const formattedNotes = data.notes
-                        .replace(/</g, '&lt;')
-                        .replace(/>/g, '&gt;')
-                        .replace(/\n/g, '<br>');
-                    infoHTML += `<div class="note-text">${formattedNotes}</div>`;
+                // Create text span
+                const textSpan = document.createElement('span');
+                textSpan.className = 'node-text';
+                textSpan.textContent = node.title;
+                nodeContent.appendChild(textSpan);
+
+                // Add toggle if has children
+                if (hasChildren) {
+                    const toggleSpan = document.createElement('span');
+                    toggleSpan.className = 'toggle-icon';
+                    toggleSpan.textContent = node.expanded ? '−' : '+';
+                    toggleSpan.onclick = (e) => {
+                        e.stopPropagation();
+                        this.toggleNode(node.id);
+                    };
+                    nodeContent.appendChild(toggleSpan);
                 }
-                if (data.images && data.images.length > 0) {
-                    infoHTML += '<div class="images">';
-                    data.images.forEach((img, idx) => {
-                        if (img && img.startsWith('data:image')) {
-                            infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
-                        }
-                    });
-                    infoHTML += '</div>';
+
+                nodeEl.appendChild(nodeContent);
+
+                // Extra info panel
+                const extraInfo = document.createElement('div');
+                extraInfo.className = `node-extra-info ${this.nodeData[node.id]?.showInfo ? 'visible' : ''}`;
+                extraInfo.id = `info-${node.id}`;
+
+                const data = this.nodeData[node.id] || {};
+                let infoHTML = '';
+
+                if (data.notes || (data.images && data.images.length > 0)) {
+                    if (data.notes) {
+                        const formattedNotes = data.notes
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/\n/g, '<br>');
+                        infoHTML += `<div class="note-text">${formattedNotes}</div>`;
+                    }
+                    if (data.images && data.images.length > 0) {
+                        infoHTML += '<div class="images">';
+                        data.images.forEach((img, idx) => {
+                            if (img && img.startsWith('data:image')) {
+                                infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
+                            }
+                        });
+                        infoHTML += '</div>';
+                    }
+                } else {
+                    infoHTML = '<div class="note-text" style="color: #999; font-style: italic;">Sin información adicional</div>';
+                }
+
+                extraInfo.innerHTML = infoHTML;
+                nodeEl.appendChild(extraInfo);
+
+                if (data.showInfo) {
+                    nodeEl.classList.add('info-expanded');
                 }
             } else {
-                infoHTML = '<div class="note-text" style="color: #999; font-style: italic;">Sin información adicional</div>';
+                // Update existing node content
+                const textSpan = nodeContent.querySelector('.node-text');
+                if (textSpan) textSpan.textContent = node.title;
+
+                const toggleSpan = nodeContent.querySelector('.toggle-icon');
+                if (hasChildren && toggleSpan) {
+                    toggleSpan.textContent = node.expanded ? '−' : '+';
+                }
             }
-
-            extraInfo.innerHTML = infoHTML;
-            nodeEl.appendChild(extraInfo);
-
-            if (data.showInfo) {
-                nodeEl.classList.add('info-expanded');
-            }
-
-            container.appendChild(nodeEl);
 
             // Render children if expanded
             if (node.children && node.expanded) {
                 node.children.forEach(child => {
-                    createNodeElement(child, level + 1);
+                    updateOrCreateNode(child, level + 1);
                 });
             }
         };
 
-        createNodeElement(root);
+        // Update/create all visible nodes
+        updateOrCreateNode(root);
+
+        // Remove nodes that no longer exist or are hidden
+        existingNodeMap.forEach((nodeEl, nodeId) => {
+            if (!nodesToKeep.has(nodeId)) {
+                // Fade out and remove
+                nodeEl.style.opacity = '0';
+                nodeEl.style.transform = 'translate(-50%, -50%) scale(0.8)';
+                setTimeout(() => {
+                    if (nodeEl.parentNode) {
+                        nodeEl.parentNode.removeChild(nodeEl);
+                    }
+                }, 300);
+            }
+        });
     }
 
     toggleNode(nodeId) {
@@ -646,7 +701,7 @@ class MindmapEngine {
         }
 
         this.nodeData[nodeId].notes = document.getElementById('modalNotes').value;
-        this.nodeData[nodeId].showInfo = true;
+        // Don't auto-expand after saving - let user toggle manually
 
         this.renderNodes(this.nodes);
 

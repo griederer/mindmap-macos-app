@@ -111,6 +111,69 @@ body {
     overflow: hidden;
 }
 
+.projects-panel {
+    width: 200px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,248,248,0.95) 100%);
+    padding: 20px 12px;
+    border-right: 1px solid rgba(220, 105, 0, 0.15);
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(10px);
+    z-index: 10;
+}
+
+.projects-panel h3 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #2D2926;
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.project-list {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.project-item {
+    padding: 10px 12px;
+    background: white;
+    border: 1px solid rgba(220, 105, 0, 0.15);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+    font-weight: 500;
+    color: #2D2926;
+}
+
+.project-item:hover {
+    background: rgba(245, 184, 149, 0.1);
+    border-color: rgba(220, 105, 0, 0.3);
+    transform: translateX(2px);
+}
+
+.project-item.active {
+    background: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
+    border-color: #DC6900;
+    color: #2D2926;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(220, 105, 0, 0.15);
+}
+
+.add-project-btn {
+    width: 100%;
+    padding: 10px;
+    font-size: 11px;
+    background: rgba(245, 184, 149, 0.15);
+    border: 1px solid rgba(245, 184, 149, 0.3);
+}
+
 .input-panel {
     width: 320px;
     background: linear-gradient(180deg, rgba(255,255,255,0.95) 0%, rgba(248,248,248,0.95) 100%);
@@ -230,8 +293,12 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    will-change: transform;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+                left 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                top 0.5s cubic-bezier(0.34, 1.56, 0.64, 1),
+                opacity 0.3s ease;
+    will-change: transform, left, top;
+    opacity: 1;
 }
 
 .node.selected {
@@ -390,23 +457,33 @@ body {
     transform: translateX(-50%) translateY(12px);
     margin-top: 0;
     background: white;
-    border: 2px solid rgba(220, 105, 0, 0.2);
+    border: 2px solid rgba(220, 105, 0, 0.3);
     border-radius: 10px;
     padding: 16px;
-    font-size: 12px;
-    min-width: 200px;
-    max-width: 320px;
+    font-size: 13px;
+    line-height: 1.6;
+    min-width: 220px;
+    max-width: 380px;
     opacity: 0;
     pointer-events: none;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
-    z-index: 100;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    z-index: 150;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: none;
 }
 
 .node-extra-info.visible {
     opacity: 1;
     pointer-events: all;
     transform: translateX(-50%) translateY(0);
+    display: block;
+}
+
+.node-extra-info .note-text {
+    color: #2D2926;
+    margin-bottom: 12px;
+    white-space: pre-wrap;
+    word-wrap: break-word;
 }
 
 .edit-modal {
