@@ -395,15 +395,30 @@ class MindmapEngine {
                 const data = this.nodeData[node.id] || {};
                 let infoHTML = '';
 
-                if (data.notes || (data.images && data.images.length > 0)) {
-                    if (data.notes) {
+                // Check what content is available
+                const hasDescription = node.description && node.description.trim();
+                const hasNotes = data.notes && data.notes.trim();
+                const hasImages = data.images && data.images.length > 0;
+
+                if (hasDescription || hasNotes || hasImages) {
+                    // Show description from outline (text after |)
+                    if (hasDescription) {
+                        const formattedDesc = node.description
+                            .replace(/</g, '&lt;')
+                            .replace(/>/g, '&gt;')
+                            .replace(/\n/g, '<br>');
+                        infoHTML += `<div class="note-text description" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(220, 105, 0, 0.2);">${formattedDesc}</div>`;
+                    }
+                    // Show manual notes added via edit modal
+                    if (hasNotes) {
                         const formattedNotes = data.notes
                             .replace(/</g, '&lt;')
                             .replace(/>/g, '&gt;')
                             .replace(/\n/g, '<br>');
-                        infoHTML += `<div class="note-text">${formattedNotes}</div>`;
+                        infoHTML += `<div class="note-text notes">${formattedNotes}</div>`;
                     }
-                    if (data.images && data.images.length > 0) {
+                    // Show uploaded images
+                    if (hasImages) {
                         infoHTML += '<div class="images">';
                         data.images.forEach((img, idx) => {
                             if (img && img.startsWith('data:image')) {
