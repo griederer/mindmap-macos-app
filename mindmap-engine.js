@@ -577,9 +577,8 @@ class MindmapEngine {
             }
         }
 
-        // Recalculate positions and redraw if needed (for spacing adjustments)
-        this.positions = this.calculateNodePositions(this.nodes);
-        this.isDirty = true;
+        // Note: Position recalculation removed to prevent node movement when toggling info
+        // Info panel uses CSS positioning that doesn't affect node layout
     }
 
     expandAll() {
