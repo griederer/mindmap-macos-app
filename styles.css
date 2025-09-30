@@ -120,6 +120,12 @@ body {
     flex-direction: column;
     backdrop-filter: blur(10px);
     z-index: 10;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+.projects-panel.collapsed {
+    margin-left: -200px;
 }
 
 .projects-panel h3 {
@@ -644,17 +650,25 @@ body {
 
 .toggle-panel-btn {
     position: fixed;
-    left: 320px;
+    left: 520px;
     top: 50%;
     transform: translateY(-50%);
     background: white;
     border: 1px solid rgba(220, 105, 0, 0.2);
-    padding: 10px 6px;
+    padding: 10px 8px;
     border-radius: 0 8px 8px 0;
     cursor: pointer;
     z-index: 100;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+    font-size: 14px;
+    color: #2D2926;
+    font-weight: 600;
+}
+
+.toggle-panel-btn:hover {
+    background: rgba(245, 184, 149, 0.1);
+    border-color: rgba(220, 105, 0, 0.4);
 }
 
 .toggle-panel-btn.panel-hidden {

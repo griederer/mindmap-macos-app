@@ -11,6 +11,10 @@ class MindmapRenderer {
         this.projects = [];
         this.currentProject = null;
 
+        // Panel visibility
+        this.panelVisible = true;
+        this.projectsPanelVisible = true;
+
         this.init();
         this.setupEventListeners();
         this.setupElectronIntegration();
@@ -462,19 +466,24 @@ class MindmapRenderer {
     }
 
     togglePanel() {
-        const panel = document.getElementById('inputPanel');
+        const inputPanel = document.getElementById('inputPanel');
+        const projectsPanel = document.getElementById('projectsPanel');
         const btn = document.getElementById('togglePanelBtn');
         this.panelVisible = !this.panelVisible;
 
         if (this.panelVisible) {
-            panel.classList.remove('collapsed');
+            // Show both panels
+            inputPanel.classList.remove('collapsed');
+            projectsPanel.classList.remove('collapsed');
             btn.classList.remove('panel-hidden');
-            btn.innerHTML = '◀';
-            btn.style.left = '320px';
+            btn.innerHTML = '◀◀';
+            btn.style.left = '520px';
         } else {
-            panel.classList.add('collapsed');
+            // Hide both panels
+            inputPanel.classList.add('collapsed');
+            projectsPanel.classList.add('collapsed');
             btn.classList.add('panel-hidden');
-            btn.innerHTML = '▶';
+            btn.innerHTML = '▶▶';
             btn.style.left = '0';
         }
     }
