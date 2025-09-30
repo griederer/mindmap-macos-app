@@ -325,18 +325,33 @@ class MindmapEngine {
             const isNewNode = !nodeEl;
 
             if (isNewNode) {
-                // Create new node
+                // Create new node with initial state for fade-in animation
                 nodeEl = document.createElement('div');
                 nodeEl.className = 'node';
                 nodeEl.style.position = 'absolute';
                 nodeEl.setAttribute('data-node-id', node.id);
+
+                // Set initial state (invisible, scaled down)
+                nodeEl.style.opacity = '0';
+                nodeEl.style.transform = 'translate(-50%, -50%) scale(0.8)';
+
                 container.appendChild(nodeEl);
+
+                // Trigger fade-in after a frame (expand animation)
+                requestAnimationFrame(() => {
+                    nodeEl.style.opacity = '1';
+                    nodeEl.style.transform = 'translate(-50%, -50%) scale(1)';
+                });
             }
 
             // Update position (will animate if node exists)
             nodeEl.style.left = pos.x + 'px';
             nodeEl.style.top = pos.y + 'px';
-            nodeEl.style.transform = 'translate(-50%, -50%)';
+
+            // Ensure transform maintains scale(1) for existing nodes
+            if (!isNewNode) {
+                nodeEl.style.transform = 'translate(-50%, -50%) scale(1)';
+            }
 
             // Update or create content
             const hasChildren = node.children && node.children.length > 0;
@@ -437,14 +452,14 @@ class MindmapEngine {
         // Remove nodes that no longer exist or are hidden
         existingNodeMap.forEach((nodeEl, nodeId) => {
             if (!nodesToKeep.has(nodeId)) {
-                // Fade out and remove
+                // Fade out and remove (collapse animation)
                 nodeEl.style.opacity = '0';
                 nodeEl.style.transform = 'translate(-50%, -50%) scale(0.8)';
                 setTimeout(() => {
                     if (nodeEl.parentNode) {
                         nodeEl.parentNode.removeChild(nodeEl);
                     }
-                }, 300);
+                }, 400);
             }
         });
     }

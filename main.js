@@ -38,6 +38,9 @@ function createWindow() {
   // Load the index.html file
   mainWindow.loadFile('index.html');
 
+  // Disable cache for CSS changes
+  mainWindow.webContents.session.clearCache();
+
   // Show window when ready to prevent visual flash
   mainWindow.once('ready-to-show', () => {
     mainWindow.show();
@@ -52,6 +55,13 @@ function createWindow() {
   if (isDev) {
     mainWindow.webContents.openDevTools();
   }
+
+  // Force reload on F5
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.key === 'F5') {
+      mainWindow.webContents.reloadIgnoringCache();
+    }
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;
