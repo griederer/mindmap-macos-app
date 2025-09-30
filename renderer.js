@@ -10,6 +10,135 @@ class MindmapRenderer {
         // Project management
         this.projects = [
                 {
+                    id: 'test-ia-simple',
+                    name: 'IA Responsable (Prueba Info)',
+                    content: `IA Responsable | Práctica de diseñar, desarrollar e implementar sistemas de inteligencia artificial de manera ética, considerando su impacto en sociedad, economía y medio ambiente.
+1. Frameworks y Metodologías | Enfoques estructurados para implementar IA responsable en organizaciones, incluyendo marcos éticos y herramientas de evaluación.
+* Marcos Éticos | Fundamentos filosóficos y principios morales que guían el desarrollo ético de IA a nivel global.
+   * IEEE Ethically Aligned Design | Marco comprehensivo para sistemas de IA éticos que priorizan bienestar humano con estándares de ingeniería detallados.
+   * Principios de Asilomar | 23 principios desarrollados por comunidad de investigación en IA para asegurar desarrollo beneficioso y seguro de sistemas inteligentes.
+   * Declaración de Montreal | Principios centrados en humanos para desarrollo de IA que beneficie a todos mediante enfoque inclusivo.
+* Marcos de Gobernanza | Estructuras organizacionales y procesos para supervisión efectiva de IA a nivel institucional y corporativo.
+   * NIST AI Risk Management Framework | Marco estadounidense para identificar, evaluar y gestionar riesgos relacionados con IA de forma sistemática y completa.
+   * Principios OECD de IA | Directrices internacionales para IA confiable adoptadas por países miembros promoviendo innovación responsable global.
+   * Recomendaciones UNESCO sobre Ética | Estándares éticos globales para IA adoptados por 193 estados miembros asegurando respeto por derechos humanos.
+* Herramientas de Evaluación | Métodos y técnicas para evaluar sistemas de IA contra criterios éticos y de desempeño establecidos.
+   * Evaluaciones de Impacto | Análisis sistemático de efectos potenciales del despliegue de IA en individuos, sociedad y ambiente con métricas cuantificables.
+   * Matrices de Riesgo | Herramientas estructuradas para evaluar y priorizar riesgos relacionados con IA basados en probabilidad de ocurrencia e impacto.
+   * Comités de Revisión Ética | Grupos independientes multidisciplinarios que revisan proyectos de IA para conformidad ética y cumplimiento normativo riguroso.
+2. Riesgos y Desafíos | Impactos negativos potenciales que requieren gestión proactiva y mitigación sistemática en sistemas de IA.
+* Riesgos Técnicos | Desafíos que surgen del diseño, desarrollo y operación de sistemas de IA relacionados con limitaciones tecnológicas.
+   * Sesgo Algorítmico | Injusticia sistemática en predicciones o decisiones de IA que perpetúa o amplifica discriminación existente en datos entrenamiento.
+   * Deriva del Modelo | Degradación del rendimiento cuando condiciones del mundo real cambian respecto a datos de entrenamiento originales del sistema.
+   * Ataques Adversariales | Entradas maliciosas diseñadas específicamente para engañar a sistemas de IA y causar clasificaciones erróneas o fallas críticas.
+   * Problema de Caja Negra | Incapacidad para entender o explicar proceso de toma de decisiones en modelos complejos de IA profunda.
+* Riesgos Sociales | Impactos más amplios en sociedad derivados del despliegue masivo de IA afectando estructuras sociales y económicas.
+   * Desplazamiento Laboral | Automatización que reemplaza trabajadores humanos en múltiples industrias potencialmente causando desempleo masivo y crisis económica.
+   * Brecha Digital | Acceso desigual a beneficios de IA entre diferentes poblaciones exacerbando desigualdades existentes en educación y oportunidades.
+   * Difusión de Desinformación | Contenido falso o engañoso generado o amplificado por IA manipulando opinión pública y procesos democráticos.
+* Riesgos Éticos | Desafíos morales fundamentales en desarrollo y uso de IA que cuestionan valores humanos básicos y normas sociales.
+   * Armas Autónomas | Sistemas de IA capaces de seleccionar y atacar objetivos sin intervención humana planteando dilemas éticos profundos.
+   * Manipulación y Persuasión | IA utilizada para influir indebidamente en comportamiento humano socavando autonomía individual y libre albedrío.
+   * Amenazas a Dignidad Humana | Aplicaciones de IA que deshumanizan, objetifican o reducen personas a puntos de datos sin considerar complejidad humana.`
+                },
+                {
+                    id: 'default',
+                    name: 'ENTRADA DE ESQUEMA',
+                    content: `Nuevo Mapa Mental
+1. Idea Principal
+* Subtema 1
+* Subtema 2
+2. Segunda Idea
+* Desarrollo
+* Conclusiones`
+                },
+                {
+                    id: 'ia-responsable',
+                    name: 'Inteligencia Artificial Responsable',
+                    content: `IA Responsable | La práctica integral de diseñar, desarrollar e implementar sistemas de inteligencia artificial de manera ética y responsable, considerando su impacto en la sociedad, economía y medio ambiente. Implica establecer principios, procesos y mecanismos de gobernanza que aseguren que la IA beneficie a la humanidad mientras se minimizan los riesgos potenciales y se respetan los derechos humanos fundamentales.
+1. Principios Fundamentales | Directrices esenciales que garantizan que los sistemas de IA beneficien a la humanidad mientras minimizan los riesgos potenciales. Estos principios sirven como base ética y operativa para todo el ciclo de vida de los sistemas de IA, desde su concepción hasta su implementación y monitoreo continuo.
+* Equidad y No Discriminación | Garantizar que los sistemas de IA traten a todos los individuos y grupos de manera equitativa sin sesgos injustos.
+   * Prevención de sesgos | Técnicas y metodologías sistemáticas para identificar, medir y eliminar prejuicios injustos en algoritmos de IA.
+   * Resultados equitativos | Asegurar que los beneficios y oportunidades generados por la IA se distribuyan de manera justa entre todos los grupos demográficos.
+   * Diseño inclusivo | Crear sistemas de IA accesibles y beneficiosos para poblaciones diversas, incluyendo personas con discapacidades.
+* Transparencia | Hacer que los sistemas de IA sean comprensibles y sus procesos de toma de decisiones sean claros para usuarios y stakeholders.
+   * IA Explicable (XAI) | Métodos y técnicas que hacen las decisiones de la IA interpretables y comprensibles para humanos.
+   * Interpretabilidad de modelos | Comprender cómo los modelos de IA llegan a conclusiones específicas, incluyendo la importancia relativa de diferentes características.
+   * Documentación de decisiones | Registro completo y auditable de los procesos de decisión de la IA para responsabilidad y revisión posterior.
+* Responsabilidad | Marcos claros de responsabilidad para el desarrollo, implementación y operación de sistemas de IA.
+   * Propiedad clara | Definir inequívocamente quién es responsable de los resultados y consecuencias de los sistemas de IA.
+   * Pistas de auditoría | Registros integrales y a prueba de manipulaciones de todas las decisiones y procesos de los sistemas de IA.
+   * Asignación de responsabilidades | Roles y responsabilidades explícitos para la gobernanza y supervisión de la IA en toda la organización.
+* Privacidad y Seguridad | Proteger la información personal y garantizar la integridad de los sistemas de IA contra amenazas internas y externas.
+   * Protección de datos | Salvaguardar la información personal utilizada en sistemas de IA mediante técnicas de encriptación, anonimización y control de acceso.
+   * Gestión de consentimiento | Asegurar la autorización adecuada y transparente para el uso de datos en sistemas de IA, respetando la autonomía del usuario.
+   * Medidas de ciberseguridad | Proteger los sistemas de IA contra ataques maliciosos, manipulación y uso no autorizado mediante defensas multicapa.
+* Diseño Centrado en el Humano | Priorizar las necesidades humanas y mantener el control humano significativo sobre las decisiones de la IA.
+   * Supervisión humana | Mantener control humano significativo y apropiado sobre las decisiones de la IA, especialmente en contextos de alto riesgo.
+   * Empoderamiento del usuario | Habilitar a los usuarios para comprender, controlar y beneficiarse de sus interacciones con sistemas de IA.
+   * Aumento no reemplazo | La IA debe mejorar y amplificar las capacidades humanas en lugar de sustituir completamente a los trabajadores.
+2. Riesgos y Desafíos de la IA | Impactos negativos potenciales que requieren gestión proactiva y mitigación sistemática.
+* Riesgos Técnicos | Desafíos que surgen del diseño, desarrollo y operación de sistemas de IA, relacionados con limitaciones inherentes de la tecnología actual.
+   * Sesgo algorítmico | Injusticia sistemática en las predicciones o decisiones de la IA que puede perpetuar o amplificar discriminación existente.
+   * Deriva del modelo | Degradación del rendimiento del modelo cuando las condiciones del mundo real cambian respecto a los datos de entrenamiento originales.
+   * Ataques adversariales | Entradas maliciosas diseñadas específicamente para engañar a los sistemas de IA y causar clasificaciones erróneas.
+   * Problema de caja negra | Incapacidad para entender o explicar el proceso de toma de decisiones en modelos complejos de IA.
+* Riesgos Sociales | Impactos más amplios en la sociedad derivados del despliegue masivo de IA que pueden afectar estructuras sociales, económicas y culturales.
+   * Desplazamiento laboral | Automatización que reemplaza trabajadores humanos en múltiples industrias, potencialmente causando desempleo masivo.
+   * Brecha digital | Acceso desigual a los beneficios de la IA entre diferentes poblaciones, exacerbando desigualdades existentes.
+   * Difusión de desinformación | Contenido falso o engañoso generado o amplificado por IA que puede manipular opinión pública.
+   * Preocupaciones de vigilancia | Violaciones de privacidad mediante monitoreo potenciado por IA que puede erosionar libertades civiles.
+* Riesgos Éticos | Desafíos morales fundamentales en el desarrollo y uso de IA que cuestionan valores humanos básicos y normas sociales.
+   * Armas autónomas | Sistemas de IA capaces de seleccionar y atacar objetivos sin intervención humana.
+   * Manipulación y persuasión | IA utilizada para influir indebidamente en el comportamiento humano, socavando la autonomía.
+   * Violaciones del consentimiento | Uso de datos personales sin autorización adecuada, violando la privacidad y autonomía individual.
+   * Amenazas a la dignidad humana | Aplicaciones de IA que deshumanizan, objetifican o reducen a las personas a puntos de datos.
+* Riesgos Legales y de Cumplimiento | Desafíos regulatorios y legales en un panorama normativo en rápida evolución.
+   * Incertidumbres de responsabilidad | Falta de claridad sobre quién es legalmente responsable cuando la IA causa daños o toma decisiones erróneas.
+   * Problemas de propiedad intelectual | Preguntas sobre la propiedad del contenido generado por IA y el uso de material protegido en entrenamiento.
+   * Incumplimiento regulatorio | Falta de adherencia a las regulaciones de IA en evolución, resultando en sanciones y daño reputacional.
+3. Panorama Regulatorio | Leyes, regulaciones y estándares que gobiernan el desarrollo y uso de IA a nivel global, regional y nacional.
+* Regulaciones Globales | Marcos y acuerdos internacionales que buscan armonizar enfoques de gobernanza de IA entre países.
+   * Ley de IA de la UE | Regulación integral basada en riesgos para IA en Europa, estableciendo requisitos diferenciados según el nivel de riesgo.
+   * Implicaciones del GDPR | Requisitos de protección de datos que afectan significativamente a los sistemas de IA.
+   * Regulaciones de IA de China | Enfoque chino hacia la gobernanza de IA enfocado en seguridad nacional y estabilidad social.
+   * Iniciativas federales de EE.UU. | Esfuerzos de política y regulación de IA estadounidenses, balanceando innovación con protección de derechos.
+* Estándares de la Industria | Estándares técnicos y mejores prácticas desarrollados por organizaciones de normalización.
+   * ISO/IEC 23053 y 23894 | Estándares internacionales para confiabilidad en IA que establecen marco para sistemas robustos y éticos.
+   * Estándares IEEE | Estándares de ingeniería profesional para IA ética desarrollados por la comunidad técnica global.
+   * Guías específicas del sector | Marcos de gobernanza de IA adaptados a necesidades y riesgos únicos de industrias específicas.
+* Marcos Nacionales | Estrategias y regulaciones de IA específicas de cada país que reflejan prioridades y valores nacionales.
+   * Directiva de Canadá | Directrices del gobierno canadiense para el uso de IA en servicios públicos, enfatizando transparencia.
+   * Marco de IA del Reino Unido | Enfoque británico pro-innovación para la regulación de IA, favoreciendo principios sobre reglas prescriptivas.
+   * Modelo de Singapur | Marco de gobernanza de Singapur para ética en IA, balanceando innovación con gestión de riesgos.
+4. Marcos y Metodologías | Enfoques estructurados y sistemáticos para implementar IA responsable en organizaciones.
+* Marcos Éticos | Fundamentos filosóficos y principios morales que guían el desarrollo ético de IA.
+   * IEEE Diseño Éticamente Alineado | Estándares de ingeniería comprehensivos para sistemas de IA éticos que priorizan el bienestar humano.
+   * Principios de IA de Asilomar | 23 principios desarrollados por la comunidad de investigación de IA para el desarrollo beneficioso de IA.
+   * Declaración de Montreal | Principios centrados en el humano para el desarrollo de IA que beneficie a todos.
+* Marcos de Gobernanza | Estructuras organizacionales y procesos para supervisión efectiva de IA a nivel institucional.
+   * Gestión de Riesgos de IA del NIST | Marco estadounidense integral para identificar, evaluar y gestionar riesgos relacionados con IA.
+   * Principios de IA de la OCDE | Directrices internacionales para IA confiable adoptadas por países miembros y socios.
+   * Ética de IA de UNESCO | Estándares éticos globales para IA adoptados por 193 estados miembros.
+* Herramientas de Evaluación | Métodos y técnicas para evaluar sistemas de IA contra criterios éticos y de desempeño.
+   * Evaluaciones de impacto | Análisis sistemático de efectos potenciales del despliegue de IA en individuos, sociedad y ambiente.
+   * Matrices de riesgo | Herramientas estructuradas para evaluar y priorizar riesgos relacionados con IA basados en probabilidad e impacto.
+   * Comités de revisión ética | Grupos independientes multidisciplinarios que revisan proyectos de IA para conformidad ética.
+5. Oportunidades y Beneficios | Impactos positivos transformadores de la adopción responsable de IA en economía, sociedad y organizaciones.
+* Crecimiento Económico | Contribución de la IA al desarrollo económico, productividad, e innovación a escala macro y micro.
+   * Aceleración de innovación | IA catalizando ciclos de investigación y desarrollo más rápidos en todas las industrias.
+   * Ganancias de productividad | Mejora dramática de eficiencia operacional mediante automatización inteligente y optimización de procesos.
+   * Creación de nuevos mercados | Surgimiento de productos, servicios, y modelos de negocio completamente nuevos habilitados por IA.
+* Bien Social | Aplicaciones de IA que abordan desafíos sociales críticos y mejoran calidad de vida para todos.
+   * Avance en salud | IA revolucionando diagnóstico médico, desarrollo de tratamientos, y prestación de atención sanitaria.
+   * Accesibilidad educativa | Aprendizaje personalizado y adaptativo que hace educación de calidad accesible para todos.
+   * Monitoreo ambiental | IA rastreando y abordando cambio climático, pérdida de biodiversidad, y degradación ambiental.
+* Ventajas Empresariales | Beneficios competitivos tangibles de adoptar prácticas de IA responsable que crean valor empresarial sostenible.
+   * Diferenciación competitiva | Destacar en el mercado mediante prácticas éticas de IA que resuenan con consumidores conscientes.
+   * Construcción de confianza | Ganar y mantener confianza de clientes, empleados, inversores y sociedad mediante transparencia.
+   * Mitigación de riesgos | Evitar daños reputacionales, legales, y financieros mediante gestión proactiva de riesgos de IA.`
+                },
+                {
                     id: 'ia-responsable-pwc',
                     name: 'IA Responsable - PwC',
                     content: `IA Responsable
@@ -872,134 +1001,9 @@ class MindmapRenderer {
         const savedProjects = localStorage.getItem('mindmap-projects');
         if (savedProjects) {
             this.projects = JSON.parse(savedProjects);
-        } else {
-            // Initialize with default projects
-            this.projects = [
-                {
-                    id: 'test-ia-simple',
-                    name: 'IA Responsable (Prueba Info)',
-                    content: `IA Responsable | Práctica de diseñar, desarrollar e implementar sistemas de inteligencia artificial de manera ética, considerando su impacto en sociedad, economía y medio ambiente.
-1. Frameworks y Metodologías | Enfoques estructurados para implementar IA responsable en organizaciones, incluyendo marcos éticos y herramientas de evaluación.
-* Marcos Éticos | Fundamentos filosóficos y principios morales que guían el desarrollo ético de IA a nivel global.
-   * IEEE Ethically Aligned Design | Marco comprehensivo para sistemas de IA éticos que priorizan bienestar humano con estándares de ingeniería detallados.
-   * Principios de Asilomar | 23 principios desarrollados por comunidad de investigación en IA para asegurar desarrollo beneficioso y seguro de sistemas inteligentes.
-   * Declaración de Montreal | Principios centrados en humanos para desarrollo de IA que beneficie a todos mediante enfoque inclusivo.
-* Marcos de Gobernanza | Estructuras organizacionales y procesos para supervisión efectiva de IA a nivel institucional y corporativo.
-   * NIST AI Risk Management Framework | Marco estadounidense para identificar, evaluar y gestionar riesgos relacionados con IA de forma sistemática y completa.
-   * Principios OECD de IA | Directrices internacionales para IA confiable adoptadas por países miembros promoviendo innovación responsable global.
-   * Recomendaciones UNESCO sobre Ética | Estándares éticos globales para IA adoptados por 193 estados miembros asegurando respeto por derechos humanos.
-* Herramientas de Evaluación | Métodos y técnicas para evaluar sistemas de IA contra criterios éticos y de desempeño establecidos.
-   * Evaluaciones de Impacto | Análisis sistemático de efectos potenciales del despliegue de IA en individuos, sociedad y ambiente con métricas cuantificables.
-   * Matrices de Riesgo | Herramientas estructuradas para evaluar y priorizar riesgos relacionados con IA basados en probabilidad de ocurrencia e impacto.
-   * Comités de Revisión Ética | Grupos independientes multidisciplinarios que revisan proyectos de IA para conformidad ética y cumplimiento normativo riguroso.
-2. Riesgos y Desafíos | Impactos negativos potenciales que requieren gestión proactiva y mitigación sistemática en sistemas de IA.
-* Riesgos Técnicos | Desafíos que surgen del diseño, desarrollo y operación de sistemas de IA relacionados con limitaciones tecnológicas.
-   * Sesgo Algorítmico | Injusticia sistemática en predicciones o decisiones de IA que perpetúa o amplifica discriminación existente en datos entrenamiento.
-   * Deriva del Modelo | Degradación del rendimiento cuando condiciones del mundo real cambian respecto a datos de entrenamiento originales del sistema.
-   * Ataques Adversariales | Entradas maliciosas diseñadas específicamente para engañar a sistemas de IA y causar clasificaciones erróneas o fallas críticas.
-   * Problema de Caja Negra | Incapacidad para entender o explicar proceso de toma de decisiones en modelos complejos de IA profunda.
-* Riesgos Sociales | Impactos más amplios en sociedad derivados del despliegue masivo de IA afectando estructuras sociales y económicas.
-   * Desplazamiento Laboral | Automatización que reemplaza trabajadores humanos en múltiples industrias potencialmente causando desempleo masivo y crisis económica.
-   * Brecha Digital | Acceso desigual a beneficios de IA entre diferentes poblaciones exacerbando desigualdades existentes en educación y oportunidades.
-   * Difusión de Desinformación | Contenido falso o engañoso generado o amplificado por IA manipulando opinión pública y procesos democráticos.
-* Riesgos Éticos | Desafíos morales fundamentales en desarrollo y uso de IA que cuestionan valores humanos básicos y normas sociales.
-   * Armas Autónomas | Sistemas de IA capaces de seleccionar y atacar objetivos sin intervención humana planteando dilemas éticos profundos.
-   * Manipulación y Persuasión | IA utilizada para influir indebidamente en comportamiento humano socavando autonomía individual y libre albedrío.
-   * Amenazas a Dignidad Humana | Aplicaciones de IA que deshumanizan, objetifican o reducen personas a puntos de datos sin considerar complejidad humana.`
-                },
-                {
-                    id: 'default',
-                    name: 'ENTRADA DE ESQUEMA',
-                    content: document.getElementById('outlineInput').value
-                },
-                {
-                    id: 'ia-responsable',
-                    name: 'Inteligencia Artificial Responsable',
-                    content: `IA Responsable | La práctica integral de diseñar, desarrollar e implementar sistemas de inteligencia artificial de manera ética y responsable, considerando su impacto en la sociedad, economía y medio ambiente. Implica establecer principios, procesos y mecanismos de gobernanza que aseguren que la IA beneficie a la humanidad mientras se minimizan los riesgos potenciales y se respetan los derechos humanos fundamentales.
-1. Principios Fundamentales | Directrices esenciales que garantizan que los sistemas de IA beneficien a la humanidad mientras minimizan los riesgos potenciales. Estos principios sirven como base ética y operativa para todo el ciclo de vida de los sistemas de IA, desde su concepción hasta su implementación y monitoreo continuo.
-* Equidad y No Discriminación | Garantizar que los sistemas de IA traten a todos los individuos y grupos de manera equitativa sin sesgos injustos.
-   * Prevención de sesgos | Técnicas y metodologías sistemáticas para identificar, medir y eliminar prejuicios injustos en algoritmos de IA.
-   * Resultados equitativos | Asegurar que los beneficios y oportunidades generados por la IA se distribuyan de manera justa entre todos los grupos demográficos.
-   * Diseño inclusivo | Crear sistemas de IA accesibles y beneficiosos para poblaciones diversas, incluyendo personas con discapacidades.
-* Transparencia | Hacer que los sistemas de IA sean comprensibles y sus procesos de toma de decisiones sean claros para usuarios y stakeholders.
-   * IA Explicable (XAI) | Métodos y técnicas que hacen las decisiones de la IA interpretables y comprensibles para humanos.
-   * Interpretabilidad de modelos | Comprender cómo los modelos de IA llegan a conclusiones específicas, incluyendo la importancia relativa de diferentes características.
-   * Documentación de decisiones | Registro completo y auditable de los procesos de decisión de la IA para responsabilidad y revisión posterior.
-* Responsabilidad | Marcos claros de responsabilidad para el desarrollo, implementación y operación de sistemas de IA.
-   * Propiedad clara | Definir inequívocamente quién es responsable de los resultados y consecuencias de los sistemas de IA.
-   * Pistas de auditoría | Registros integrales y a prueba de manipulaciones de todas las decisiones y procesos de los sistemas de IA.
-   * Asignación de responsabilidades | Roles y responsabilidades explícitos para la gobernanza y supervisión de la IA en toda la organización.
-* Privacidad y Seguridad | Proteger la información personal y garantizar la integridad de los sistemas de IA contra amenazas internas y externas.
-   * Protección de datos | Salvaguardar la información personal utilizada en sistemas de IA mediante técnicas de encriptación, anonimización y control de acceso.
-   * Gestión de consentimiento | Asegurar la autorización adecuada y transparente para el uso de datos en sistemas de IA, respetando la autonomía del usuario.
-   * Medidas de ciberseguridad | Proteger los sistemas de IA contra ataques maliciosos, manipulación y uso no autorizado mediante defensas multicapa.
-* Diseño Centrado en el Humano | Priorizar las necesidades humanas y mantener el control humano significativo sobre las decisiones de la IA.
-   * Supervisión humana | Mantener control humano significativo y apropiado sobre las decisiones de la IA, especialmente en contextos de alto riesgo.
-   * Empoderamiento del usuario | Habilitar a los usuarios para comprender, controlar y beneficiarse de sus interacciones con sistemas de IA.
-   * Aumento no reemplazo | La IA debe mejorar y amplificar las capacidades humanas en lugar de sustituir completamente a los trabajadores.
-2. Riesgos y Desafíos de la IA | Impactos negativos potenciales que requieren gestión proactiva y mitigación sistemática.
-* Riesgos Técnicos | Desafíos que surgen del diseño, desarrollo y operación de sistemas de IA, relacionados con limitaciones inherentes de la tecnología actual.
-   * Sesgo algorítmico | Injusticia sistemática en las predicciones o decisiones de la IA que puede perpetuar o amplificar discriminación existente.
-   * Deriva del modelo | Degradación del rendimiento del modelo cuando las condiciones del mundo real cambian respecto a los datos de entrenamiento originales.
-   * Ataques adversariales | Entradas maliciosas diseñadas específicamente para engañar a los sistemas de IA y causar clasificaciones erróneas.
-   * Problema de caja negra | Incapacidad para entender o explicar el proceso de toma de decisiones en modelos complejos de IA.
-* Riesgos Sociales | Impactos más amplios en la sociedad derivados del despliegue masivo de IA que pueden afectar estructuras sociales, económicas y culturales.
-   * Desplazamiento laboral | Automatización que reemplaza trabajadores humanos en múltiples industrias, potencialmente causando desempleo masivo.
-   * Brecha digital | Acceso desigual a los beneficios de la IA entre diferentes poblaciones, exacerbando desigualdades existentes.
-   * Difusión de desinformación | Contenido falso o engañoso generado o amplificado por IA que puede manipular opinión pública.
-   * Preocupaciones de vigilancia | Violaciones de privacidad mediante monitoreo potenciado por IA que puede erosionar libertades civiles.
-* Riesgos Éticos | Desafíos morales fundamentales en el desarrollo y uso de IA que cuestionan valores humanos básicos y normas sociales.
-   * Armas autónomas | Sistemas de IA capaces de seleccionar y atacar objetivos sin intervención humana.
-   * Manipulación y persuasión | IA utilizada para influir indebidamente en el comportamiento humano, socavando la autonomía.
-   * Violaciones del consentimiento | Uso de datos personales sin autorización adecuada, violando la privacidad y autonomía individual.
-   * Amenazas a la dignidad humana | Aplicaciones de IA que deshumanizan, objetifican o reducen a las personas a puntos de datos.
-* Riesgos Legales y de Cumplimiento | Desafíos regulatorios y legales en un panorama normativo en rápida evolución.
-   * Incertidumbres de responsabilidad | Falta de claridad sobre quién es legalmente responsable cuando la IA causa daños o toma decisiones erróneas.
-   * Problemas de propiedad intelectual | Preguntas sobre la propiedad del contenido generado por IA y el uso de material protegido en entrenamiento.
-   * Incumplimiento regulatorio | Falta de adherencia a las regulaciones de IA en evolución, resultando en sanciones y daño reputacional.
-3. Panorama Regulatorio | Leyes, regulaciones y estándares que gobiernan el desarrollo y uso de IA a nivel global, regional y nacional.
-* Regulaciones Globales | Marcos y acuerdos internacionales que buscan armonizar enfoques de gobernanza de IA entre países.
-   * Ley de IA de la UE | Regulación integral basada en riesgos para IA en Europa, estableciendo requisitos diferenciados según el nivel de riesgo.
-   * Implicaciones del GDPR | Requisitos de protección de datos que afectan significativamente a los sistemas de IA.
-   * Regulaciones de IA de China | Enfoque chino hacia la gobernanza de IA enfocado en seguridad nacional y estabilidad social.
-   * Iniciativas federales de EE.UU. | Esfuerzos de política y regulación de IA estadounidenses, balanceando innovación con protección de derechos.
-* Estándares de la Industria | Estándares técnicos y mejores prácticas desarrollados por organizaciones de normalización.
-   * ISO/IEC 23053 y 23894 | Estándares internacionales para confiabilidad en IA que establecen marco para sistemas robustos y éticos.
-   * Estándares IEEE | Estándares de ingeniería profesional para IA ética desarrollados por la comunidad técnica global.
-   * Guías específicas del sector | Marcos de gobernanza de IA adaptados a necesidades y riesgos únicos de industrias específicas.
-* Marcos Nacionales | Estrategias y regulaciones de IA específicas de cada país que reflejan prioridades y valores nacionales.
-   * Directiva de Canadá | Directrices del gobierno canadiense para el uso de IA en servicios públicos, enfatizando transparencia.
-   * Marco de IA del Reino Unido | Enfoque británico pro-innovación para la regulación de IA, favoreciendo principios sobre reglas prescriptivas.
-   * Modelo de Singapur | Marco de gobernanza de Singapur para ética en IA, balanceando innovación con gestión de riesgos.
-4. Marcos y Metodologías | Enfoques estructurados y sistemáticos para implementar IA responsable en organizaciones.
-* Marcos Éticos | Fundamentos filosóficos y principios morales que guían el desarrollo ético de IA.
-   * IEEE Diseño Éticamente Alineado | Estándares de ingeniería comprehensivos para sistemas de IA éticos que priorizan el bienestar humano.
-   * Principios de IA de Asilomar | 23 principios desarrollados por la comunidad de investigación de IA para el desarrollo beneficioso de IA.
-   * Declaración de Montreal | Principios centrados en el humano para el desarrollo de IA que beneficie a todos.
-* Marcos de Gobernanza | Estructuras organizacionales y procesos para supervisión efectiva de IA a nivel institucional.
-   * Gestión de Riesgos de IA del NIST | Marco estadounidense integral para identificar, evaluar y gestionar riesgos relacionados con IA.
-   * Principios de IA de la OCDE | Directrices internacionales para IA confiable adoptadas por países miembros y socios.
-   * Ética de IA de UNESCO | Estándares éticos globales para IA adoptados por 193 estados miembros.
-* Herramientas de Evaluación | Métodos y técnicas para evaluar sistemas de IA contra criterios éticos y de desempeño.
-   * Evaluaciones de impacto | Análisis sistemático de efectos potenciales del despliegue de IA en individuos, sociedad y ambiente.
-   * Matrices de riesgo | Herramientas estructuradas para evaluar y priorizar riesgos relacionados con IA basados en probabilidad e impacto.
-   * Comités de revisión ética | Grupos independientes multidisciplinarios que revisan proyectos de IA para conformidad ética.
-5. Oportunidades y Beneficios | Impactos positivos transformadores de la adopción responsable de IA en economía, sociedad y organizaciones.
-* Crecimiento Económico | Contribución de la IA al desarrollo económico, productividad, e innovación a escala macro y micro.
-   * Aceleración de innovación | IA catalizando ciclos de investigación y desarrollo más rápidos en todas las industrias.
-   * Ganancias de productividad | Mejora dramática de eficiencia operacional mediante automatización inteligente y optimización de procesos.
-   * Creación de nuevos mercados | Surgimiento de productos, servicios, y modelos de negocio completamente nuevos habilitados por IA.
-* Bien Social | Aplicaciones de IA que abordan desafíos sociales críticos y mejoran calidad de vida para todos.
-   * Avance en salud | IA revolucionando diagnóstico médico, desarrollo de tratamientos, y prestación de atención sanitaria.
-   * Accesibilidad educativa | Aprendizaje personalizado y adaptativo que hace educación de calidad accesible para todos.
-   * Monitoreo ambiental | IA rastreando y abordando cambio climático, pérdida de biodiversidad, y degradación ambiental.
-* Ventajas Empresariales | Beneficios competitivos tangibles de adoptar prácticas de IA responsable que crean valor empresarial sostenible.
-   * Diferenciación competitiva | Destacar en el mercado mediante prácticas éticas de IA que resuenan con consumidores conscientes.
-   * Construcción de confianza | Ganar y mantener confianza de clientes, empleados, inversores y sociedad mediante transparencia.
-   * Mitigación de riesgos | Evitar daños reputacionales, legales, y financieros mediante gestión proactiva de riesgos de IA.`
-                }
-            ];
         }
+        // If no saved projects, use the default projects from constructor
+        // (this.projects is already initialized in constructor with 5 projects including PwC ones)
 
         this.renderProjects();
         if (this.projects.length > 0) {
