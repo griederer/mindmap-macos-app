@@ -8,7 +8,194 @@ class MindmapRenderer {
         this.isSpacePressed = false;
 
         // Project management
-        this.projects = [];
+        this.projects = [
+                {
+                    id: 'ia-responsable-pwc',
+                    name: 'IA Responsable - PwC',
+                    content: `IA Responsable
+1. Desconfianza en la IA
+* Contexto global | Estudios de PwC muestran desconfianza generalizada en implementaciones de IA y falta de transparencia en su uso
+   * Medición de valor de IA responsable | Investigación sobre cómo medir el valor que genera implementar IA de forma responsable
+   * Encuesta de IA responsable | Análisis de percepciones y preocupaciones de empresas y consumidores sobre IA
+2. Riesgos de Implementaciones IA
+* Propiedad intelectual | Uso no autorizado de contenido protegido en entrenamiento de modelos, infracción de derechos de autor y patentes
+* Protección de datos | Procesamiento inadecuado de datos personales, violaciones de privacidad y incumplimiento de regulaciones como GDPR
+* Preocupaciones de seguridad | Vulnerabilidad a ataques adversariales, manipulación de modelos y exposición de información sensible
+* Dependencia excesiva en datos generados | Sobreconfianza en salidas de IA sin validación humana, propagación de errores y decisiones incorrectas
+* Explicabilidad | Falta de transparencia en decisiones de modelos tipo caja negra, dificultad para justificar resultados ante stakeholders
+* Sesgo e imparcialidad | Discriminación algorítmica basada en datos de entrenamiento sesgados, perpetuación de inequidades existentes
+3. Principios Fundamentales
+* Equidad y no discriminación | Asegurar que sistemas IA traten a todos los individuos y grupos de manera justa sin sesgos
+   * Prevención de sesgos | Técnicas para detectar y mitigar sesgos en datos y algoritmos
+   * Resultados equitativos | Garantizar impacto justo entre diferentes grupos demográficos
+   * Diseño inclusivo | Considerar diversidad desde fase de diseño del sistema
+* Transparencia | Claridad sobre funcionamiento y decisiones de sistemas IA para generar confianza
+   * Explicabilidad (XAI) | Métodos para interpretar decisiones de modelos complejos
+   * Interpretabilidad de modelos | Balance entre precisión y capacidad de explicación
+   * Documentación de decisiones | Registro completo del proceso de toma de decisiones
+* Responsabilidad | Definición clara de roles y rendición de cuentas en sistemas IA
+   * Propiedad clara | Asignación de responsables para cada componente del sistema
+   * Trazabilidad de auditoría | Mantener registros detallados de todas las operaciones
+   * Asignación de responsabilidad | Matriz RACI para proyectos de IA
+* Privacidad y Seguridad | Protección de datos personales y sistemas contra amenazas
+   * Protección de datos | Implementar principios de privacy-by-design
+   * Gestión de consentimiento | Sistemas robustos para obtener y gestionar consentimiento
+   * Medidas de ciberseguridad | Protección contra ataques adversariales
+* Diseño centrado en el humano | Mantener control humano y aumentar capacidades sin reemplazar
+   * Supervisión humana | Mantener humanos en el loop para decisiones críticas
+   * Empoderamiento del usuario | Dar control y agencia a usuarios finales
+   * Aumento no reemplazo | Enfoque en complementar capacidades humanas
+4. Estándares y Guías Regulatorias
+* EU AI Act | Marco jurídico integral para regulación de IA en Unión Europea
+   * Enfoque basado en riesgo | Clasificación de sistemas IA según impactos potenciales en salud, seguridad y derechos fundamentales
+   * Normas armonizadas | Establecimiento de reglas uniformes para uso de sistemas IA incluyendo IA generativa
+   * Medidas concretas | Requerimientos específicos para evitar impactos negativos identificados
+   * IA de propósito general | Regulación específica para modelos fundacionales y GPT
+* NIST AI RMF | Marco voluntario del Instituto Nacional de Estándares y Tecnología de EE. UU.
+   * Gestión de riesgos IA | Directrices para identificar, evaluar y mitigar riesgos asociados con IA
+   * Consideraciones de equidad | Guías para asegurar fairness en sistemas IA
+   * Privacidad | Protección de datos personales en todo el ciclo de vida
+   * Responsabilidad y solidez | Accountability y robustez técnica de sistemas
+   * Seguridad | Protección contra amenazas y vulnerabilidades
+* COSO ERM para IA | Aplicación de marco COSO de control interno a iniciativas de IA
+   * Alineación con estrategia | Vincular riesgos de IA con objetivos estratégicos organizacionales
+   * Ejecución de proyectos | Gestión de riesgos durante implementación de proyectos IA
+   * Marco conocido | Aprovechamiento de framework COSO ampliamente adoptado
+* ISO 42001:2023 | Primera norma internacional certificable para sistemas de gestión de IA
+   * Requisitos formales | Estándar con requerimientos específicos para certificación
+   * Sistema de gestión IA | Establecer, implementar, mantener y mejorar SGAI
+   * Enfoque basado en riesgos | Identificación y gestión proactiva de riesgos
+   * Responsabilidades éticas | Consideraciones éticas integradas en gestión
+   * Transparencia y rendición | Accountability en desarrollo y uso de IA
+* ISO 23894:2023 | Guía para gestión de riesgos en sistemas IA
+   * Riesgos únicos de IA | Identificación de riesgos específicos como sesgos y transparencia
+   * Ciclo de vida completo | Gestión de riesgos a lo largo de todo el ciclo de vida del sistema
+   * Alineación con ISO 31000 | Integración con prácticas establecidas de gestión de riesgos
+   * Evaluación continua | Monitoreo y evaluación ongoing de riesgos emergentes
+* ISO 42005:2025 | Guía para evaluaciones de impacto de sistemas IA
+   * Evaluaciones de impacto | Orientación para realizar impact assessments de sistemas IA
+   * Impactos en individuos | Análisis de efectos en personas, grupos y sociedad
+   * Aplicaciones previsibles | Evaluación de usos esperados e inesperados del sistema
+   * Transparencia y confianza | Documentación de impactos para generar confianza
+   * Ciclo de vida IA | Consideración de impactos en todas las fases del sistema
+5. Servicios PwC IA Responsable
+* Upskilling en control interno | Capacitación de equipos en controles sobre sistemas de IA
+   * Programas de formación | Cursos estructurados sobre gestión de riesgos de IA
+   * Casos de uso prácticos | Ejercicios basados en implementaciones reales
+   * Certificaciones | Preparación para estándares como ISO 42001
+* Evaluación de línea base | Assessment inicial de controles sobre IA existentes
+   * Gap análisis frameworks | Comparación contra NIST AI RMF y otros frameworks de IA responsable
+   * Gap análisis regulaciones | Evaluación de cumplimiento con EU AI Act y regulaciones locales
+   * Benchmarking | Comparación con mejores prácticas de industria
+* Revisión de control interno | Auditoría de controles sobre implementaciones IA
+   * Revisión contra COSO ERM | Evaluación de controles de IA usando framework COSO para IA
+   * Identificación de gaps | Detección de deficiencias en diseño y operación de controles
+   * Recomendaciones | Plan de acción para fortalecer control interno
+* Revisión de modelo IA responsable | Auditoría de implementación específica de IA
+   * ISAE 3000 approach | Aseguramiento usando estándar internacional de auditoría
+   * Criterio NIST | Evaluación contra framework NIST AI RMF
+   * Normas locales | Cumplimiento con regulaciones específicas del país
+   * Testing de modelos | Pruebas técnicas de sesgo, equidad y robustez
+* Revisión de madurez de gobierno | Evaluación de estructura de governance de IA
+   * Modelo de madurez | Assessment de nivel de madurez en gestión de IA
+   * Estructura organizacional | Evaluación de roles, responsabilidades y comités
+   * Políticas y procedimientos | Revisión de documentación de gobierno de IA
+6. Ventajas PwC
+* Conocimiento de procesos | Comprensión profunda de procesos y datos usados en implementaciones IA
+   * Experiencia en cliente | Conocimiento acabado del contexto organizacional
+   * Entendimiento de datos | Familiaridad con fuentes de datos y calidad
+* Sinergias con auditorías | Aprovechamiento de trabajos complementarios
+   * Auditoría financiera | Integración con auditoría de estados financieros
+   * Memoria integrada | Conexión con revisión de reportes de sostenibilidad
+   * Procedimientos de doble propósito | Eficiencia mediante uso múltiple de evidencia
+* Independencia | Objetividad e imparcialidad en evaluaciones
+   * Tercero independiente | Perspectiva externa sin conflictos de interés
+   * Estándares profesionales | Cumplimiento de normas de independencia
+* Equipo multidisciplinario | Diversidad de experticia para evaluación integral
+   * Mindset de auditor | Enfoque sistemático y escéptico profesional
+   * Especialistas técnicos | Expertos en ciencia de datos y ML
+   * Conocimiento regulatorio | Experiencia en compliance y riesgos
+7. Definición IA Responsable
+* Conjunto de prácticas | Framework estructurado de metodologías y procedimientos para gestión responsable de IA
+* Generación de confianza | Objetivo primario de construir trust entre stakeholders en sistemas IA
+* Balance riesgos-beneficios | Equilibrio consciente entre capitalizar oportunidades y mitigar riesgos de IA
+* Adopción de tecnologías | Facilitación de implementación segura y ética de soluciones de inteligencia artificial`
+                },
+                {
+                    id: 'sostenibilidad-esg-pwc',
+                    name: 'Sostenibilidad ESG - PwC',
+                    content: `Confianza en Información de Sostenibilidad
+1. Por qué es importante ESG
+* Reguladores | Los bancos centrales y reguladores se centran en riesgo climático, greenwashing y financiamiento sostenible. La regulación global sobre ESG se está acelerando
+* Inversionistas | Quieren acceso a conjunto completo de información financiera y no financiera de grado de inversión con coherencia y alta calidad
+* Grupos de interés | Esperan que organizaciones equilibren creación de valor con obligaciones sociales más amplias. Exigen mejor desempeño ESG y más transparencia
+   * Directorios y comités de auditoría | Deben proporcionar supervisión de la gestión y el desempeño de los riesgos ESG
+* Cambio en panorama | El panorama de presentación de informes está cambiando con movimientos hacia solución global de estándares
+2. Riesgos de falta de confianza
+* Greenwashing | Declaraciones engañosas sobre prácticas ambientales que erosionan confianza del mercado
+* Fraude ambiental | Manipulación intencional de datos ambientales con consecuencias legales y reputacionales
+* Problemas de compliance | Incumplimiento de regulaciones ESG con sanciones y multas potenciales
+* Impacto reputacional | Pérdida de credibilidad ante stakeholders que afecta valor de marca y relaciones
+* Inconsistencias de información | Discrepancias entre información financiera y ESG que generan desconfianza en mercados
+3. Brechas más relevantes
+* Sistemas | Infraestructura tecnológica inadecuada para gestión de datos ESG
+   * Planillas electrónicas | Uso de hojas de cálculo como sistema primario sin controles robustos
+   * Sistemas departamentales | Soluciones aisladas sin integración que generan silos de información
+   * Sistemas no críticos | Clasificación incorrecta de sistemas ESG que no reciben inversión adecuada
+* Procesos | Procedimientos y controles insuficientes para asegurar calidad de datos
+   * Riesgos no identificados | Falta de evaluación sistemática de riesgos en reporte ESG
+   * Controles con problemas | Deficiencias en diseño y operación de controles sobre información ESG
+   * Falta de madurez | Controles en etapas iniciales sin pruebas de efectividad
+* Personas | Capacidad humana insuficiente para gestión ESG
+   * Formación | Falta de entrenamiento específico en estándares y metodologías ESG
+   * Capacitación | Programas de desarrollo continuo insuficientes para el equipo
+   * Ecosistema de cursos | Carencia de recursos educativos estructurados sobre sostenibilidad
+* Gobernanza | Estructura de supervisión y rendición de cuentas débil
+   * Supervisión del directorio | Involucramiento limitado del directorio en temas ESG estratégicos
+   * Tres líneas de defensa | Modelo de gestión de riesgos no implementado para ESG
+* Auditoría | Aseguramiento insuficiente de información ESG
+   * Información no auditada | Datos ESG publicados sin verificación independiente
+   * Nivel de rigurosidad bajo | Revisiones limitadas que no alcanzan estándar de auditoría razonable
+* Framework Regulador | Marco normativo en evolución y fragmentado
+   * Múltiples estándares | Proliferación de frameworks sin convergencia clara
+   * Regulaciones en curso | Proceso de emisión de normas sobre confiabilidad aún en desarrollo
+4. Ecosistema de Estándares ESG
+* International Sustainability Standards Board (ISSB) | Marco global emergente para estándares de sostenibilidad que busca convergencia internacional
+* EU Sustainable Finance Disclosure Regulation | Regulación europea sobre divulgación de información de finanzas sostenibles
+* Umbrella reporting standards | Marcos que cubren amplitud de temas ESG proporcionando estructura integral
+   * GRI (Global Reporting Initiative) | Estándar ampliamente adoptado para reporte de sostenibilidad
+   * SASB (Sustainability Accounting Standards Board) | Estándares específicos por industria
+* Single issue standards | Protocolos de medición y frameworks para temas específicos
+   * Carbon footprint protocols | Metodologías para cálculo de huella de carbono
+   * Water stewardship standards | Marcos para gestión responsable del agua
+* Sustainability Ratings & Rankings | Evaluaciones de terceros que miden desempeño ESG de organizaciones
+5. Servicios PwC Sostenibilidad
+* Estrategia y oferta de valor | Propuesta diferenciada para clientes de auditoría financiera
+   * Equipo multidisciplinario | Auditores tradicionales, de sistemas y procesos con conocimientos específicos de sostenibilidad
+   * Sinergias con auditoría financiera | Aprovechamiento de conocimiento del cliente y procedimientos de doble propósito
+   * Identificación de observaciones | Hallazgos en procesos y sistemas que sirven para mejora continua
+   * Conversaciones estratégicas | Diálogo con personal adecuado en empresas: áreas de aseguramiento y CFO
+* Servicios específicos | Portafolio de soluciones para necesidades de sostenibilidad
+   * Revisión de memoria de sostenibilidad | Aseguramiento de reportes anuales ESG
+   * Huella de Carbono | Medición, verificación y estrategia de reducción de emisiones
+   * Trabajos de interoffice | Proyectos referidos desde PwC Global
+   * Auditorías con opinión razonable | Transición hacia aseguramiento de mayor nivel
+6. Equipo y Oportunidades
+* Estructura del Equipo | Configuración y capacidades del equipo de sostenibilidad
+   * Alojado en Assurance | Integrado con práctica de auditoría para maximizar sinergias
+   * Skills específicos reducidos | Equipo core con experiencia especializada en sostenibilidad
+   * Personal TI y procesos | Utilización de recursos en baja temporada con conocimientos complementarios
+* Oportunidades de Crecimiento | Áreas de expansión y desarrollo
+   * Crecimiento en cartera actual | Profundización de servicios en clientes existentes
+   * Servicios complementarios | Expansión hacia huella de carbono y otros temas ESG
+   * Trabajos globales | Aprovechamiento de red PwC para proyectos internacionales
+   * Opinión razonable | Evolución hacia auditorías de mayor aseguramiento
+* Desafíos | Retos para desarrollo sostenible de la práctica
+   * Upskilling del equipo | Necesidad de capacitación continua en estándares emergentes
+   * Transición a CoE | Evolución hacia Centro de Excelencia que presta servicios transversales
+   * Demanda creciente | Gestión de volumen de trabajo con recursos limitados`
+                }
+            ];
         this.currentProject = null;
 
         // Panel visibility
