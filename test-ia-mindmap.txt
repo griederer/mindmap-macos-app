@@ -1,0 +1,28 @@
+IA Responsable | Práctica de diseñar, desarrollar e implementar sistemas de inteligencia artificial de manera ética, considerando su impacto en sociedad, economía y medio ambiente.
+1. Frameworks y Metodologías | Enfoques estructurados para implementar IA responsable en organizaciones, incluyendo marcos éticos y herramientas de evaluación.
+* Marcos Éticos | Fundamentos filosóficos y principios morales que guían el desarrollo ético de IA a nivel global.
+   * IEEE Ethically Aligned Design | Marco comprehensivo para sistemas de IA éticos que priorizan bienestar humano con estándares de ingeniería detallados.
+   * Principios de Asilomar | 23 principios desarrollados por comunidad de investigación en IA para asegurar desarrollo beneficioso y seguro de sistemas inteligentes.
+   * Declaración de Montreal | Principios centrados en humanos para desarrollo de IA que beneficie a todos mediante enfoque inclusivo.
+* Marcos de Gobernanza | Estructuras organizacionales y procesos para supervisión efectiva de IA a nivel institucional y corporativo.
+   * NIST AI Risk Management Framework | Marco estadounidense para identificar, evaluar y gestionar riesgos relacionados con IA de forma sistemática y completa.
+   * Principios OECD de IA | Directrices internacionales para IA confiable adoptadas por países miembros promoviendo innovación responsable global.
+   * Recomendaciones UNESCO sobre Ética | Estándares éticos globales para IA adoptados por 193 estados miembros asegurando respeto por derechos humanos.
+* Herramientas de Evaluación | Métodos y técnicas para evaluar sistemas de IA contra criterios éticos y de desempeño establecidos.
+   * Evaluaciones de Impacto | Análisis sistemático de efectos potenciales del despliegue de IA en individuos, sociedad y ambiente con métricas cuantificables.
+   * Matrices de Riesgo | Herramientas estructuradas para evaluar y priorizar riesgos relacionados con IA basados en probabilidad de ocurrencia e impacto.
+   * Comités de Revisión Ética | Grupos independientes multidisciplinarios que revisan proyectos de IA para conformidad ética y cumplimiento normativo riguroso.
+2. Riesgos y Desafíos | Impactos negativos potenciales que requieren gestión proactiva y mitigación sistemática en sistemas de IA.
+* Riesgos Técnicos | Desafíos que surgen del diseño, desarrollo y operación de sistemas de IA relacionados con limitaciones tecnológicas.
+   * Sesgo Algorítmico | Injusticia sistemática en predicciones o decisiones de IA que perpetúa o amplifica discriminación existente en datos entrenamiento.
+   * Deriva del Modelo | Degradación del rendimiento cuando condiciones del mundo real cambian respecto a datos de entrenamiento originales del sistema.
+   * Ataques Adversariales | Entradas maliciosas diseñadas específicamente para engañar a sistemas de IA y causar clasificaciones erróneas o fallas críticas.
+   * Problema de Caja Negra | Incapacidad para entender o explicar proceso de toma de decisiones en modelos complejos de IA profunda.
+* Riesgos Sociales | Impactos más amplios en sociedad derivados del despliegue masivo de IA afectando estructuras sociales y económicas.
+   * Desplazamiento Laboral | Automatización que reemplaza trabajadores humanos en múltiples industrias potencialmente causando desempleo masivo y crisis económica.
+   * Brecha Digital | Acceso desigual a beneficios de IA entre diferentes poblaciones exacerbando desigualdades existentes en educación y oportunidades.
+   * Difusión de Desinformación | Contenido falso o engañoso generado o amplificado por IA manipulando opinión pública y procesos democráticos.
+* Riesgos Éticos | Desafíos morales fundamentales en desarrollo y uso de IA que cuestionan valores humanos básicos y normas sociales.
+   * Armas Autónomas | Sistemas de IA capaces de seleccionar y atacar objetivos sin intervención humana planteando dilemas éticos profundos.
+   * Manipulación y Persuasión | IA utilizada para influir indebidamente en comportamiento humano socavando autonomía individual y libre albedrío.
+   * Amenazas a Dignidad Humana | Aplicaciones de IA que deshumanizan, objetifican o reducen personas a puntos de datos sin considerar complejidad humana.

@@ -61,13 +61,17 @@ class MindmapEngine {
             expanded: false
         };
 
-        // Initialize root node data
+        // Initialize root node data with description (or update if exists)
         if (!this.nodeData[root.id]) {
             this.nodeData[root.id] = {
-                notes: rootDescription,
+                description: rootDescription || '',
+                notes: '',
                 images: [],
                 showInfo: false
             };
+        } else {
+            // Update description if node already exists
+            this.nodeData[root.id].description = rootDescription || '';
         }
 
         const stack = [root];
@@ -92,13 +96,17 @@ class MindmapEngine {
                     expanded: false
                 };
 
-                // Initialize node data
+                // Initialize node data with description from parse (or update if exists)
                 if (!this.nodeData[node.id]) {
                     this.nodeData[node.id] = {
-                        notes: description,
-                        images: [],
-                        showInfo: false
+                        description: description || '',  // Main description (max 50 words)
+                        notes: '',                       // Additional notes (optional)
+                        images: [],                      // Images array
+                        showInfo: false                  // Info panel visibility
                     };
+                } else {
+                    // Update description if node already exists
+                    this.nodeData[node.id].description = description || '';
                 }
 
                 // Find parent at appropriate level
@@ -387,39 +395,45 @@ class MindmapEngine {
 
                 nodeEl.appendChild(nodeContent);
 
-                // Extra info panel
+                // Extra info panel - Show description + notes + images
                 const extraInfo = document.createElement('div');
-                extraInfo.className = `node-extra-info ${this.nodeData[node.id]?.showInfo ? 'visible' : ''}`;
+                extraInfo.className = 'node-extra-info';
                 extraInfo.id = `info-${node.id}`;
 
                 const data = this.nodeData[node.id] || {};
+
+                // Add 'active' class if showInfo is true
+                if (data.showInfo) {
+                    extraInfo.classList.add('active');
+                }
+
                 let infoHTML = '';
 
-                // Check what content is available
-                const hasDescription = node.description && node.description.trim();
+                // Priority order: description > notes > images
+                const hasDescription = data.description && data.description.trim();
                 const hasNotes = data.notes && data.notes.trim();
                 const hasImages = data.images && data.images.length > 0;
 
                 if (hasDescription || hasNotes || hasImages) {
-                    // Show description from outline (text after |)
+                    // 1. Show user-defined description (from edit modal)
                     if (hasDescription) {
-                        const formattedDesc = node.description
+                        const formattedDesc = data.description
                             .replace(/</g, '&lt;')
                             .replace(/>/g, '&gt;')
                             .replace(/\n/g, '<br>');
-                        infoHTML += `<div class="note-text description" style="margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid rgba(220, 105, 0, 0.2);">${formattedDesc}</div>`;
+                        infoHTML += `<div class="info-description">${formattedDesc}</div>`;
                     }
-                    // Show manual notes added via edit modal
+                    // 2. Show additional notes (optional)
                     if (hasNotes) {
                         const formattedNotes = data.notes
                             .replace(/</g, '&lt;')
                             .replace(/>/g, '&gt;')
                             .replace(/\n/g, '<br>');
-                        infoHTML += `<div class="note-text notes">${formattedNotes}</div>`;
+                        infoHTML += `<div class="info-notes">${formattedNotes}</div>`;
                     }
-                    // Show uploaded images
+                    // 3. Show uploaded images
                     if (hasImages) {
-                        infoHTML += '<div class="images">';
+                        infoHTML += '<div class="info-images">';
                         data.images.forEach((img, idx) => {
                             if (img && img.startsWith('data:image')) {
                                 infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
@@ -428,15 +442,11 @@ class MindmapEngine {
                         infoHTML += '</div>';
                     }
                 } else {
-                    infoHTML = '<div class="note-text" style="color: #999; font-style: italic;">Sin información adicional</div>';
+                    infoHTML = '<div class="info-empty">Sin información adicional. Haz doble clic para agregar.</div>';
                 }
 
                 extraInfo.innerHTML = infoHTML;
                 nodeEl.appendChild(extraInfo);
-
-                if (data.showInfo) {
-                    nodeEl.classList.add('info-expanded');
-                }
             } else {
                 // Update existing node content
                 const textSpan = nodeContent.querySelector('.node-text');
@@ -500,11 +510,12 @@ class MindmapEngine {
         window.currentEditingNode = nodeId;
         const modal = document.getElementById('editModal');
         const overlay = document.getElementById('modalOverlay');
-        const data = this.nodeData[nodeId] || { notes: '', images: [] };
+        const data = this.nodeData[nodeId] || { description: '', notes: '', images: [] };
         const node = this.findNode(nodeId, this.nodes);
 
         document.getElementById('modalTitle').textContent = `Editar: ${nodeTitle}`;
         document.getElementById('modalNodeTitle').value = node ? node.title : nodeTitle;
+        document.getElementById('modalDescription').value = data.description || '';
         document.getElementById('modalNotes').value = data.notes || '';
 
         const imagesContainer = document.getElementById('modalImages');
@@ -529,22 +540,29 @@ class MindmapEngine {
     }
 
     toggleInfo(nodeId) {
+        // Initialize nodeData if it doesn't exist
         if (!this.nodeData[nodeId]) {
-            this.nodeData[nodeId] = { notes: '', images: [], showInfo: false };
+            this.nodeData[nodeId] = { description: '', notes: '', images: [], showInfo: false };
         }
 
+        // Toggle the showInfo flag
         this.nodeData[nodeId].showInfo = !this.nodeData[nodeId].showInfo;
 
-        const container = document.getElementById('mindmapContainer');
-        const scrollLeft = container.scrollLeft;
-        const scrollTop = container.scrollTop;
+        // Find the info panel element
+        const infoPanel = document.getElementById(`info-${nodeId}`);
 
-        this.renderNodes(this.nodes);
+        if (infoPanel) {
+            // Toggle 'active' class directly
+            if (this.nodeData[nodeId].showInfo) {
+                infoPanel.classList.add('active');
+            } else {
+                infoPanel.classList.remove('active');
+            }
+        }
 
-        setTimeout(() => {
-            container.scrollLeft = scrollLeft;
-            container.scrollTop = scrollTop;
-        }, 50);
+        // Recalculate positions and redraw if needed (for spacing adjustments)
+        this.positions = this.calculateNodePositions(this.nodes);
+        this.isDirty = true;
     }
 
     expandAll() {
@@ -634,6 +652,7 @@ class MindmapEngine {
         parent.expanded = true;
 
         this.nodeData[newNode.id] = {
+            description: '',
             notes: '',
             images: [],
             showInfo: false
@@ -712,11 +731,12 @@ class MindmapEngine {
         }
 
         if (!this.nodeData[nodeId]) {
-            this.nodeData[nodeId] = { notes: '', images: [], showInfo: false };
+            this.nodeData[nodeId] = { description: '', notes: '', images: [], showInfo: false };
         }
 
+        // Save description and notes
+        this.nodeData[nodeId].description = document.getElementById('modalDescription').value;
         this.nodeData[nodeId].notes = document.getElementById('modalNotes').value;
-        // Don't auto-expand after saving - let user toggle manually
 
         this.renderNodes(this.nodes);
 

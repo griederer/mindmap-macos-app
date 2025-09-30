@@ -13,7 +13,11 @@ A sophisticated, native-feeling mindmap application for macOS built with Electro
 ### 🧠 **Advanced Mindmap Functionality**
 - **Hierarchical node structure** with unlimited depth
 - **Expandable/collapsible branches** for focus management
-- **Rich node content** with notes, images, and descriptions
+- **Rich node content** with descriptions, notes, and images
+- **Info Panel System** - Toggle detailed information for each node
+  - Primary description (auto-imported from outline)
+  - Optional additional notes
+  - Image attachments with thumbnail preview
 - **Smooth curved connections** drawn with Canvas for optimal performance
 - **Drag-to-pan** and **zoom with ⌘+scroll**
 
@@ -96,6 +100,7 @@ npm run dist
 
 ## Data Format
 
+### Node Structure
 The application uses a hierarchical JSON structure:
 
 ```json
@@ -110,12 +115,29 @@ The application uses a hierarchical JSON structure:
   },
   "nodeData": {
     "node-0": {
-      "notes": "Detailed notes...",
+      "description": "Primary description (shown in info panel)",
+      "notes": "Additional optional notes",
       "images": ["base64..."],
       "showInfo": false
     }
   }
 }
+```
+
+### Outline Import Format
+Use the pipe `|` character to add descriptions:
+
+```
+Node Title | Description text (up to 50 words)
+1. Child Node | Child description
+* Sub Node | Sub description
+```
+
+**Example:**
+```
+IA Responsable | Práctica de diseñar, desarrollar e implementar sistemas de IA ética.
+1. Frameworks | Enfoques estructurados para implementar IA responsable.
+* Marcos Éticos | Fundamentos filosóficos que guían desarrollo ético.
 ```
 
 ## Sample Data
