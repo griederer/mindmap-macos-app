@@ -15,6 +15,7 @@ class MindmapEngine {
 
         this.initCanvas();
         this.setupAnimationLoop();
+        this.setupImageLightbox();
     }
 
     initCanvas() {
@@ -407,46 +408,10 @@ class MindmapEngine {
                     extraInfo.classList.add('active');
                 }
 
-                let infoHTML = '';
-
-                // Priority order: description > notes > images
-                const hasDescription = data.description && data.description.trim();
-                const hasNotes = data.notes && data.notes.trim();
-                const hasImages = data.images && data.images.length > 0;
-
-                if (hasDescription || hasNotes || hasImages) {
-                    // 1. Show user-defined description (from edit modal)
-                    if (hasDescription) {
-                        const formattedDesc = data.description
-                            .replace(/</g, '&lt;')
-                            .replace(/>/g, '&gt;')
-                            .replace(/\n/g, '<br>');
-                        infoHTML += `<div class="info-description">${formattedDesc}</div>`;
-                    }
-                    // 2. Show additional notes (optional)
-                    if (hasNotes) {
-                        const formattedNotes = data.notes
-                            .replace(/</g, '&lt;')
-                            .replace(/>/g, '&gt;')
-                            .replace(/\n/g, '<br>');
-                        infoHTML += `<div class="info-notes">${formattedNotes}</div>`;
-                    }
-                    // 3. Show uploaded images
-                    if (hasImages) {
-                        infoHTML += '<div class="info-images">';
-                        data.images.forEach((img, idx) => {
-                            if (img && img.startsWith('data:image')) {
-                                infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
-                            }
-                        });
-                        infoHTML += '</div>';
-                    }
-                } else {
-                    infoHTML = '<div class="info-empty">Sin información adicional. Haz doble clic para agregar.</div>';
-                }
-
-                extraInfo.innerHTML = infoHTML;
                 nodeEl.appendChild(extraInfo);
+
+                // Populate info panel content using the new method
+                this.updateInfoPanel(node.id);
             } else {
                 // Update existing node content
                 const textSpan = nodeContent.querySelector('.node-text');
@@ -539,6 +504,55 @@ class MindmapEngine {
         }, 10);
     }
 
+    updateInfoPanel(nodeId) {
+        // Find the info panel element
+        const infoPanel = document.getElementById(`info-${nodeId}`);
+        if (!infoPanel) return;
+
+        // Get node data or default to empty object
+        const data = this.nodeData[nodeId] || {};
+
+        let infoHTML = '';
+
+        // Priority order: description > notes > images
+        const hasDescription = data.description && data.description.trim();
+        const hasNotes = data.notes && data.notes.trim();
+        const hasImages = data.images && data.images.length > 0;
+
+        if (hasDescription || hasNotes || hasImages) {
+            // 1. Show user-defined description (from edit modal)
+            if (hasDescription) {
+                const formattedDesc = data.description
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\n/g, '<br>');
+                infoHTML += `<div class="info-description">${formattedDesc}</div>`;
+            }
+            // 2. Show additional notes (optional)
+            if (hasNotes) {
+                const formattedNotes = data.notes
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\n/g, '<br>');
+                infoHTML += `<div class="info-notes">${formattedNotes}</div>`;
+            }
+            // 3. Show uploaded images
+            if (hasImages) {
+                infoHTML += '<div class="info-images">';
+                data.images.forEach((img, idx) => {
+                    if (img && img.startsWith('data:image')) {
+                        infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
+                    }
+                });
+                infoHTML += '</div>';
+            }
+        } else {
+            infoHTML = '<div class="info-empty">Sin información adicional. Haz doble clic para agregar.</div>';
+        }
+
+        infoPanel.innerHTML = infoHTML;
+    }
+
     toggleInfo(nodeId) {
         // Initialize nodeData if it doesn't exist
         if (!this.nodeData[nodeId]) {
@@ -547,6 +561,9 @@ class MindmapEngine {
 
         // Toggle the showInfo flag
         this.nodeData[nodeId].showInfo = !this.nodeData[nodeId].showInfo;
+
+        // Refresh panel content before toggling visibility
+        this.updateInfoPanel(nodeId);
 
         // Find the info panel element
         const infoPanel = document.getElementById(`info-${nodeId}`);
@@ -743,6 +760,55 @@ class MindmapEngine {
         // Close modal
         document.getElementById('editModal').classList.remove('active');
         document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    setupImageLightbox() {
+        const overlay = document.getElementById('lightboxOverlay');
+        const closeBtn = document.getElementById('lightboxClose');
+        const lightboxImage = document.getElementById('lightboxImage');
+
+        if (!overlay || !closeBtn || !lightboxImage) return;
+
+        // Close lightbox function
+        const closeLightbox = () => {
+            overlay.classList.remove('show');
+            setTimeout(() => {
+                overlay.classList.remove('active');
+            }, 300);
+        };
+
+        // Event delegation for dynamically created images
+        document.addEventListener('click', (e) => {
+            if (e.target.matches('.info-images img')) {
+                e.stopPropagation();
+                const imgSrc = e.target.src;
+                lightboxImage.src = imgSrc;
+                overlay.classList.add('active');
+                setTimeout(() => {
+                    overlay.classList.add('show');
+                }, 10);
+            }
+        });
+
+        // Close on X button click
+        closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeLightbox();
+        });
+
+        // Close on overlay click (not image)
+        overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) {
+                closeLightbox();
+            }
+        });
+
+        // Close on ESC key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && overlay.classList.contains('active')) {
+                closeLightbox();
+            }
+        });
     }
 }
 
