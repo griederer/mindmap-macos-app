@@ -1661,14 +1661,6 @@ class MindmapRenderer {
 
         // Save preference
         localStorage.setItem('mindmap-view-mode', mode);
-
-        // Update help text
-        const helpText = document.getElementById('helpText');
-        if (mode === 'presentation') {
-            helpText.textContent = '💡 Clic en nodos: Expandir/Colapsar | Info: Ver detalles | ⌘+scroll: Zoom';
-        } else {
-            helpText.textContent = '💡 Doble clic: Editar nodo | Clic derecho: Menú contextual | ⌘+scroll: Zoom';
-        }
     }
 
     loadViewMode() {

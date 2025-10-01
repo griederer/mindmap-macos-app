@@ -6,6 +6,7 @@
     <title>PWC Mindmap Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css?v=202509301657">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
@@ -16,18 +17,18 @@
                 <!-- Mode Toggle -->
                 <div class="mode-toggle">
                     <button class="mode-btn active" id="editModeBtn" data-mode="edit">
-                        ✏️ Edición
+                        <i data-lucide="edit" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Edición
                     </button>
                     <button class="mode-btn" id="presentModeBtn" data-mode="presentation">
-                        📊 Presentación
+                        <i data-lucide="presentation" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Presentación
                     </button>
                 </div>
 
                 <button class="btn expand-all-btn" id="expandAllBtn">Expandir Todo</button>
                 <button class="btn collapse-all-btn" id="collapseAllBtn">Colapsar Todo</button>
-                <button class="btn" id="centerViewBtn">🎯 Centrar</button>
-                <button class="btn" id="zoomOutBtn">🔍−</button>
-                <button class="btn" id="zoomInBtn">🔍+</button>
+                <button class="btn" id="centerViewBtn"><i data-lucide="crosshair" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i>Centrar</button>
+                <button class="btn" id="zoomOutBtn"><i data-lucide="zoom-out" style="width: 16px; height: 16px; vertical-align: middle;"></i></button>
+                <button class="btn" id="zoomInBtn"><i data-lucide="zoom-in" style="width: 16px; height: 16px; vertical-align: middle;"></i></button>
                 <button class="btn" id="resetViewBtn">Restablecer Vista</button>
                 <button class="btn" id="exportDataBtn">Exportar</button>
             </div>
@@ -194,10 +195,6 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <div class="help-text" id="helpText">
-        💡 Doble clic: Editar nodo | Clic derecho: Menú contextual | ⌘+scroll: Zoom
     </div>
 
     <div class="context-menu" id="contextMenu">
@@ -384,5 +381,9 @@
 
     <script src="renderer.js"></script>
     <script src="mindmap-engine.js"></script>
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+    </script>
 </body>
 </html>
