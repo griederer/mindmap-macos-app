@@ -546,10 +546,10 @@ class MindmapEngine {
             }
         });
 
-        // Update category styles for all rendered nodes
+        // Reapply category filters after rendering (will apply styles if filter is active)
         if (window.mindmapRenderer) {
             setTimeout(() => {
-                window.mindmapRenderer.updateAllNodeStyles();
+                window.mindmapRenderer.applyFilters();
             }, 50);
         }
     }

@@ -1003,8 +1003,8 @@ class MindmapRenderer {
         this.renderCategoriesPanel();
         this.closeCategoryModal();
 
-        // Update all node styles
-        this.updateAllNodeStyles();
+        // Reapply filters (will update styles if filter is active)
+        this.applyFilters();
     }
 
     deleteCategory(categoryId) {
@@ -1025,8 +1025,7 @@ class MindmapRenderer {
 
         this.saveCategories();
         this.renderCategoriesPanel();
-        this.updateAllNodeStyles();
-        this.applyFilters();
+        this.applyFilters(); // This will update styles if filter is active
     }
 
     toggleCategoryFilter(categoryId) {
@@ -1042,14 +1041,21 @@ class MindmapRenderer {
 
     applyFilters() {
         if (this.activeCategories.size === 0) {
-            // No filters active - show all nodes
+            // No filters active - remove all styles and show all nodes
             document.querySelectorAll('.node-content').forEach(node => {
                 node.classList.remove('category-filtered');
+                // Remove visual highlighting
+                node.classList.remove('has-category');
+                node.style.removeProperty('--category-bg');
+                node.style.removeProperty('--category-border');
+                // Remove badge
+                const badge = node.querySelector('.category-badge');
+                if (badge) badge.remove();
             });
             return;
         }
 
-        // Apply filters
+        // Apply filters and visual styles
         document.querySelectorAll('.node-content').forEach(node => {
             const nodeId = node.id;
             const nodeData = window.mindmapEngine.nodeData[nodeId];
@@ -1057,6 +1063,10 @@ class MindmapRenderer {
             if (!nodeData || !nodeData.categories || nodeData.categories.length === 0) {
                 // Node has no categories - hide it
                 node.classList.add('category-filtered');
+                // Remove visual highlighting
+                node.classList.remove('has-category');
+                node.style.removeProperty('--category-bg');
+                node.style.removeProperty('--category-border');
             } else {
                 // Check if node has any active category
                 const hasActiveCategory = nodeData.categories.some(catId =>
@@ -1065,8 +1075,14 @@ class MindmapRenderer {
 
                 if (hasActiveCategory) {
                     node.classList.remove('category-filtered');
+                    // Apply visual style when filter is active
+                    this.updateNodeStyle(nodeId);
                 } else {
                     node.classList.add('category-filtered');
+                    // Remove visual highlighting for non-matching nodes
+                    node.classList.remove('has-category');
+                    node.style.removeProperty('--category-bg');
+                    node.style.removeProperty('--category-border');
                 }
             }
         });
@@ -1097,9 +1113,9 @@ class MindmapRenderer {
             categories.push(categoryId);
         }
 
-        this.updateNodeStyle(nodeId);
+        // Don't apply visual style immediately - only when filter is active
         this.renderCategoriesPanel();
-        this.applyFilters();
+        this.applyFilters(); // This will apply styles if filter is active
     }
 
     updateNodeStyle(nodeId) {
