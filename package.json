@@ -1,6 +1,6 @@
 {
   "name": "pwc-mindmap-pro",
-  "version": "2.8.0",
+  "version": "2.9.0",
   "description": "Professional Mindmap Editor for macOS",
   "main": "main.js",
   "scripts": {
