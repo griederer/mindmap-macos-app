@@ -317,6 +317,68 @@
         </div>
     </div>
 
+    <!-- Categories Panel -->
+    <div class="categories-panel hidden" id="categoriesPanel">
+        <div class="categories-header">
+            <h3>Categorías</h3>
+            <button class="panel-close-btn" id="closeCategoriesPanel">✕</button>
+        </div>
+
+        <div class="categories-list" id="categoriesList">
+            <!-- Categories will be rendered dynamically -->
+        </div>
+
+        <button class="add-category-btn" id="addCategoryBtn">
+            ➕ Nueva Categoría
+        </button>
+
+        <div class="categories-stats">
+            <div class="stat-item">
+                <span class="stat-label">Total nodos:</span>
+                <span class="stat-value" id="totalNodesCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Categorizados:</span>
+                <span class="stat-value" id="categorizedNodesCount">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Categories Button -->
+    <button class="toggle-categories-btn" id="toggleCategoriesBtn" title="Mostrar/Ocultar Categorías">
+        🏷️
+    </button>
+
+    <!-- Category Edit Modal -->
+    <div class="modal-overlay" id="categoryModalOverlay"></div>
+    <div class="edit-modal category-edit-modal" id="categoryEditModal">
+        <div class="modal-header">
+            <h3 id="categoryModalTitle">Nueva Categoría</h3>
+            <button class="close-modal" id="closeCategoryModalBtn">✕</button>
+        </div>
+        <div class="modal-content">
+            <label>📝 Nombre</label>
+            <input type="text" id="categoryNameInput" class="node-title-input" placeholder="Nombre de la categoría..." maxlength="30">
+
+            <label>🎨 Color</label>
+            <div class="color-picker">
+                <button class="color-option" data-color="#ef4444" style="background: #ef4444;" title="Rojo"></button>
+                <button class="color-option" data-color="#f59e0b" style="background: #f59e0b;" title="Naranja"></button>
+                <button class="color-option" data-color="#eab308" style="background: #eab308;" title="Amarillo"></button>
+                <button class="color-option" data-color="#10b981" style="background: #10b981;" title="Verde"></button>
+                <button class="color-option" data-color="#3b82f6" style="background: #3b82f6;" title="Azul"></button>
+                <button class="color-option" data-color="#8b5cf6" style="background: #8b5cf6;" title="Púrpura"></button>
+                <button class="color-option" data-color="#ec4899" style="background: #ec4899;" title="Rosa"></button>
+                <button class="color-option" data-color="#6b7280" style="background: #6b7280;" title="Gris"></button>
+            </div>
+
+            <label>📍 Icono (opcional)</label>
+            <input type="text" id="categoryIconInput" class="node-title-input" placeholder="Emoji o texto corto..." maxlength="2">
+
+            <button class="save-btn" id="saveCategoryBtn">💾 Guardar</button>
+        </div>
+    </div>
+
     <script src="renderer.js"></script>
     <script src="mindmap-engine.js"></script>
 </body>

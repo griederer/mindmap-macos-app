@@ -332,10 +332,18 @@ class MindmapRenderer {
         this.projectsPanelVisible = true;
         this.headerVisible = true;
 
+        // Categories management
+        this.categories = [];
+        this.categoriesPanelVisible = false;
+        this.activeCategories = new Set(); // Active filter categories
+        this.editingCategoryId = null;
+
         this.init();
         this.setupEventListeners();
         this.setupElectronIntegration();
+        this.setupCategoriesPanel();
         this.loadProjects();
+        this.loadCategories();
     }
 
     init() {
@@ -735,6 +743,416 @@ class MindmapRenderer {
                 }
             });
         }
+    }
+
+    // Categories Panel Setup and Management
+    setupCategoriesPanel() {
+        // Toggle categories panel button
+        const toggleBtn = document.getElementById('toggleCategoriesBtn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => this.toggleCategoriesPanel());
+        }
+
+        // Close categories panel button
+        const closeBtn = document.getElementById('closeCategoriesPanel');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.toggleCategoriesPanel());
+        }
+
+        // Add category button
+        const addBtn = document.getElementById('addCategoryBtn');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => this.openCategoryModal());
+        }
+
+        // Close category modal
+        const closeModalBtn = document.getElementById('closeCategoryModalBtn');
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => this.closeCategoryModal());
+        }
+
+        // Modal overlay
+        const modalOverlay = document.getElementById('categoryModalOverlay');
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', () => this.closeCategoryModal());
+        }
+
+        // Save category button
+        const saveBtn = document.getElementById('saveCategoryBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveCategory());
+        }
+
+        // Color picker
+        const colorOptions = document.querySelectorAll('.color-option');
+        colorOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                colorOptions.forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+    }
+
+    toggleCategoriesPanel() {
+        const panel = document.getElementById('categoriesPanel');
+        if (panel) {
+            this.categoriesPanelVisible = !this.categoriesPanelVisible;
+            if (this.categoriesPanelVisible) {
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+    }
+
+    loadCategories() {
+        const saved = localStorage.getItem('mindmap-categories');
+        if (saved) {
+            try {
+                this.categories = JSON.parse(saved);
+            } catch (e) {
+                console.error('Error loading categories:', e);
+                this.categories = [];
+            }
+        }
+        this.renderCategoriesPanel();
+    }
+
+    saveCategories() {
+        localStorage.setItem('mindmap-categories', JSON.stringify(this.categories));
+    }
+
+    renderCategoriesPanel() {
+        const list = document.getElementById('categoriesList');
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        this.categories.forEach(category => {
+            const item = document.createElement('div');
+            item.className = 'category-item';
+            item.dataset.id = category.id;
+
+            if (this.activeCategories.has(category.id)) {
+                item.classList.add('active');
+            }
+
+            // Calculate count of nodes with this category
+            const nodeCount = this.getNodeCountForCategory(category.id);
+
+            item.innerHTML = `
+                <div class="category-color" style="background: ${category.color};"></div>
+                <div class="category-info">
+                    <div class="category-name">${category.icon ? category.icon + ' ' : ''}${category.name}</div>
+                    <div class="category-count">${nodeCount} nodos</div>
+                </div>
+                <div class="category-actions">
+                    <button class="category-action-btn edit-category-btn" title="Editar">✎</button>
+                    <button class="category-action-btn delete-category-btn" title="Eliminar">🗑</button>
+                </div>
+            `;
+
+            // Toggle category filter
+            item.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('category-action-btn')) {
+                    this.toggleCategoryFilter(category.id);
+                }
+            });
+
+            // Edit button
+            const editBtn = item.querySelector('.edit-category-btn');
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openCategoryModal(category.id);
+            });
+
+            // Delete button
+            const deleteBtn = item.querySelector('.delete-category-btn');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(`¿Eliminar la categoría "${category.name}"?`)) {
+                    this.deleteCategory(category.id);
+                }
+            });
+
+            list.appendChild(item);
+        });
+
+        this.updateCategoryStats();
+    }
+
+    getNodeCountForCategory(categoryId) {
+        if (!window.mindmapEngine || !window.mindmapEngine.nodeData) return 0;
+
+        let count = 0;
+        Object.values(window.mindmapEngine.nodeData).forEach(data => {
+            if (data.categories && data.categories.includes(categoryId)) {
+                count++;
+            }
+        });
+        return count;
+    }
+
+    updateCategoryStats() {
+        const totalNodes = window.mindmapEngine ?
+            Object.keys(window.mindmapEngine.nodeData || {}).length : 0;
+
+        let categorizedNodes = 0;
+        if (window.mindmapEngine && window.mindmapEngine.nodeData) {
+            Object.values(window.mindmapEngine.nodeData).forEach(data => {
+                if (data.categories && data.categories.length > 0) {
+                    categorizedNodes++;
+                }
+            });
+        }
+
+        const totalEl = document.getElementById('totalNodesCount');
+        const categorizedEl = document.getElementById('categorizedNodesCount');
+
+        if (totalEl) totalEl.textContent = totalNodes;
+        if (categorizedEl) categorizedEl.textContent = categorizedNodes;
+    }
+
+    openCategoryModal(categoryId = null) {
+        this.editingCategoryId = categoryId;
+
+        const modal = document.getElementById('categoryEditModal');
+        const overlay = document.getElementById('categoryModalOverlay');
+        const title = document.getElementById('categoryModalTitle');
+        const nameInput = document.getElementById('categoryNameInput');
+        const iconInput = document.getElementById('categoryIconInput');
+        const colorOptions = document.querySelectorAll('.color-option');
+
+        if (categoryId) {
+            // Edit mode
+            const category = this.categories.find(c => c.id === categoryId);
+            if (category) {
+                title.textContent = 'Editar Categoría';
+                nameInput.value = category.name;
+                iconInput.value = category.icon || '';
+
+                // Select color
+                colorOptions.forEach(option => {
+                    option.classList.remove('selected');
+                    if (option.dataset.color === category.color) {
+                        option.classList.add('selected');
+                    }
+                });
+            }
+        } else {
+            // Create mode
+            title.textContent = 'Nueva Categoría';
+            nameInput.value = '';
+            iconInput.value = '';
+
+            // Select first color by default
+            colorOptions.forEach((option, index) => {
+                option.classList.remove('selected');
+                if (index === 0) option.classList.add('selected');
+            });
+        }
+
+        modal.classList.add('active');
+        overlay.classList.add('active');
+        nameInput.focus();
+    }
+
+    closeCategoryModal() {
+        const modal = document.getElementById('categoryEditModal');
+        const overlay = document.getElementById('categoryModalOverlay');
+
+        modal.classList.remove('active');
+        overlay.classList.remove('active');
+        this.editingCategoryId = null;
+    }
+
+    saveCategory() {
+        const nameInput = document.getElementById('categoryNameInput');
+        const iconInput = document.getElementById('categoryIconInput');
+        const selectedColor = document.querySelector('.color-option.selected');
+
+        const name = nameInput.value.trim();
+        if (!name) {
+            alert('Por favor ingresa un nombre para la categoría');
+            return;
+        }
+
+        const color = selectedColor ? selectedColor.dataset.color : '#6b7280';
+        const icon = iconInput.value.trim();
+
+        if (this.editingCategoryId) {
+            // Update existing category
+            const category = this.categories.find(c => c.id === this.editingCategoryId);
+            if (category) {
+                category.name = name;
+                category.color = color;
+                category.icon = icon;
+            }
+        } else {
+            // Create new category
+            const newCategory = {
+                id: 'cat-' + Date.now(),
+                name,
+                color,
+                icon
+            };
+            this.categories.push(newCategory);
+        }
+
+        this.saveCategories();
+        this.renderCategoriesPanel();
+        this.closeCategoryModal();
+
+        // Update all node styles
+        this.updateAllNodeStyles();
+    }
+
+    deleteCategory(categoryId) {
+        // Remove category from array
+        this.categories = this.categories.filter(c => c.id !== categoryId);
+
+        // Remove category from active filters
+        this.activeCategories.delete(categoryId);
+
+        // Remove category from all nodes
+        if (window.mindmapEngine && window.mindmapEngine.nodeData) {
+            Object.values(window.mindmapEngine.nodeData).forEach(data => {
+                if (data.categories) {
+                    data.categories = data.categories.filter(id => id !== categoryId);
+                }
+            });
+        }
+
+        this.saveCategories();
+        this.renderCategoriesPanel();
+        this.updateAllNodeStyles();
+        this.applyFilters();
+    }
+
+    toggleCategoryFilter(categoryId) {
+        if (this.activeCategories.has(categoryId)) {
+            this.activeCategories.delete(categoryId);
+        } else {
+            this.activeCategories.add(categoryId);
+        }
+
+        this.renderCategoriesPanel();
+        this.applyFilters();
+    }
+
+    applyFilters() {
+        if (this.activeCategories.size === 0) {
+            // No filters active - show all nodes
+            document.querySelectorAll('.node-content').forEach(node => {
+                node.classList.remove('category-filtered');
+            });
+            return;
+        }
+
+        // Apply filters
+        document.querySelectorAll('.node-content').forEach(node => {
+            const nodeId = node.id;
+            const nodeData = window.mindmapEngine.nodeData[nodeId];
+
+            if (!nodeData || !nodeData.categories || nodeData.categories.length === 0) {
+                // Node has no categories - hide it
+                node.classList.add('category-filtered');
+            } else {
+                // Check if node has any active category
+                const hasActiveCategory = nodeData.categories.some(catId =>
+                    this.activeCategories.has(catId)
+                );
+
+                if (hasActiveCategory) {
+                    node.classList.remove('category-filtered');
+                } else {
+                    node.classList.add('category-filtered');
+                }
+            }
+        });
+    }
+
+    assignCategoryToNode(nodeId, categoryId) {
+        if (!window.mindmapEngine.nodeData[nodeId]) {
+            window.mindmapEngine.nodeData[nodeId] = {
+                notes: '',
+                images: [],
+                showInfo: false,
+                categories: []
+            };
+        }
+
+        if (!window.mindmapEngine.nodeData[nodeId].categories) {
+            window.mindmapEngine.nodeData[nodeId].categories = [];
+        }
+
+        const categories = window.mindmapEngine.nodeData[nodeId].categories;
+        const index = categories.indexOf(categoryId);
+
+        if (index > -1) {
+            // Remove category
+            categories.splice(index, 1);
+        } else {
+            // Add category
+            categories.push(categoryId);
+        }
+
+        this.updateNodeStyle(nodeId);
+        this.renderCategoriesPanel();
+        this.applyFilters();
+    }
+
+    updateNodeStyle(nodeId) {
+        const node = document.getElementById(nodeId);
+        if (!node) return;
+
+        const nodeData = window.mindmapEngine.nodeData[nodeId];
+
+        if (!nodeData || !nodeData.categories || nodeData.categories.length === 0) {
+            // Remove category styling
+            node.classList.remove('has-category');
+            node.style.removeProperty('--category-bg');
+            node.style.removeProperty('--category-border');
+            return;
+        }
+
+        // Get first category (primary)
+        const primaryCategoryId = nodeData.categories[0];
+        const category = this.categories.find(c => c.id === primaryCategoryId);
+
+        if (category) {
+            node.classList.add('has-category');
+
+            // Convert hex to rgba for background
+            const r = parseInt(category.color.slice(1, 3), 16);
+            const g = parseInt(category.color.slice(3, 5), 16);
+            const b = parseInt(category.color.slice(5, 7), 16);
+
+            node.style.setProperty('--category-bg', `rgba(${r}, ${g}, ${b}, 0.1)`);
+            node.style.setProperty('--category-border', category.color);
+
+            // Add category badge if multiple categories
+            if (nodeData.categories.length > 1) {
+                let badge = node.querySelector('.category-badge');
+                if (!badge) {
+                    badge = document.createElement('div');
+                    badge.className = 'category-badge';
+                    node.appendChild(badge);
+                }
+                badge.textContent = `+${nodeData.categories.length - 1}`;
+            } else {
+                const badge = node.querySelector('.category-badge');
+                if (badge) badge.remove();
+            }
+        }
+    }
+
+    updateAllNodeStyles() {
+        if (!window.mindmapEngine || !window.mindmapEngine.nodeData) return;
+
+        Object.keys(window.mindmapEngine.nodeData).forEach(nodeId => {
+            this.updateNodeStyle(nodeId);
+        });
     }
 
     generateMindmap() {

@@ -544,6 +544,13 @@ class MindmapEngine {
                 }, 400);
             }
         });
+
+        // Update category styles for all rendered nodes
+        if (window.mindmapRenderer) {
+            setTimeout(() => {
+                window.mindmapRenderer.updateAllNodeStyles();
+            }, 50);
+        }
     }
 
     toggleNode(nodeId) {
@@ -732,6 +739,9 @@ class MindmapEngine {
         window.contextNodeId = nodeId;
         window.contextNodeTitle = nodeTitle;
 
+        // Add categories submenu if categories exist
+        this.updateCategoriesSubmenu(menu, nodeId);
+
         setTimeout(() => {
             menu.classList.add('active');
         }, 10);
@@ -745,6 +755,75 @@ class MindmapEngine {
         setTimeout(() => {
             document.addEventListener('click', hideMenu);
         }, 100);
+    }
+
+    updateCategoriesSubmenu(menu, nodeId) {
+        // Check if submenu already exists
+        let submenu = menu.querySelector('.categories-submenu');
+
+        if (!submenu) {
+            // Create categories menu item with submenu
+            const categoriesItem = document.createElement('div');
+            categoriesItem.className = 'context-menu-item categories-menu-item';
+            categoriesItem.innerHTML = '🏷️ Categorías ►';
+
+            submenu = document.createElement('div');
+            submenu.className = 'categories-submenu';
+            submenu.style.display = 'none';
+
+            categoriesItem.appendChild(submenu);
+
+            // Insert before delete option
+            const deleteItem = menu.querySelector('#contextDelete');
+            menu.insertBefore(categoriesItem, deleteItem);
+
+            // Toggle submenu on hover
+            categoriesItem.addEventListener('mouseenter', () => {
+                submenu.style.display = 'block';
+            });
+
+            categoriesItem.addEventListener('mouseleave', () => {
+                submenu.style.display = 'none';
+            });
+        }
+
+        // Clear and rebuild submenu
+        submenu.innerHTML = '';
+
+        if (window.mindmapRenderer && window.mindmapRenderer.categories.length > 0) {
+            const nodeData = this.nodeData[nodeId] || {};
+            const nodeCategories = nodeData.categories || [];
+
+            window.mindmapRenderer.categories.forEach(category => {
+                const item = document.createElement('div');
+                item.className = 'category-submenu-item';
+
+                const isAssigned = nodeCategories.includes(category.id);
+                const checkbox = isAssigned ? '☑' : '☐';
+
+                item.innerHTML = `
+                    ${checkbox} <span style="display:inline-block;width:12px;height:12px;background:${category.color};border-radius:2px;margin-right:4px;"></span>
+                    ${category.icon ? category.icon + ' ' : ''}${category.name}
+                `;
+
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (window.mindmapRenderer) {
+                        window.mindmapRenderer.assignCategoryToNode(nodeId, category.id);
+                    }
+                    this.updateCategoriesSubmenu(menu, nodeId);
+                });
+
+                submenu.appendChild(item);
+            });
+        } else {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'category-submenu-item disabled';
+            emptyItem.textContent = 'No hay categorías';
+            emptyItem.style.fontStyle = 'italic';
+            emptyItem.style.opacity = '0.5';
+            submenu.appendChild(emptyItem);
+        }
     }
 
     addChildNode(parentId) {
