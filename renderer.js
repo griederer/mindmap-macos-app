@@ -1048,6 +1048,8 @@ class MindmapRenderer {
                 node.classList.remove('has-category');
                 node.style.removeProperty('--category-bg');
                 node.style.removeProperty('--category-border');
+                node.style.removeProperty('--category-shadow');
+                node.style.removeProperty('--category-glow');
                 // Remove badge
                 const badge = node.querySelector('.category-badge');
                 if (badge) badge.remove();
@@ -1067,6 +1069,8 @@ class MindmapRenderer {
                 node.classList.remove('has-category');
                 node.style.removeProperty('--category-bg');
                 node.style.removeProperty('--category-border');
+                node.style.removeProperty('--category-shadow');
+                node.style.removeProperty('--category-glow');
             } else {
                 // Check if node has any active category
                 const hasActiveCategory = nodeData.categories.some(catId =>
@@ -1083,6 +1087,8 @@ class MindmapRenderer {
                     node.classList.remove('has-category');
                     node.style.removeProperty('--category-bg');
                     node.style.removeProperty('--category-border');
+                    node.style.removeProperty('--category-shadow');
+                    node.style.removeProperty('--category-glow');
                 }
             }
         });
@@ -1129,6 +1135,8 @@ class MindmapRenderer {
             node.classList.remove('has-category');
             node.style.removeProperty('--category-bg');
             node.style.removeProperty('--category-border');
+            node.style.removeProperty('--category-shadow');
+            node.style.removeProperty('--category-glow');
             return;
         }
 
@@ -1139,13 +1147,15 @@ class MindmapRenderer {
         if (category) {
             node.classList.add('has-category');
 
-            // Convert hex to rgba for background
+            // Convert hex to rgba for background and effects
             const r = parseInt(category.color.slice(1, 3), 16);
             const g = parseInt(category.color.slice(3, 5), 16);
             const b = parseInt(category.color.slice(5, 7), 16);
 
-            node.style.setProperty('--category-bg', `rgba(${r}, ${g}, ${b}, 0.1)`);
-            node.style.setProperty('--category-border', category.color);
+            node.style.setProperty('--category-bg', `rgba(${r}, ${g}, ${b}, 0.08)`);
+            node.style.setProperty('--category-border', `rgba(${r}, ${g}, ${b}, 0.6)`);
+            node.style.setProperty('--category-shadow', `rgba(${r}, ${g}, ${b}, 0.2)`);
+            node.style.setProperty('--category-glow', `rgba(${r}, ${g}, ${b}, 0.05)`);
 
             // Add category badge if multiple categories
             if (nodeData.categories.length > 1) {

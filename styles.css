@@ -1580,8 +1580,13 @@ body[data-view-mode="presentation"] .action-btn:not(:first-child) {
 }
 
 .node-content.has-category {
+    position: relative;
     background: var(--category-bg, white);
-    border-left: 4px solid var(--category-border, rgba(220, 105, 0, 0.4));
+    border: 2px solid var(--category-border, rgba(220, 105, 0, 0.4));
+    box-shadow: 0 0 20px var(--category-shadow, rgba(220, 105, 0, 0.15)),
+                inset 0 0 30px var(--category-glow, rgba(220, 105, 0, 0.05));
+    transform: scale(1.02);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .category-badge {
