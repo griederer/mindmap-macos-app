@@ -348,6 +348,15 @@ class MindmapRenderer {
     }
 
     setupEventListeners() {
+        // View mode toggle
+        document.getElementById('editModeBtn').addEventListener('click', () => {
+            this.switchViewMode('edit');
+        });
+
+        document.getElementById('presentModeBtn').addEventListener('click', () => {
+            this.switchViewMode('presentation');
+        });
+
         // File upload
         document.getElementById('fileInput').addEventListener('change', (e) => {
             this.handleFileUpload(e.target);
@@ -1037,9 +1046,27 @@ class MindmapRenderer {
         const project = this.projects.find(p => p.id === projectId);
         if (!project) return;
 
+        // Save current project's nodeData before switching
+        if (this.currentProject) {
+            localStorage.setItem(`mindmap-nodedata-${this.currentProject}`,
+                JSON.stringify(window.mindmapEngine.nodeData));
+        }
+
         this.currentProject = projectId;
-        // Clear nodeData when switching projects
-        window.mindmapEngine.nodeData = {};
+
+        // Load nodeData for the new project (or start fresh)
+        const savedNodeData = localStorage.getItem(`mindmap-nodedata-${projectId}`);
+        if (savedNodeData) {
+            try {
+                window.mindmapEngine.nodeData = JSON.parse(savedNodeData);
+            } catch (e) {
+                console.error('Error loading nodeData:', e);
+                window.mindmapEngine.nodeData = {};
+            }
+        } else {
+            window.mindmapEngine.nodeData = {};
+        }
+
         document.getElementById('outlineInput').value = project.content;
         this.renderProjects();
         this.generateMindmap();
@@ -1075,11 +1102,48 @@ class MindmapRenderer {
 
         localStorage.setItem('mindmap-projects', JSON.stringify(this.projects));
     }
+
+    // View Mode Management
+    switchViewMode(mode) {
+        // Set body data attribute
+        document.body.dataset.viewMode = mode;
+
+        // Update button active states
+        const editBtn = document.getElementById('editModeBtn');
+        const presentBtn = document.getElementById('presentModeBtn');
+
+        if (mode === 'edit') {
+            editBtn.classList.add('active');
+            presentBtn.classList.remove('active');
+        } else {
+            editBtn.classList.remove('active');
+            presentBtn.classList.add('active');
+        }
+
+        // Save preference
+        localStorage.setItem('mindmap-view-mode', mode);
+
+        // Update help text
+        const helpText = document.getElementById('helpText');
+        if (mode === 'presentation') {
+            helpText.textContent = '💡 Clic en nodos: Expandir/Colapsar | Info: Ver detalles | ⌘+scroll: Zoom';
+        } else {
+            helpText.textContent = '💡 Doble clic: Editar nodo | Clic derecho: Menú contextual | ⌘+scroll: Zoom';
+        }
+    }
+
+    loadViewMode() {
+        const savedMode = localStorage.getItem('mindmap-view-mode') || 'edit';
+        this.switchViewMode(savedMode);
+    }
 }
 
 // Initialize renderer when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {
     window.mindmapRenderer = new MindmapRenderer();
+
+    // Load saved view mode
+    window.mindmapRenderer.loadViewMode();
 
     // Auto-save project content when textarea changes
     document.getElementById('outlineInput').addEventListener('input', () => {

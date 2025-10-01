@@ -99,6 +99,41 @@ body::before {
     align-items: center;
 }
 
+/* Mode Toggle Buttons */
+.mode-toggle {
+    display: flex;
+    gap: 0;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    padding: 4px;
+    margin-right: 12px;
+}
+
+.mode-btn {
+    background: transparent;
+    color: rgba(255, 255, 255, 0.6);
+    border: none;
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
+}
+
+.mode-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.mode-btn.active {
+    background: linear-gradient(135deg, #f5b895, #f9c9a8);
+    color: #2D2926;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(245, 184, 149, 0.3);
+}
+
 .btn {
     background: rgba(245, 184, 149, 0.15);
     color: white;
@@ -476,6 +511,57 @@ body::before {
 .action-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 3px 8px rgba(245, 184, 149, 0.25);
+}
+
+/* Add button styling */
+.add-btn {
+    background: linear-gradient(135deg, #4CAF50, #66BB6A) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 18px !important;
+    padding: 4px 10px !important;
+    line-height: 1 !important;
+}
+
+.add-btn:hover {
+    background: linear-gradient(135deg, #388E3C, #4CAF50) !important;
+    transform: scale(1.05);
+}
+
+/* Delete button styling */
+.delete-btn {
+    background: linear-gradient(135deg, #ff4444, #ff6666) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 18px !important;
+    padding: 4px 10px !important;
+    line-height: 1 !important;
+}
+
+.delete-btn:hover {
+    background: linear-gradient(135deg, #cc0000, #ff4444) !important;
+    transform: scale(1.05);
+}
+
+/* Hide Edit, Add, and Delete buttons in presentation mode */
+body[data-view-mode="presentation"] .action-btn:first-child,
+body[data-view-mode="presentation"] .add-btn,
+body[data-view-mode="presentation"] .delete-btn {
+    display: none;
+}
+
+/* Disable interactions in presentation mode */
+body[data-view-mode="presentation"] .node-content {
+    cursor: default !important;
+}
+
+body[data-view-mode="presentation"] .node {
+    pointer-events: auto;
+}
+
+body[data-view-mode="presentation"] .toggle-icon,
+body[data-view-mode="presentation"] .action-btn:not(:first-child) {
+    pointer-events: auto;
 }
 
 .node-extra-info {

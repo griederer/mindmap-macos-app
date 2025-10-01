@@ -363,17 +363,21 @@ class MindmapEngine {
                 nodeContent = document.createElement('div');
                 nodeContent.className = `node-content ${levelClass}`;
 
-                // Double-click for editing
+                // Double-click for editing (only in edit mode)
                 nodeContent.ondblclick = (e) => {
                     e.stopPropagation();
-                    this.editNode(node.id, node.title);
+                    if (document.body.dataset.viewMode !== 'presentation') {
+                        this.editNode(node.id, node.title);
+                    }
                 };
 
-                // Right-click context menu
+                // Right-click context menu (only in edit mode)
                 nodeContent.oncontextmenu = (e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    this.showContextMenu(e, node.id, node.title);
+                    if (document.body.dataset.viewMode !== 'presentation') {
+                        this.showContextMenu(e, node.id, node.title);
+                    }
                 };
 
                 // Click to select
@@ -388,6 +392,8 @@ class MindmapEngine {
                 actionsDiv.innerHTML = `
                     <button class="action-btn" onclick="mindmapEngine.editNode('${node.id}', '${node.title.replace(/'/g, "\\'")}')">Editar</button>
                     <button class="action-btn" onclick="mindmapEngine.toggleInfo('${node.id}')">Info</button>
+                    <button class="action-btn add-btn" onclick="mindmapEngine.addChildNode('${node.id}')">+</button>
+                    <button class="action-btn delete-btn" onclick="mindmapEngine.confirmDeleteNode('${node.id}')">×</button>
                 `;
                 nodeContent.appendChild(actionsDiv);
 
@@ -577,6 +583,9 @@ class MindmapEngine {
         // Toggle the showInfo flag
         this.nodeData[nodeId].showInfo = !this.nodeData[nodeId].showInfo;
 
+        // Auto-save nodeData to localStorage for current project
+        this.saveNodeDataToStorage();
+
         // Refresh panel content before toggling visibility
         this.updateInfoPanel(nodeId);
 
@@ -697,6 +706,20 @@ class MindmapEngine {
         }, 100);
     }
 
+    confirmDeleteNode(nodeId) {
+        const node = this.findNode(nodeId, this.nodes);
+        if (!node) return;
+
+        const hasChildren = node.children && node.children.length > 0;
+        const message = hasChildren
+            ? `¿Eliminar "${node.title}" y todos sus nodos hijos?`
+            : `¿Eliminar "${node.title}"?`;
+
+        if (confirm(message)) {
+            this.deleteNode(nodeId);
+        }
+    }
+
     deleteNode(nodeId) {
         if (this.nodes.id === nodeId) {
             alert('No puedes eliminar el nodo raíz');
@@ -721,6 +744,8 @@ class MindmapEngine {
         };
 
         if (deleteFromParent(this.nodes)) {
+            // Auto-save after deletion
+            this.saveNodeDataToStorage();
             this.renderNodes(this.nodes);
         }
     }
@@ -769,11 +794,24 @@ class MindmapEngine {
         this.nodeData[nodeId].description = document.getElementById('modalDescription').value;
         this.nodeData[nodeId].notes = document.getElementById('modalNotes').value;
 
+        // Auto-save nodeData to localStorage for current project
+        this.saveNodeDataToStorage();
+
         this.renderNodes(this.nodes);
 
         // Close modal
         document.getElementById('editModal').classList.remove('active');
         document.getElementById('modalOverlay').classList.remove('active');
+    }
+
+    saveNodeDataToStorage() {
+        // Save to localStorage with current project ID
+        if (window.mindmapRenderer && window.mindmapRenderer.currentProject) {
+            localStorage.setItem(
+                `mindmap-nodedata-${window.mindmapRenderer.currentProject}`,
+                JSON.stringify(this.nodeData)
+            );
+        }
     }
 
     setupImageLightbox() {
