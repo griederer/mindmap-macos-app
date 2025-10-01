@@ -438,6 +438,7 @@ class MindmapEngine {
                 nodeEl.innerHTML = ''; // Clear if recreating
                 nodeContent = document.createElement('div');
                 nodeContent.className = `node-content ${levelClass}`;
+                nodeContent.id = node.id; // Add ID for category styling
 
                 // Double-click for editing (only in edit mode)
                 nodeContent.ondblclick = (e) => {
