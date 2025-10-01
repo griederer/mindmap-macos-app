@@ -330,6 +330,7 @@ class MindmapRenderer {
         // Panel visibility
         this.panelVisible = true;
         this.projectsPanelVisible = true;
+        this.headerVisible = true;
 
         this.init();
         this.setupEventListeners();
@@ -401,6 +402,10 @@ class MindmapRenderer {
 
         document.getElementById('togglePanelBtn').addEventListener('click', () => {
             this.togglePanel();
+        });
+
+        document.getElementById('toggleHeaderBtn').addEventListener('click', () => {
+            this.toggleHeader();
         });
 
         // Modal events
@@ -552,6 +557,10 @@ class MindmapRenderer {
                         case 'KeyC':
                             e.preventDefault();
                             window.mindmapEngine.collapseAll();
+                            break;
+                        case 'KeyH':
+                            e.preventDefault();
+                            this.toggleHeader();
                             break;
                     }
                 }
@@ -811,6 +820,37 @@ class MindmapRenderer {
             btn.innerHTML = '▶▶';
             btn.style.left = '0';
         }
+    }
+
+    toggleHeader() {
+        const header = document.querySelector('.header');
+        const mainContent = document.querySelector('.main-content');
+        const btn = document.getElementById('toggleHeaderBtn');
+
+        this.headerVisible = !this.headerVisible;
+
+        if (this.headerVisible) {
+            // Show header
+            header.classList.remove('collapsed');
+            mainContent.classList.remove('header-collapsed');
+            btn.classList.remove('header-hidden');
+            btn.innerHTML = '▲▲';
+            btn.style.top = '90px';
+        } else {
+            // Hide header
+            header.classList.add('collapsed');
+            mainContent.classList.add('header-collapsed');
+            btn.classList.add('header-hidden');
+            btn.innerHTML = '▼▼';
+            btn.style.top = '38px';
+        }
+
+        // Force canvas redraw after animation
+        setTimeout(() => {
+            if (this.currentMindmap) {
+                this.currentMindmap.redrawConnections();
+            }
+        }, 300);
     }
 
     resetView() {
