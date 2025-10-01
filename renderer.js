@@ -765,6 +765,12 @@ class MindmapRenderer {
             addBtn.addEventListener('click', () => this.openCategoryModal());
         }
 
+        // Collapse categories panel button
+        const collapseBtn = document.getElementById('collapseCategoriesPanel');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => this.toggleCategoriesPanelCollapse());
+        }
+
         // Close category modal
         const closeModalBtn = document.getElementById('closeCategoryModalBtn');
         if (closeModalBtn) {
@@ -802,6 +808,13 @@ class MindmapRenderer {
             } else {
                 panel.classList.add('hidden');
             }
+        }
+    }
+
+    toggleCategoriesPanelCollapse() {
+        const panel = document.getElementById('categoriesPanel');
+        if (panel) {
+            panel.classList.toggle('collapsed');
         }
     }
 
@@ -1140,14 +1153,24 @@ class MindmapRenderer {
             return;
         }
 
-        // Get first category (primary)
-        const primaryCategoryId = nodeData.categories[0];
-        const category = this.categories.find(c => c.id === primaryCategoryId);
+        // Find which of the node's categories are currently active in filters
+        const activeMatchingCategories = nodeData.categories
+            .filter(catId => this.activeCategories.has(catId))
+            .map(catId => this.categories.find(c => c.id === catId))
+            .filter(cat => cat !== undefined);
 
-        if (category) {
-            node.classList.add('has-category');
+        // If no active categories match, use first category as fallback
+        const categoriesToShow = activeMatchingCategories.length > 0
+            ? activeMatchingCategories
+            : [this.categories.find(c => c.id === nodeData.categories[0])].filter(c => c);
 
-            // Convert hex to rgba for background and effects
+        if (categoriesToShow.length === 0) return;
+
+        node.classList.add('has-category');
+
+        if (categoriesToShow.length === 1) {
+            // Single category - use solid color
+            const category = categoriesToShow[0];
             const r = parseInt(category.color.slice(1, 3), 16);
             const g = parseInt(category.color.slice(3, 5), 16);
             const b = parseInt(category.color.slice(5, 7), 16);
@@ -1156,20 +1179,52 @@ class MindmapRenderer {
             node.style.setProperty('--category-border', `rgba(${r}, ${g}, ${b}, 0.6)`);
             node.style.setProperty('--category-shadow', `rgba(${r}, ${g}, ${b}, 0.2)`);
             node.style.setProperty('--category-glow', `rgba(${r}, ${g}, ${b}, 0.05)`);
+        } else {
+            // Multiple categories - create gradients
+            const colors = categoriesToShow.map(cat => {
+                const r = parseInt(cat.color.slice(1, 3), 16);
+                const g = parseInt(cat.color.slice(3, 5), 16);
+                const b = parseInt(cat.color.slice(5, 7), 16);
+                return { r, g, b, hex: cat.color };
+            });
 
-            // Add category badge if multiple categories
-            if (nodeData.categories.length > 1) {
-                let badge = node.querySelector('.category-badge');
-                if (!badge) {
-                    badge = document.createElement('div');
-                    badge.className = 'category-badge';
-                    node.appendChild(badge);
-                }
-                badge.textContent = `+${nodeData.categories.length - 1}`;
-            } else {
-                const badge = node.querySelector('.category-badge');
-                if (badge) badge.remove();
+            // Create linear gradient for background
+            const bgGradient = colors.map((c, i) =>
+                `rgba(${c.r}, ${c.g}, ${c.b}, 0.08) ${i * (100 / (colors.length - 1))}%`
+            ).join(', ');
+
+            // Create linear gradient for border
+            const borderGradient = colors.map((c, i) =>
+                `rgba(${c.r}, ${c.g}, ${c.b}, 0.6) ${i * (100 / (colors.length - 1))}%`
+            ).join(', ');
+
+            // Use average color for shadow/glow
+            const avgR = Math.round(colors.reduce((sum, c) => sum + c.r, 0) / colors.length);
+            const avgG = Math.round(colors.reduce((sum, c) => sum + c.g, 0) / colors.length);
+            const avgB = Math.round(colors.reduce((sum, c) => sum + c.b, 0) / colors.length);
+
+            node.style.setProperty('--category-bg', `linear-gradient(135deg, ${bgGradient})`);
+            node.style.setProperty('--category-border', `linear-gradient(135deg, ${borderGradient})`);
+            node.style.setProperty('--category-shadow', `rgba(${avgR}, ${avgG}, ${avgB}, 0.2)`);
+            node.style.setProperty('--category-glow', `rgba(${avgR}, ${avgG}, ${avgB}, 0.05)`);
+        }
+
+        // Add category badge if node has multiple categories assigned
+        if (nodeData.categories.length > 1) {
+            let badge = node.querySelector('.category-badge');
+            if (!badge) {
+                badge = document.createElement('div');
+                badge.className = 'category-badge';
+                node.appendChild(badge);
             }
+            // Show count of active matching categories if filtering, otherwise total count
+            const count = activeMatchingCategories.length > 0
+                ? activeMatchingCategories.length
+                : nodeData.categories.length;
+            badge.textContent = count > 1 ? `${count}` : `+${nodeData.categories.length - 1}`;
+        } else {
+            const badge = node.querySelector('.category-badge');
+            if (badge) badge.remove();
         }
     }
 
