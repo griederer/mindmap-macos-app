@@ -1,5 +1,182 @@
 # Changelog - PWC Mindmap Pro
 
+## [2.6.0] - 2025-09-30
+
+### 🎨 Visual Enhancements
+
+Complete visual upgrade of connector system and node positioning for a more organic, professional appearance.
+
+---
+
+## ✨ New Features
+
+### 1. **Smooth Bezier Curved Connectors**
+Replaced straight lines with elegant Bezier curves for a more organic, professional look.
+
+**Before:**
+```
+[Parent] ———————————— [Child]  (Straight lines)
+```
+
+**After:**
+```
+[Parent] ╭─────────╮ [Child]  (Smooth curves)
+```
+
+**Technical details:**
+- Bezier cubic curves with 50% control distance
+- Smooth transitions between nodes
+- Round line caps and joins for polished appearance
+- Canvas-based rendering maintains performance
+
+### 2. **Gradient Connection Colors**
+Dynamic color gradients based on hierarchy level for better visual depth.
+
+**Color scheme:**
+- **Level 0 (Central)**: Rich orange (80-60% opacity)
+- **Level 1**: Medium orange (60-50% opacity)
+- **Level 2+**: Soft orange (40-30% opacity)
+
+**Benefits:**
+- Clear visual hierarchy
+- Better depth perception
+- Reduced visual clutter in deep trees
+
+### 3. **Variable Line Thickness**
+Line width adapts to node importance and hierarchy level.
+
+**Thickness scale:**
+- **Central nodes**: 3.5px (most important)
+- **Level 1 nodes**: 2.5px (important)
+- **Level 2+ nodes**: 1.8px (supporting)
+
+### 4. **Connection Dots**
+Decorative dots at connection points for Level 0 and 1 nodes.
+
+- 3px radius circles at parent connection points
+- Only visible on top two hierarchy levels
+- Subtle visual anchors for important connections
+
+### 5. **Smart Node Ordering**
+Intelligent automatic sorting of child nodes by importance.
+
+**Sorting priorities:**
+1. Nodes with visible info panels (most important)
+2. Nodes with more children (structural importance)
+3. Nodes with longer titles (more content)
+
+**Benefits:**
+- Visual balance: Important nodes get prominence
+- Better space utilization
+- Reduced manual reorganization
+
+### 6. **Adaptive Vertical Spacing**
+Dynamic padding adjusts based on node content and quantity.
+
+**Spacing rules:**
+- **Base spacing**: 40px
+- **With info panels**: 60px (1.5x - more breathing room)
+- **Many nodes (>5)**: 28px (0.7x - compact layout)
+
+**Benefits:**
+- Prevents overlapping with large info panels
+- Compact layouts for many simple nodes
+- Balanced visual distribution
+
+---
+
+## 🎯 Visual Comparison
+
+### Connectors
+
+| Aspect | Before (v2.5) | After (v2.6) |
+|--------|---------------|--------------|
+| **Shape** | Straight lines | Bezier curves |
+| **Color** | Fixed rgba(245,184,149,0.3) | Gradient by level (40-80%) |
+| **Thickness** | 2px uniform | 1.8-3.5px variable |
+| **Caps** | Square | Round |
+| **Dots** | None | Level 0-1 connection points |
+
+### Node Ordering
+
+| Aspect | Before (v2.5) | After (v2.6) |
+|--------|---------------|--------------|
+| **Order** | Fixed (text order) | Smart (importance) |
+| **Spacing** | 40px uniform | 28-60px adaptive |
+| **Balance** | No balancing | Visual centering |
+| **Logic** | Sequential | Priority-based |
+
+---
+
+## 🛠️ Technical Implementation
+
+### Modified Functions
+
+**`drawConnections()` (mindmap-engine.js:288-370)**
+- Added Bezier curve calculation with control points
+- Implemented gradient generation based on hierarchy
+- Variable line width by level
+- Round line caps and joins
+- Connection dots for important nodes
+
+**`calculateNodePositions()` (mindmap-engine.js:177-286)**
+- New `sortChildrenByImportance()` helper function
+- Smart sorting before height calculation
+- Adaptive padding logic (1.5x or 0.7x)
+- Maintains compatibility with existing positioning
+
+### Code Changes
+
+```javascript
+// Bezier curve implementation
+const controlDistance = Math.abs(endX - startX) * 0.5;
+this.ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
+
+// Smart sorting
+const sortChildrenByImportance = (children) => {
+    return [...children].sort((a, b) => {
+        // Priority 1: Info panels
+        // Priority 2: Child count
+        // Priority 3: Title length
+    });
+};
+
+// Adaptive spacing
+let padding = verticalPadding;
+if (hasLargeChildren) padding *= 1.5;
+else if (children.length > 5) padding *= 0.7;
+```
+
+---
+
+## 🚀 Performance
+
+- ✅ Same canvas rendering engine (no overhead)
+- ✅ No additional DOM elements
+- ✅ Sorting done once per render
+- ✅ Compatible with existing animations
+- ✅ No breaking changes to API
+
+---
+
+## 📸 Migration Notes
+
+### From v2.5 to v2.6
+
+**No action required** - All changes are visual enhancements:
+- Existing data structures unchanged
+- localStorage compatibility maintained
+- All keyboard shortcuts still work
+- Animation system preserved
+
+**Visual changes you'll notice:**
+1. Connections now curve smoothly instead of straight lines
+2. Nodes automatically reorder by importance when expanded
+3. Spacing adapts to content size
+4. Connection colors have more depth
+
+---
+
 ## [2.0.0] - 2025-09-29
 
 ### 🎯 Major Feature: Info Panel System Rebuild

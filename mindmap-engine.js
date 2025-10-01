@@ -181,6 +181,24 @@ class MindmapEngine {
         const verticalPadding = 40;
         const infoBoxMinHeight = 280;
 
+        // ✨ v2.6: Smart node ordering by importance
+        const sortChildrenByImportance = (children) => {
+            return [...children].sort((a, b) => {
+                // Priority 1: Nodes with visible info panels
+                const aHasInfo = this.nodeData[a.id]?.showInfo ? 1 : 0;
+                const bHasInfo = this.nodeData[b.id]?.showInfo ? 1 : 0;
+                if (aHasInfo !== bHasInfo) return bHasInfo - aHasInfo;
+
+                // Priority 2: Number of children (more children = more important)
+                const aChildren = (a.children || []).length;
+                const bChildren = (b.children || []).length;
+                if (aChildren !== bChildren) return bChildren - aChildren;
+
+                // Priority 3: Title length (more content = more important)
+                return b.title.length - a.title.length;
+            });
+        };
+
         // Calculate height including info boxes
         const calculateHeight = (node) => {
             let baseHeight = minNodeHeight;
@@ -207,17 +225,25 @@ class MindmapEngine {
                 return baseHeight;
             }
 
+            // ✨ v2.6: Sort children before calculating height
+            const sortedChildren = sortChildrenByImportance(node.children);
+
             let totalHeight = 0;
-            node.children.forEach(child => {
+            sortedChildren.forEach(child => {
                 totalHeight += calculateHeight(child);
             });
 
+            // ✨ v2.6: Adaptive padding based on content
             let padding = verticalPadding;
-            if (node.children.some(child => this.nodeData[child.id]?.showInfo)) {
-                padding = verticalPadding * 2;
+            const hasLargeChildren = sortedChildren.some(child => this.nodeData[child.id]?.showInfo);
+
+            if (hasLargeChildren) {
+                padding = verticalPadding * 1.5; // More space for info panels
+            } else if (sortedChildren.length > 5) {
+                padding = verticalPadding * 0.7; // Less space when many nodes
             }
 
-            totalHeight += (node.children.length - 1) * padding;
+            totalHeight += (sortedChildren.length - 1) * padding;
 
             return Math.max(baseHeight, totalHeight);
         };
@@ -227,19 +253,26 @@ class MindmapEngine {
             positions[node.id] = { x, y, parentId, level };
 
             if (node.children && node.children.length > 0 && node.expanded) {
-                const childrenHeights = node.children.map(child => calculateHeight(child));
+                // ✨ v2.6: Sort children by importance
+                const sortedChildren = sortChildrenByImportance(node.children);
+                const childrenHeights = sortedChildren.map(child => calculateHeight(child));
 
+                // ✨ v2.6: Adaptive padding
                 let padding = verticalPadding;
-                if (node.children.some(child => this.nodeData[child.id]?.showInfo)) {
-                    padding = verticalPadding * 2;
+                const hasLargeChildren = sortedChildren.some(child => this.nodeData[child.id]?.showInfo);
+
+                if (hasLargeChildren) {
+                    padding = verticalPadding * 1.5;
+                } else if (sortedChildren.length > 5) {
+                    padding = verticalPadding * 0.7;
                 }
 
                 const totalHeight = childrenHeights.reduce((sum, h) => sum + h, 0) +
-                                  (node.children.length - 1) * padding;
+                                  (sortedChildren.length - 1) * padding;
 
                 let currentY = y - totalHeight / 2;
 
-                node.children.forEach((child, index) => {
+                sortedChildren.forEach((child, index) => {
                     const childHeight = childrenHeights[index];
                     const childY = currentY + childHeight / 2;
                     traverse(child, x + levelWidth, childY, node.id, level + 1);
@@ -277,13 +310,56 @@ class MindmapEngine {
                 const endX = childPos.x - (childWidth / 2);
                 const endY = childPos.y;
 
-                // Draw straight horizontal line
+                // ✨ v2.6: Smooth Bezier curved connections
+                const controlDistance = Math.abs(endX - startX) * 0.5;
+
+                const cp1x = startX + controlDistance;
+                const cp1y = startY;
+                const cp2x = endX - controlDistance;
+                const cp2y = endY;
+
                 this.ctx.beginPath();
                 this.ctx.moveTo(startX, startY);
-                this.ctx.lineTo(endX, endY);
-                this.ctx.strokeStyle = 'rgba(245, 184, 149, 0.3)';
-                this.ctx.lineWidth = 2;
+
+                // Draw Bezier curve
+                this.ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
+
+                // ✨ v2.6: Gradient colors based on hierarchy level
+                const gradient = this.ctx.createLinearGradient(startX, startY, endX, endY);
+                const level = parentPos.level;
+
+                if (level === 0) {
+                    // Central node: Rich orange
+                    gradient.addColorStop(0, 'rgba(245, 184, 149, 0.8)');
+                    gradient.addColorStop(1, 'rgba(249, 201, 168, 0.6)');
+                } else if (level === 1) {
+                    // Level 1: Medium orange
+                    gradient.addColorStop(0, 'rgba(245, 184, 149, 0.6)');
+                    gradient.addColorStop(1, 'rgba(253, 213, 177, 0.5)');
+                } else {
+                    // Deeper levels: Softer
+                    gradient.addColorStop(0, 'rgba(245, 184, 149, 0.4)');
+                    gradient.addColorStop(1, 'rgba(255, 235, 214, 0.3)');
+                }
+
+                this.ctx.strokeStyle = gradient;
+
+                // ✨ v2.6: Variable line thickness based on hierarchy
+                this.ctx.lineWidth = level === 0 ? 3.5 : (level === 1 ? 2.5 : 1.8);
+
+                // ✨ v2.6: Smooth line caps
+                this.ctx.lineCap = 'round';
+                this.ctx.lineJoin = 'round';
+
                 this.ctx.stroke();
+
+                // ✨ v2.6: Connection dots on important nodes
+                if (level < 2) {
+                    this.ctx.beginPath();
+                    this.ctx.arc(startX, startY, 3, 0, Math.PI * 2);
+                    this.ctx.fillStyle = 'rgba(245, 184, 149, 0.8)';
+                    this.ctx.fill();
+                }
 
                 // Recursively draw child connections
                 drawNodeConnections(child);
