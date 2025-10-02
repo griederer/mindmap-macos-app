@@ -1317,23 +1317,28 @@ body[data-view-mode="presentation"] .action-btn:not(:first-child) {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px;
-    border-radius: 8px;
+    padding: 12px 16px;
+    border-radius: 10px;
     margin-bottom: 8px;
-    background: #f9fafb;
-    border: 2px solid transparent;
-    transition: all 0.2s ease;
+    background: var(--bg-node);
+    border: 2px solid var(--border-primary);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     cursor: pointer;
 }
 
 .category-item:hover {
-    background: #f3f4f6;
-    border-color: rgba(220, 105, 0, 0.3);
+    background: var(--bg-button-hover);
+    border-color: var(--accent-primary);
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px var(--shadow-md);
 }
 
 .category-item.active {
-    background: rgba(245, 184, 149, 0.1);
-    border-color: rgba(220, 105, 0, 0.4);
+    background: var(--accent-gradient);
+    border-color: var(--accent-primary);
+    transform: translateX(6px) scale(1.02);
+    box-shadow: 0 6px 16px var(--shadow-lg),
+                0 0 20px var(--accent-primary);
 }
 
 .category-color {
