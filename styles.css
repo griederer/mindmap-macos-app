@@ -551,58 +551,64 @@ body::before {
 }
 
 .action-btn {
-    background: linear-gradient(135deg, #f5b895, #f9c9a8);
-    color: #2D2926;
-    border: none;
-    padding: 8px 14px;
-    border-radius: 6px;
-    font-size: 12px;
+    background: rgba(245, 184, 149, 0.12);
+    color: rgba(245, 184, 149, 0.9);
+    border: 1px solid rgba(245, 184, 149, 0.25);
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 16px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s;
-    display: flex;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    box-shadow: 0 2px 6px rgba(245, 184, 149, 0.15);
+    box-shadow: none;
+    backdrop-filter: blur(5px);
+    min-width: 32px;
+    min-height: 32px;
 }
 
 .action-btn:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 3px 8px rgba(245, 184, 149, 0.25);
+    background: rgba(245, 184, 149, 0.2);
+    border-color: rgba(245, 184, 149, 0.4);
+    transform: translateY(-1px) scale(1.05);
+    box-shadow: 0 2px 8px rgba(245, 184, 149, 0.15);
+}
+
+.action-btn:active {
+    transform: translateY(0) scale(0.98);
 }
 
 /* Add button styling */
 .add-btn {
-    background: linear-gradient(135deg, #4CAF50, #66BB6A) !important;
-    color: white !important;
-    font-weight: 700 !important;
-    font-size: 18px !important;
-    padding: 4px 10px !important;
-    line-height: 1 !important;
+    background: rgba(76, 175, 80, 0.15) !important;
+    color: rgba(76, 175, 80, 0.95) !important;
+    border-color: rgba(76, 175, 80, 0.3) !important;
 }
 
 .add-btn:hover {
-    background: linear-gradient(135deg, #388E3C, #4CAF50) !important;
-    transform: scale(1.05);
+    background: rgba(76, 175, 80, 0.25) !important;
+    border-color: rgba(76, 175, 80, 0.5) !important;
+    box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2) !important;
 }
 
 /* Delete button styling */
 .delete-btn {
-    background: linear-gradient(135deg, #ff4444, #ff6666) !important;
-    color: white !important;
-    font-weight: 700 !important;
-    font-size: 18px !important;
-    padding: 4px 10px !important;
-    line-height: 1 !important;
+    background: rgba(255, 68, 68, 0.15) !important;
+    color: rgba(255, 68, 68, 0.95) !important;
+    border-color: rgba(255, 68, 68, 0.3) !important;
 }
 
 .delete-btn:hover {
-    background: linear-gradient(135deg, #cc0000, #ff4444) !important;
-    transform: scale(1.05);
+    background: rgba(255, 68, 68, 0.25) !important;
+    border-color: rgba(255, 68, 68, 0.5) !important;
+    box-shadow: 0 2px 8px rgba(255, 68, 68, 0.2) !important;
 }
 
 /* Hide Edit, Add, and Delete buttons in presentation mode */
-body[data-view-mode="presentation"] .action-btn:first-child,
+body[data-view-mode="presentation"] .edit-btn,
 body[data-view-mode="presentation"] .add-btn,
 body[data-view-mode="presentation"] .delete-btn {
     display: none;

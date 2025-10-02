@@ -2159,7 +2159,7 @@ class MindmapRenderer {
 }
 
 // Initialize renderer when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     window.mindmapRenderer = new MindmapRenderer();
 
     // Load saved view mode
@@ -2169,10 +2169,61 @@ document.addEventListener('DOMContentLoaded', () => {
     window.mindmapRenderer.initializeThemeButtons();
     window.mindmapRenderer.loadTheme();
 
-    // Auto-save project content when textarea changes
-    document.getElementById('outlineInput').addEventListener('input', () => {
-        if (window.mindmapRenderer) {
-            window.mindmapRenderer.saveProjects();
+    // Initialize ProjectManager
+    if (typeof RendererProjectManager !== 'undefined' && window.electronAPI?.projectManager) {
+        window.projectManager = new RendererProjectManager();
+
+        // Register save callback to provide project data
+        window.projectManager.onSave(() => {
+            const outlineText = document.getElementById('outlineInput').value;
+            const mindmapEngine = window.mindmapEngine;
+
+            return {
+                name: window.projectManager.getCurrentProject().name || 'Untitled Project',
+                content: outlineText,
+                nodes: mindmapEngine?.nodeData || {},
+                categories: window.mindmapRenderer?.categories || [],
+                relationships: window.mindmapRenderer?.relationships || [],
+                metadata: {
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString(),
+                    version: '1.0'
+                }
+            };
+        });
+
+        // Mark as dirty when content changes
+        document.getElementById('outlineInput').addEventListener('input', () => {
+            if (window.projectManager) {
+                window.projectManager.markDirty();
+            }
+            // Also save to localStorage for backward compatibility
+            if (window.mindmapRenderer) {
+                window.mindmapRenderer.saveProjects();
+            }
+        });
+
+        // Try to load last opened project
+        try {
+            const lastProject = await window.projectManager.getLastOpenedProject();
+            if (lastProject) {
+                const projectData = await window.projectManager.loadProject(lastProject);
+                if (projectData && projectData.content) {
+                    document.getElementById('outlineInput').value = projectData.content;
+                    window.mindmapRenderer.generateMindmap();
+                }
+            }
+        } catch (error) {
+            console.log('No previous project to load');
         }
-    });
+
+        console.log('ProjectManager initialized with auto-save');
+    } else {
+        // Fallback to old localStorage-based auto-save
+        document.getElementById('outlineInput').addEventListener('input', () => {
+            if (window.mindmapRenderer) {
+                window.mindmapRenderer.saveProjects();
+            }
+        });
+    }
 });

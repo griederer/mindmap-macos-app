@@ -532,13 +532,28 @@ class MindmapEngine {
                 const actionsDiv = document.createElement('div');
                 actionsDiv.className = 'node-actions';
                 actionsDiv.innerHTML = `
-                    <button class="action-btn" onclick="mindmapEngine.editNode('${node.id}', '${node.title.replace(/'/g, "\\'")}')">Editar</button>
-                    <button class="action-btn focus-btn" onclick="mindmapEngine.toggleFocusMode('${node.id}')">🎯</button>
-                    <button class="action-btn" onclick="mindmapEngine.toggleInfo('${node.id}')">Info</button>
-                    <button class="action-btn add-btn" onclick="mindmapEngine.addChildNode('${node.id}')">+</button>
-                    <button class="action-btn delete-btn" onclick="mindmapEngine.confirmDeleteNode('${node.id}')">×</button>
+                    <button class="action-btn edit-btn" onclick="mindmapEngine.editNode('${node.id}', '${node.title.replace(/'/g, "\\'")}')" title="Editar">
+                        <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="action-btn focus-btn" onclick="mindmapEngine.toggleFocusMode('${node.id}')" title="Modo Enfoque">
+                        <i data-lucide="target" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="action-btn info-btn" onclick="mindmapEngine.toggleInfo('${node.id}')" title="Info">
+                        <i data-lucide="info" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="action-btn add-btn" onclick="mindmapEngine.addChildNode('${node.id}')" title="Agregar Hijo">
+                        <i data-lucide="plus" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="action-btn delete-btn" onclick="mindmapEngine.confirmDeleteNode('${node.id}')" title="Eliminar">
+                        <i data-lucide="x" style="width: 16px; height: 16px;"></i>
+                    </button>
                 `;
                 nodeContent.appendChild(actionsDiv);
+
+                // Initialize Lucide icons for this node
+                if (typeof lucide !== 'undefined') {
+                    setTimeout(() => lucide.createIcons({ nameAttr: 'data-lucide' }), 10);
+                }
 
                 // Create text span
                 const textSpan = document.createElement('span');

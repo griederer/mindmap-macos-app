@@ -1,0 +1,465 @@
+/**
+ * ProjectManager - Handles file-based project storage and management
+ *
+ * Features:
+ * - Persistent file storage in ~/Documents/PWC Mindmaps/
+ * - Auto-save every 30 seconds
+ * - Project metadata tracking
+ * - Recent projects list
+ * - Import/Export workflows
+ */
+
+const path = require('path');
+const fs = require('fs');
+const os = require('os');
+
+class ProjectManager {
+    constructor() {
+        // Default projects directory
+        this.projectsDir = path.join(os.homedir(), 'Documents', 'PWC Mindmaps');
+        this.metadataFile = path.join(this.projectsDir, '.metadata.json');
+        this.metadata = {
+            recentProjects: [],
+            favorites: [],
+            lastOpened: null
+        };
+
+        this.initializeProjectsDirectory();
+        this.loadMetadata();
+    }
+
+    /**
+     * Initialize the projects directory structure
+     */
+    initializeProjectsDirectory() {
+        try {
+            if (!fs.existsSync(this.projectsDir)) {
+                fs.mkdirSync(this.projectsDir, { recursive: true });
+                console.log(`Created projects directory: ${this.projectsDir}`);
+            }
+
+            // Create subdirectories
+            const subdirs = ['Templates', 'Archives'];
+            subdirs.forEach(subdir => {
+                const dirPath = path.join(this.projectsDir, subdir);
+                if (!fs.existsSync(dirPath)) {
+                    fs.mkdirSync(dirPath, { recursive: true });
+                }
+            });
+
+            // Create default template if it doesn't exist
+            this.createDefaultTemplate();
+        } catch (error) {
+            console.error('Error initializing projects directory:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Create a default project template
+     */
+    createDefaultTemplate() {
+        const templatePath = path.join(this.projectsDir, 'Templates', 'Default Template.pmap');
+
+        if (!fs.existsSync(templatePath)) {
+            const defaultTemplate = {
+                name: 'Default Template',
+                nodes: [],
+                metadata: {
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString(),
+                    version: '1.0'
+                },
+                categories: [],
+                relationships: [],
+                content: `Project Title
+1. Main Topic
+* Subtopic 1
+* Subtopic 2
+2. Next Topic
+* Detail A
+* Detail B`
+            };
+
+            fs.writeFileSync(templatePath, JSON.stringify(defaultTemplate, null, 2));
+            console.log('Created default template');
+        }
+    }
+
+    /**
+     * Load metadata from disk
+     */
+    loadMetadata() {
+        try {
+            if (fs.existsSync(this.metadataFile)) {
+                const data = fs.readFileSync(this.metadataFile, 'utf-8');
+                this.metadata = JSON.parse(data);
+            } else {
+                this.saveMetadata();
+            }
+        } catch (error) {
+            console.error('Error loading metadata:', error);
+            this.metadata = {
+                recentProjects: [],
+                favorites: [],
+                lastOpened: null
+            };
+        }
+    }
+
+    /**
+     * Save metadata to disk
+     */
+    saveMetadata() {
+        try {
+            fs.writeFileSync(this.metadataFile, JSON.stringify(this.metadata, null, 2));
+        } catch (error) {
+            console.error('Error saving metadata:', error);
+        }
+    }
+
+    /**
+     * Create a new project
+     * @param {string} projectName - Name of the project
+     * @param {string} template - Template to use (optional)
+     * @returns {object} - Project data and file path
+     */
+    createProject(projectName, template = null) {
+        try {
+            const sanitizedName = this.sanitizeFilename(projectName);
+            const projectPath = path.join(this.projectsDir, `${sanitizedName}.pmap`);
+
+            // Check if project already exists
+            if (fs.existsSync(projectPath)) {
+                throw new Error(`Project "${projectName}" already exists`);
+            }
+
+            let projectData;
+            if (template) {
+                // Load template
+                const templatePath = path.join(this.projectsDir, 'Templates', `${template}.pmap`);
+                if (fs.existsSync(templatePath)) {
+                    const templateData = JSON.parse(fs.readFileSync(templatePath, 'utf-8'));
+                    projectData = { ...templateData, name: projectName };
+                }
+            }
+
+            if (!projectData) {
+                // Create from scratch
+                projectData = {
+                    name: projectName,
+                    nodes: [],
+                    metadata: {
+                        created: new Date().toISOString(),
+                        modified: new Date().toISOString(),
+                        version: '1.0'
+                    },
+                    categories: [],
+                    relationships: [],
+                    content: `${projectName}\n1. Main Idea\n* Subtopic 1\n* Subtopic 2`
+                };
+            }
+
+            // Update timestamps
+            projectData.metadata.created = new Date().toISOString();
+            projectData.metadata.modified = new Date().toISOString();
+
+            // Save project file
+            fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2));
+
+            // Update metadata
+            this.addToRecentProjects(projectPath);
+            this.metadata.lastOpened = projectPath;
+            this.saveMetadata();
+
+            return { projectData, projectPath };
+        } catch (error) {
+            console.error('Error creating project:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Load a project from disk
+     * @param {string} projectPath - Full path to project file
+     * @returns {object} - Project data
+     */
+    loadProject(projectPath) {
+        try {
+            if (!fs.existsSync(projectPath)) {
+                throw new Error(`Project file not found: ${projectPath}`);
+            }
+
+            const data = fs.readFileSync(projectPath, 'utf-8');
+            const projectData = JSON.parse(data);
+
+            // Update metadata
+            this.addToRecentProjects(projectPath);
+            this.metadata.lastOpened = projectPath;
+            this.saveMetadata();
+
+            return projectData;
+        } catch (error) {
+            console.error('Error loading project:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Save a project to disk
+     * @param {string} projectPath - Full path to project file
+     * @param {object} projectData - Project data to save
+     * @returns {boolean} - Success status
+     */
+    saveProject(projectPath, projectData) {
+        try {
+            // Update modification timestamp
+            if (!projectData.metadata) {
+                projectData.metadata = {};
+            }
+            projectData.metadata.modified = new Date().toISOString();
+
+            // Save to disk
+            fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2));
+
+            // Update metadata
+            this.addToRecentProjects(projectPath);
+            this.saveMetadata();
+
+            return true;
+        } catch (error) {
+            console.error('Error saving project:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get list of all projects in the projects directory
+     * @returns {array} - Array of project info objects
+     */
+    listProjects() {
+        try {
+            const files = fs.readdirSync(this.projectsDir);
+            const projects = [];
+
+            files.forEach(file => {
+                if (file.endsWith('.pmap')) {
+                    const filePath = path.join(this.projectsDir, file);
+                    const stats = fs.statSync(filePath);
+
+                    try {
+                        const data = fs.readFileSync(filePath, 'utf-8');
+                        const projectData = JSON.parse(data);
+
+                        projects.push({
+                            name: projectData.name || path.basename(file, '.pmap'),
+                            path: filePath,
+                            modified: stats.mtime,
+                            created: stats.birthtime,
+                            size: stats.size
+                        });
+                    } catch (parseError) {
+                        console.error(`Error parsing project ${file}:`, parseError);
+                    }
+                }
+            });
+
+            // Sort by modification date (newest first)
+            projects.sort((a, b) => b.modified - a.modified);
+
+            return projects;
+        } catch (error) {
+            console.error('Error listing projects:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Get recent projects
+     * @param {number} limit - Maximum number of recent projects to return
+     * @returns {array} - Array of recent project paths
+     */
+    getRecentProjects(limit = 10) {
+        const recentProjects = this.metadata.recentProjects
+            .filter(projectPath => fs.existsSync(projectPath))
+            .slice(0, limit);
+
+        // Clean up non-existent projects
+        this.metadata.recentProjects = recentProjects;
+        this.saveMetadata();
+
+        return recentProjects.map(projectPath => {
+            try {
+                const data = fs.readFileSync(projectPath, 'utf-8');
+                const projectData = JSON.parse(data);
+                return {
+                    name: projectData.name || path.basename(projectPath, '.pmap'),
+                    path: projectPath
+                };
+            } catch (error) {
+                return null;
+            }
+        }).filter(p => p !== null);
+    }
+
+    /**
+     * Add project to recent projects list
+     * @param {string} projectPath - Full path to project file
+     */
+    addToRecentProjects(projectPath) {
+        // Remove if already exists
+        this.metadata.recentProjects = this.metadata.recentProjects.filter(p => p !== projectPath);
+
+        // Add to front
+        this.metadata.recentProjects.unshift(projectPath);
+
+        // Keep only last 20
+        this.metadata.recentProjects = this.metadata.recentProjects.slice(0, 20);
+    }
+
+    /**
+     * Delete a project
+     * @param {string} projectPath - Full path to project file
+     * @param {boolean} moveToArchive - Whether to archive instead of delete
+     * @returns {boolean} - Success status
+     */
+    deleteProject(projectPath, moveToArchive = true) {
+        try {
+            if (!fs.existsSync(projectPath)) {
+                throw new Error('Project file not found');
+            }
+
+            if (moveToArchive) {
+                const archivePath = path.join(
+                    this.projectsDir,
+                    'Archives',
+                    path.basename(projectPath)
+                );
+                fs.renameSync(projectPath, archivePath);
+            } else {
+                fs.unlinkSync(projectPath);
+            }
+
+            // Remove from recent projects
+            this.metadata.recentProjects = this.metadata.recentProjects.filter(p => p !== projectPath);
+            this.saveMetadata();
+
+            return true;
+        } catch (error) {
+            console.error('Error deleting project:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Export project to different format
+     * @param {string} projectPath - Source project path
+     * @param {string} exportPath - Destination path
+     * @param {string} format - Export format (json, md, txt)
+     * @returns {boolean} - Success status
+     */
+    exportProject(projectPath, exportPath, format = 'json') {
+        try {
+            const projectData = this.loadProject(projectPath);
+
+            let exportContent;
+            switch (format) {
+                case 'json':
+                    exportContent = JSON.stringify(projectData, null, 2);
+                    break;
+                case 'md':
+                case 'txt':
+                    exportContent = projectData.content || '';
+                    break;
+                default:
+                    throw new Error(`Unsupported export format: ${format}`);
+            }
+
+            fs.writeFileSync(exportPath, exportContent);
+            return true;
+        } catch (error) {
+            console.error('Error exporting project:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Import project from file
+     * @param {string} sourcePath - Source file path
+     * @param {string} projectName - Name for the imported project
+     * @returns {object} - Imported project data and path
+     */
+    importProject(sourcePath, projectName = null) {
+        try {
+            const ext = path.extname(sourcePath).toLowerCase();
+            const content = fs.readFileSync(sourcePath, 'utf-8');
+
+            let projectData;
+
+            if (ext === '.json' || ext === '.pmap') {
+                projectData = JSON.parse(content);
+            } else {
+                // Import as text content
+                projectData = {
+                    name: projectName || path.basename(sourcePath, ext),
+                    nodes: [],
+                    metadata: {
+                        created: new Date().toISOString(),
+                        modified: new Date().toISOString(),
+                        version: '1.0',
+                        importedFrom: sourcePath
+                    },
+                    categories: [],
+                    relationships: [],
+                    content: content
+                };
+            }
+
+            // Save as new project
+            const sanitizedName = this.sanitizeFilename(
+                projectName || projectData.name || 'Imported Project'
+            );
+            const newProjectPath = path.join(this.projectsDir, `${sanitizedName}.pmap`);
+
+            fs.writeFileSync(newProjectPath, JSON.stringify(projectData, null, 2));
+
+            this.addToRecentProjects(newProjectPath);
+            this.saveMetadata();
+
+            return { projectData, projectPath: newProjectPath };
+        } catch (error) {
+            console.error('Error importing project:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Sanitize filename for safe file system usage
+     * @param {string} filename - Original filename
+     * @returns {string} - Sanitized filename
+     */
+    sanitizeFilename(filename) {
+        return filename
+            .replace(/[<>:"/\\|?*]/g, '-')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    /**
+     * Get the projects directory path
+     * @returns {string} - Projects directory path
+     */
+    getProjectsDirectory() {
+        return this.projectsDir;
+    }
+
+    /**
+     * Get the last opened project path
+     * @returns {string|null} - Last opened project path
+     */
+    getLastOpenedProject() {
+        return this.metadata.lastOpened;
+    }
+}
+
+module.exports = ProjectManager;

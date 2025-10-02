@@ -2,9 +2,13 @@ const { app, BrowserWindow, Menu, ipcMain, dialog, shell, nativeTheme } = requir
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
+const ProjectManager = require('./project-manager');
 
 // Initialize electron store for preferences
 const store = new Store();
+
+// Initialize ProjectManager
+const projectManager = new ProjectManager();
 
 let mainWindow;
 let isDev = process.argv.includes('--dev');
@@ -345,6 +349,97 @@ ipcMain.handle('save-file', async (event, data) => {
 
 ipcMain.handle('get-platform', () => {
   return process.platform;
+});
+
+// ProjectManager IPC handlers
+ipcMain.handle('pm-create-project', async (event, { projectName, template }) => {
+  try {
+    const result = projectManager.createProject(projectName, template);
+    return { success: true, ...result };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pm-load-project', async (event, { projectPath }) => {
+  try {
+    const projectData = projectManager.loadProject(projectPath);
+    return { success: true, projectData };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pm-save-project', async (event, { projectPath, projectData }) => {
+  try {
+    projectManager.saveProject(projectPath, projectData);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pm-list-projects', async () => {
+  try {
+    const projects = projectManager.listProjects();
+    return { success: true, projects };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pm-get-recent-projects', async (event, { limit }) => {
+  try {
+    const projects = projectManager.getRecentProjects(limit);
+    return { success: true, projects };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pm-delete-project', async (event, { projectPath, moveToArchive }) => {
+  try {
+    projectManager.deleteProject(projectPath, moveToArchive);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pm-export-project', async (event, { projectPath, exportPath, format }) => {
+  try {
+    projectManager.exportProject(projectPath, exportPath, format);
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pm-import-project', async (event, { sourcePath, projectName }) => {
+  try {
+    const result = projectManager.importProject(sourcePath, projectName);
+    return { success: true, ...result };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pm-get-projects-directory', async () => {
+  try {
+    const directory = projectManager.getProjectsDirectory();
+    return { success: true, directory };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+});
+
+ipcMain.handle('pm-get-last-opened', async () => {
+  try {
+    const projectPath = projectManager.getLastOpenedProject();
+    return { success: true, projectPath };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
 });
 
 // App event handlers
