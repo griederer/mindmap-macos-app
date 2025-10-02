@@ -351,10 +351,15 @@ body::before {
     flex: 1;
     overflow: auto;
     position: relative;
+    /* Premium paper texture: Subtle grain + warm white base + vignette */
     background:
-        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='250' height='250'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='4' /%3E%3C/filter%3E%3Crect width='250' height='250' filter='url(%23noise)' opacity='0.45'/%3E%3C/svg%3E"),
-        linear-gradient(135deg, #fafaf8 0%, #f5f2ef 100%);
-    background-size: 180px 180px, 100%;
+        /* Subtle vignette for depth */
+        radial-gradient(ellipse at center, transparent 0%, rgba(0, 0, 0, 0.015) 100%),
+        /* Fine paper grain texture - very subtle */
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='paper-grain'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='1.1' numOctaves='6' seed='2' /%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23paper-grain)' opacity='0.025'/%3E%3C/svg%3E"),
+        /* Warm white base color (ivory-tinted) */
+        #fdfcfa;
+    background-size: 100%, 180px 180px, 100%;
     cursor: grab;
 }
 
@@ -603,6 +608,37 @@ body[data-view-mode="presentation"] .node {
 body[data-view-mode="presentation"] .toggle-icon,
 body[data-view-mode="presentation"] .action-btn:not(:first-child) {
     pointer-events: auto;
+}
+
+/* Focus mode states - Dramatic effect */
+.node.unfocused {
+    opacity: 0.15;
+    filter: blur(2px) grayscale(60%);
+    transform: scale(0.95);
+    transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+}
+
+.node.focused {
+    opacity: 1;
+    filter: none;
+    transform: scale(1.08);
+    transition: all 0.5s cubic-bezier(0.4, 0.0, 0.2, 1);
+    box-shadow:
+        0 0 60px rgba(220, 105, 0, 0.4),
+        0 0 90px rgba(220, 105, 0, 0.25),
+        0 8px 32px rgba(0, 0, 0, 0.15);
+    z-index: 100;
+}
+
+/* Focus button styling - now integrated in actions */
+.action-btn.focus-btn {
+    font-size: 18px;
+    padding: 0;
+}
+
+.action-btn.focus-btn.active {
+    background: rgba(220, 105, 0, 0.2);
+    border-color: #DC6900;
 }
 
 .node-extra-info {

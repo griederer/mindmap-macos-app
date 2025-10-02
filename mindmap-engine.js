@@ -5,6 +5,7 @@ class MindmapEngine {
         this.nodeData = {};
         this.positions = {};
         this.selectedNode = null;
+        this.focusedNodeId = null; // For presentation focus mode
         this.scale = 1.0;
         this.canvas = null;
         this.ctx = null;
@@ -532,6 +533,7 @@ class MindmapEngine {
                 actionsDiv.className = 'node-actions';
                 actionsDiv.innerHTML = `
                     <button class="action-btn" onclick="mindmapEngine.editNode('${node.id}', '${node.title.replace(/'/g, "\\'")}')">Editar</button>
+                    <button class="action-btn focus-btn" onclick="mindmapEngine.toggleFocusMode('${node.id}')">🎯</button>
                     <button class="action-btn" onclick="mindmapEngine.toggleInfo('${node.id}')">Info</button>
                     <button class="action-btn add-btn" onclick="mindmapEngine.addChildNode('${node.id}')">+</button>
                     <button class="action-btn delete-btn" onclick="mindmapEngine.confirmDeleteNode('${node.id}')">×</button>
@@ -637,6 +639,61 @@ class MindmapEngine {
         if (nodeEl) {
             nodeEl.classList.add('selected');
             this.selectedNode = nodeId;
+        }
+    }
+
+    toggleFocusMode(nodeId) {
+        // Toggle focus: if clicking same node, unfocus. Otherwise, focus on new node
+        if (this.focusedNodeId === nodeId) {
+            // Unfocus all
+            this.focusedNodeId = null;
+            document.querySelectorAll('.node').forEach(n => {
+                n.classList.remove('focused', 'unfocused');
+            });
+            // Update all focus buttons
+            document.querySelectorAll('.focus-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+        } else {
+            // Focus on this node and its children
+            this.focusedNodeId = nodeId;
+            const targetNode = this.findNode(nodeId, this.nodes);
+            const focusedIds = new Set([nodeId]);
+
+            // Get all descendants
+            if (targetNode) {
+                this.getAllDescendants(targetNode, focusedIds);
+            }
+
+            // Apply focus/unfocus classes
+            document.querySelectorAll('.node').forEach(nodeEl => {
+                const elNodeId = nodeEl.dataset.nodeId;
+                if (focusedIds.has(elNodeId)) {
+                    nodeEl.classList.add('focused');
+                    nodeEl.classList.remove('unfocused');
+                } else {
+                    nodeEl.classList.add('unfocused');
+                    nodeEl.classList.remove('focused');
+                }
+            });
+
+            // Update focus buttons
+            document.querySelectorAll('.focus-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            const activeFocusBtn = document.querySelector(`[data-node-id="${nodeId}"] .focus-btn`);
+            if (activeFocusBtn) {
+                activeFocusBtn.classList.add('active');
+            }
+        }
+    }
+
+    getAllDescendants(node, idsSet) {
+        if (node.children && node.children.length > 0) {
+            node.children.forEach(child => {
+                idsSet.add(child.id);
+                this.getAllDescendants(child, idsSet);
+            });
         }
     }
 
