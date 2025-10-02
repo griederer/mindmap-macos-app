@@ -1,0 +1,298 @@
+/* ========================================
+   THEME SYSTEM - PWC Mindmap Pro
+   ======================================== */
+
+/* ROOT VARIABLES - Default Light Theme */
+:root {
+    /* Background colors */
+    --bg-main: #fafaf8;
+    --bg-canvas: #fafaf8;
+    --bg-header: linear-gradient(135deg, #2D2926 0%, #3a3633 100%);
+    --bg-panel: rgba(255, 255, 255, 0.85);
+    --bg-node: #ffffff;
+    --bg-button: #f3f3f3;
+    --bg-button-hover: #e8e8e8;
+
+    /* Text colors */
+    --text-primary: #2c2c2c;
+    --text-secondary: #666666;
+    --text-header: #ffffff;
+    --text-muted: #999999;
+
+    /* Border colors */
+    --border-primary: #e0e0e0;
+    --border-node: rgba(0, 0, 0, 0.1);
+    --border-panel: rgba(255, 255, 255, 0.3);
+
+    /* Shadow colors */
+    --shadow-sm: rgba(0, 0, 0, 0.08);
+    --shadow-md: rgba(0, 0, 0, 0.12);
+    --shadow-lg: rgba(0, 0, 0, 0.15);
+    --shadow-node: rgba(0, 0, 0, 0.1);
+
+    /* Accent colors - PwC Orange */
+    --accent-primary: #DC6900;
+    --accent-light: #f5b895;
+    --accent-gradient: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
+
+    /* Connection lines */
+    --line-color: rgba(220, 105, 0, 0.3);
+    --line-hover: rgba(220, 105, 0, 0.6);
+
+    /* Grid pattern */
+    --grid-color: transparent;
+    --grid-opacity: 0;
+}
+
+/* ========================================
+   BLUEPRINT PROFESSIONAL THEME
+   ======================================== */
+body[data-theme="blueprint"] {
+    --bg-main: #2563B1;
+    --bg-canvas: #2563B1;
+    --bg-header: #1a4d8f;
+    --bg-panel: rgba(37, 99, 177, 0.95);
+    --bg-node: rgba(255, 255, 255, 0.05);
+    --bg-button: rgba(255, 255, 255, 0.1);
+    --bg-button-hover: rgba(255, 255, 255, 0.15);
+
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.8);
+    --text-header: #ffffff;
+    --text-muted: rgba(255, 255, 255, 0.5);
+
+    --border-primary: rgba(255, 255, 255, 0.2);
+    --border-node: rgba(255, 255, 255, 0.4);
+    --border-panel: rgba(255, 255, 255, 0.3);
+
+    --shadow-sm: rgba(0, 0, 0, 0.3);
+    --shadow-md: rgba(0, 0, 0, 0.4);
+    --shadow-lg: rgba(0, 0, 0, 0.5);
+    --shadow-node: rgba(0, 0, 0, 0.3);
+
+    --accent-primary: #f5b895;
+    --accent-light: #f9c9a8;
+    --accent-gradient: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
+
+    --line-color: rgba(255, 255, 255, 0.3);
+    --line-hover: rgba(255, 255, 255, 0.6);
+
+    --grid-color: rgba(255, 255, 255, 0.1);
+    --grid-opacity: 1;
+}
+
+/* Blueprint grid pattern */
+body[data-theme="blueprint"] .mindmap-container {
+    background-image:
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* ========================================
+   DARK MODE MINIMALIST THEME
+   ======================================== */
+body[data-theme="dark"] {
+    --bg-main: #121212;
+    --bg-canvas: #121212;
+    --bg-header: #1e1e1e;
+    --bg-panel: rgba(30, 30, 30, 0.95);
+    --bg-node: #2d2d2d;
+    --bg-button: #3a3a3a;
+    --bg-button-hover: #4a4a4a;
+
+    --text-primary: #e0e0e0;
+    --text-secondary: #b0b0b0;
+    --text-header: #ffffff;
+    --text-muted: #707070;
+
+    --border-primary: #3a3a3a;
+    --border-node: rgba(255, 255, 255, 0.1);
+    --border-panel: rgba(255, 255, 255, 0.1);
+
+    --shadow-sm: rgba(0, 0, 0, 0.5);
+    --shadow-md: rgba(0, 0, 0, 0.6);
+    --shadow-lg: rgba(0, 0, 0, 0.7);
+    --shadow-node: rgba(0, 0, 0, 0.5);
+
+    --accent-primary: #DC6900;
+    --accent-light: #f5b895;
+    --accent-gradient: linear-gradient(135deg, #DC6900 0%, #f5b895 100%);
+
+    --line-color: rgba(220, 105, 0, 0.4);
+    --line-hover: rgba(220, 105, 0, 0.7);
+
+    --grid-color: transparent;
+    --grid-opacity: 0;
+}
+
+/* ========================================
+   MONOCHROME ELEGANT THEME
+   ======================================== */
+body[data-theme="monochrome"] {
+    --bg-main: #ffffff;
+    --bg-canvas: #ffffff;
+    --bg-header: #000000;
+    --bg-panel: rgba(255, 255, 255, 0.98);
+    --bg-node: #ffffff;
+    --bg-button: #f5f5f5;
+    --bg-button-hover: #e5e5e5;
+
+    --text-primary: #000000;
+    --text-secondary: #333333;
+    --text-header: #ffffff;
+    --text-muted: #666666;
+
+    --border-primary: #000000;
+    --border-node: #000000;
+    --border-panel: #e0e0e0;
+
+    --shadow-sm: rgba(0, 0, 0, 0.05);
+    --shadow-md: rgba(0, 0, 0, 0.08);
+    --shadow-lg: rgba(0, 0, 0, 0.1);
+    --shadow-node: rgba(0, 0, 0, 0.08);
+
+    --accent-primary: #000000;
+    --accent-light: #333333;
+    --accent-gradient: linear-gradient(135deg, #000000 0%, #333333 100%);
+
+    --line-color: rgba(0, 0, 0, 0.2);
+    --line-hover: rgba(0, 0, 0, 0.5);
+
+    --grid-color: transparent;
+    --grid-opacity: 0;
+}
+
+/* ========================================
+   THEME SELECTOR STYLES
+   ======================================== */
+.theme-selector {
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px;
+    border-radius: 8px;
+    margin-right: 12px;
+}
+
+.theme-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: rgba(255, 255, 255, 0.7);
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.theme-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+.theme-btn.active {
+    background: rgba(255, 255, 255, 0.2);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* ========================================
+   APPLY THEME VARIABLES TO COMPONENTS
+   ======================================== */
+
+/* Main container */
+body {
+    background: var(--bg-main);
+    color: var(--text-primary);
+}
+
+.container {
+    background: var(--bg-main);
+}
+
+/* Header */
+.header {
+    background: var(--bg-header) !important;
+}
+
+/* Panels */
+.input-panel,
+.projects-panel,
+.categories-panel {
+    background: var(--bg-panel) !important;
+    border-color: var(--border-panel) !important;
+    color: var(--text-primary) !important;
+}
+
+.input-panel h3,
+.projects-panel h3,
+.categories-panel h3 {
+    color: var(--text-primary) !important;
+}
+
+/* Mindmap canvas */
+.mindmap-container {
+    background: var(--bg-canvas) !important;
+}
+
+/* Nodes */
+.node-content {
+    background: var(--bg-node) !important;
+    border-color: var(--border-node) !important;
+    box-shadow: 0 2px 8px var(--shadow-node) !important;
+    color: var(--text-primary) !important;
+}
+
+.node-text {
+    color: var(--text-primary) !important;
+}
+
+.node-description {
+    color: var(--text-secondary) !important;
+}
+
+/* Buttons */
+.btn {
+    background: var(--bg-button) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-primary) !important;
+}
+
+.btn:hover {
+    background: var(--bg-button-hover) !important;
+}
+
+/* Textareas and inputs */
+textarea,
+input[type="text"] {
+    background: var(--bg-node) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border-primary) !important;
+}
+
+/* Connection lines - handled in canvas via JS */
+
+/* Modals */
+.edit-modal,
+.category-edit-modal {
+    background: var(--bg-panel) !important;
+    color: var(--text-primary) !important;
+}
+
+/* Context menu */
+.context-menu {
+    background: var(--bg-panel) !important;
+    border-color: var(--border-primary) !important;
+}
+
+.context-menu-item {
+    color: var(--text-primary) !important;
+}
+
+.context-menu-item:hover {
+    background: var(--bg-button-hover) !important;
+}

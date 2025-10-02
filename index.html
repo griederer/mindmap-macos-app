@@ -6,13 +6,14 @@
     <title>PWC Mindmap Pro</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css?v=202509301657">
+    <link rel="stylesheet" href="themes.css">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div class="drag-region"></div>
-            <h1><span class="pwc-logo">PwC</span> Mindmap Pro <span class="version-badge">v2.9.0</span></h1>
+            <h1><span class="pwc-logo">PwC</span> Mindmap Pro <span class="version-badge">v3.0.0</span></h1>
             <div class="controls">
                 <!-- Mode Toggle -->
                 <div class="mode-toggle">
@@ -21,6 +22,22 @@
                     </button>
                     <button class="mode-btn" id="presentModeBtn" data-mode="presentation">
                         <i data-lucide="presentation" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 6px;"></i> Presentación
+                    </button>
+                </div>
+
+                <!-- Theme Selector -->
+                <div class="theme-selector">
+                    <button class="theme-btn active" id="themeLight" data-theme="light" title="Classic Light">
+                        <i data-lucide="sun" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="theme-btn" id="themeBlueprint" data-theme="blueprint" title="Blueprint Professional">
+                        <i data-lucide="drafting-compass" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="theme-btn" id="themeDark" data-theme="dark" title="Dark Mode">
+                        <i data-lucide="moon" style="width: 16px; height: 16px;"></i>
+                    </button>
+                    <button class="theme-btn" id="themeMonochrome" data-theme="monochrome" title="Monochrome Elegant">
+                        <i data-lucide="circle" style="width: 16px; height: 16px;"></i>
                     </button>
                 </div>
 

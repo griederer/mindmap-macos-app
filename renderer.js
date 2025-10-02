@@ -1667,6 +1667,43 @@ class MindmapRenderer {
         const savedMode = localStorage.getItem('mindmap-view-mode') || 'edit';
         this.switchViewMode(savedMode);
     }
+
+    // Theme Management
+    switchTheme(themeName) {
+        // Update body data-theme attribute
+        document.body.setAttribute('data-theme', themeName);
+
+        // Update active button
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.dataset.theme === themeName) {
+                btn.classList.add('active');
+            }
+        });
+
+        // Save to localStorage
+        localStorage.setItem('mindmap-theme', themeName);
+
+        // Redraw canvas to update connection line colors
+        if (this.currentViewMode === 'presentation') {
+            this.renderMindmap();
+        }
+    }
+
+    loadTheme() {
+        const savedTheme = localStorage.getItem('mindmap-theme') || 'light';
+        this.switchTheme(savedTheme);
+    }
+
+    initializeThemeButtons() {
+        // Add event listeners to theme buttons
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const theme = btn.dataset.theme;
+                this.switchTheme(theme);
+            });
+        });
+    }
 }
 
 // Initialize renderer when DOM is ready
@@ -1675,6 +1712,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Load saved view mode
     window.mindmapRenderer.loadViewMode();
+
+    // Initialize theme system
+    window.mindmapRenderer.initializeThemeButtons();
+    window.mindmapRenderer.loadTheme();
 
     // Auto-save project content when textarea changes
     document.getElementById('outlineInput').addEventListener('input', () => {
