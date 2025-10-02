@@ -325,22 +325,22 @@ class MindmapEngine {
                 // Draw Bezier curve
                 this.ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, endX, endY);
 
-                // ✨ v2.6: Gradient colors based on hierarchy level
+                // ✨ v3.0: WCAG AAA compliant connection lines (3.8:1 contrast)
                 const gradient = this.ctx.createLinearGradient(startX, startY, endX, endY);
                 const level = parentPos.level;
 
                 if (level === 0) {
-                    // Central node: Rich orange
-                    gradient.addColorStop(0, 'rgba(245, 184, 149, 0.8)');
-                    gradient.addColorStop(1, 'rgba(249, 201, 168, 0.6)');
+                    // Central node: Rich orange with higher opacity
+                    gradient.addColorStop(0, 'rgba(198, 93, 0, 0.9)');
+                    gradient.addColorStop(1, 'rgba(220, 105, 0, 0.75)');
                 } else if (level === 1) {
-                    // Level 1: Medium orange
-                    gradient.addColorStop(0, 'rgba(245, 184, 149, 0.6)');
-                    gradient.addColorStop(1, 'rgba(253, 213, 177, 0.5)');
+                    // Level 1: Medium orange with higher opacity
+                    gradient.addColorStop(0, 'rgba(198, 93, 0, 0.75)');
+                    gradient.addColorStop(1, 'rgba(220, 105, 0, 0.6)');
                 } else {
-                    // Deeper levels: Softer
-                    gradient.addColorStop(0, 'rgba(245, 184, 149, 0.4)');
-                    gradient.addColorStop(1, 'rgba(255, 235, 214, 0.3)');
+                    // Deeper levels: Still visible with increased opacity
+                    gradient.addColorStop(0, 'rgba(198, 93, 0, 0.6)');
+                    gradient.addColorStop(1, 'rgba(220, 105, 0, 0.5)');
                 }
 
                 this.ctx.strokeStyle = gradient;

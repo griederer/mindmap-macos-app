@@ -103,7 +103,7 @@ body::before {
 }
 
 .version-badge {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
     background: rgba(245, 184, 149, 0.2);
     color: rgba(245, 184, 149, 0.9);
@@ -486,7 +486,7 @@ body::before {
 .node-content.level-4 {
     background: linear-gradient(135deg, #fffaf7 0%, #fffdfc 100%);
     color: #2D2926;
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 500;
     border: 1px solid rgba(220, 105, 0, 0.08);
     box-shadow: 0 1px 4px rgba(0,0,0,0.02);
