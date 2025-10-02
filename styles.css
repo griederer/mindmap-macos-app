@@ -93,13 +93,13 @@ body::before {
 
 .pwc-logo {
     display: inline-block;
-    font-size: 20px;
-    font-weight: 600;
+    font-size: 28px;
+    font-weight: 700;
     background: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     font-family: 'Inter', sans-serif;
-    letter-spacing: 0.5px;
+    letter-spacing: -1px;
 }
 
 .version-badge {
