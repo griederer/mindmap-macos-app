@@ -261,6 +261,11 @@
             <label>ℹ️ Descripción (se muestra al presionar Info)</label>
             <textarea id="modalDescription" placeholder="Descripción breve del nodo (máximo 50 palabras)..." maxlength="500" rows="3"></textarea>
 
+            <label>🔗 Relaciones (conecta con otros nodos)</label>
+            <div class="node-relationships-selector" id="nodeRelationshipsSelector">
+                <!-- Will be populated dynamically with checkboxes for each relationship -->
+            </div>
+
             <label>📋 Notas Adicionales (opcional)</label>
             <textarea id="modalNotes" placeholder="Notas detalladas adicionales..." rows="4"></textarea>
 
@@ -409,6 +414,87 @@
             <input type="text" id="categoryIconInput" class="node-title-input" placeholder="Emoji o texto corto..." maxlength="2">
 
             <button class="save-btn" id="saveCategoryBtn">💾 Guardar</button>
+        </div>
+    </div>
+
+    <!-- Relationships Panel -->
+    <div class="categories-panel hidden" id="relationshipsPanel">
+        <div class="categories-header">
+            <h3>Relaciones</h3>
+            <div class="categories-header-buttons">
+                <button class="panel-collapse-btn" id="collapseRelationshipsPanel" title="Colapsar panel">◀</button>
+                <button class="panel-close-btn" id="closeRelationshipsPanel">✕</button>
+            </div>
+        </div>
+
+        <div class="categories-list" id="relationshipsList">
+            <!-- Relationships will be rendered dynamically -->
+        </div>
+
+        <button class="add-category-btn" id="addRelationshipBtn">
+            ➕ Nueva Relación
+        </button>
+
+        <div class="categories-stats">
+            <div class="stat-item">
+                <span class="stat-label">Total nodos:</span>
+                <span class="stat-value" id="totalNodesRelCount">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Conectados:</span>
+                <span class="stat-value" id="connectedNodesCount">0</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toggle Relationships Button -->
+    <button class="toggle-categories-btn" id="toggleRelationshipsBtn" title="Mostrar/Ocultar Relaciones" style="top: 260px;">
+        🔗
+    </button>
+
+    <!-- Relationship Edit Modal -->
+    <div class="modal-overlay" id="relationshipModalOverlay"></div>
+    <div class="edit-modal category-edit-modal" id="relationshipEditModal">
+        <div class="modal-header">
+            <h3 id="relationshipModalTitle">Nueva Relación</h3>
+            <button class="close-modal" id="closeRelationshipModalBtn">✕</button>
+        </div>
+        <div class="modal-content">
+            <label>📝 Nombre</label>
+            <input type="text" id="relationshipNameInput" class="node-title-input" placeholder="Nombre de la relación..." maxlength="30">
+
+            <label>🎨 Color</label>
+            <div class="color-picker" id="relationshipColorPicker">
+                <button class="color-option" data-color="#f5c6c6" style="background: #f5c6c6;" title="Rojo Pale"></button>
+                <button class="color-option" data-color="#f5d4a6" style="background: #f5d4a6;" title="Naranja Pale"></button>
+                <button class="color-option" data-color="#f5eab3" style="background: #f5eab3;" title="Amarillo Pale"></button>
+                <button class="color-option" data-color="#c6e5d9" style="background: #c6e5d9;" title="Verde Pale"></button>
+                <button class="color-option" data-color="#c6d9f5" style="background: #c6d9f5;" title="Azul Pale"></button>
+                <button class="color-option" data-color="#d9c6f5" style="background: #d9c6f5;" title="Púrpura Pale"></button>
+                <button class="color-option" data-color="#f5c6e5" style="background: #f5c6e5;" title="Rosa Pale"></button>
+                <button class="color-option" data-color="#d9d9d9" style="background: #d9d9d9;" title="Gris Pale"></button>
+            </div>
+
+            <label>┄ Patrón de Línea</label>
+            <div class="dash-pattern-picker">
+                <button class="dash-option" data-pattern="[]" title="Línea sólida">
+                    <svg width="60" height="3"><line x1="0" y1="1.5" x2="60" y2="1.5" stroke="#666" stroke-width="2"/></svg>
+                </button>
+                <button class="dash-option" data-pattern="[8,4]" title="Guiones medianos">
+                    <svg width="60" height="3"><line x1="0" y1="1.5" x2="60" y2="1.5" stroke="#666" stroke-width="2" stroke-dasharray="8,4"/></svg>
+                </button>
+                <button class="dash-option" data-pattern="[4,4]" title="Guiones cortos">
+                    <svg width="60" height="3"><line x1="0" y1="1.5" x2="60" y2="1.5" stroke="#666" stroke-width="2" stroke-dasharray="4,4"/></svg>
+                </button>
+                <button class="dash-option" data-pattern="[2,2]" title="Puntos">
+                    <svg width="60" height="3"><line x1="0" y1="1.5" x2="60" y2="1.5" stroke="#666" stroke-width="2" stroke-dasharray="2,2"/></svg>
+                </button>
+                <button class="dash-option" data-pattern="[8,4,2,4]" title="Guión-punto">
+                    <svg width="60" height="3"><line x1="0" y1="1.5" x2="60" y2="1.5" stroke="#666" stroke-width="2" stroke-dasharray="8,4,2,4"/></svg>
+                </button>
+            </div>
+
+            <button class="save-btn" id="saveRelationshipBtn">💾 Guardar</button>
         </div>
     </div>
 

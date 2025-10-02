@@ -338,12 +338,20 @@ class MindmapRenderer {
         this.activeCategories = new Set(); // Active filter categories
         this.editingCategoryId = null;
 
+        // Relationships management
+        this.relationships = [];
+        this.relationshipsPanelVisible = false;
+        this.activeRelationships = new Set(); // Currently active/visible relationships
+        this.editingRelationshipId = null;
+
         this.init();
         this.setupEventListeners();
         this.setupElectronIntegration();
         this.setupCategoriesPanel();
+        this.setupRelationshipsPanel();
         this.loadProjects();
         this.loadCategories();
+        this.loadRelationships();
     }
 
     init() {
@@ -1131,6 +1139,56 @@ class MindmapRenderer {
         this.applyFilters(); // This will apply styles if filter is active
     }
 
+    assignRelationshipToNode(nodeId, relationshipId) {
+        if (!window.mindmapEngine.nodeData[nodeId]) {
+            window.mindmapEngine.nodeData[nodeId] = {
+                notes: '',
+                images: [],
+                showInfo: false,
+                relationships: []
+            };
+        }
+
+        if (!window.mindmapEngine.nodeData[nodeId].relationships) {
+            window.mindmapEngine.nodeData[nodeId].relationships = [];
+        }
+
+        const relationships = window.mindmapEngine.nodeData[nodeId].relationships;
+        const index = relationships.indexOf(relationshipId);
+
+        if (index > -1) {
+            // Remove relationship
+            relationships.splice(index, 1);
+        } else {
+            // Add relationship
+            relationships.push(relationshipId);
+        }
+
+        // Update relationship object bidirectionally
+        const relationship = this.relationships.find(r => r.id === relationshipId);
+        if (relationship) {
+            if (!relationship.nodes) relationship.nodes = [];
+
+            if (index > -1) {
+                // Remove node from relationship
+                relationship.nodes = relationship.nodes.filter(id => id !== nodeId);
+            } else {
+                // Add node to relationship
+                if (!relationship.nodes.includes(nodeId)) {
+                    relationship.nodes.push(nodeId);
+                }
+            }
+        }
+
+        this.saveRelationships();
+        this.renderRelationships();
+
+        // Redraw connections if relationships panel is active
+        if (this.activeRelationships.size > 0 && window.mindmapEngine) {
+            window.mindmapEngine.drawConnections();
+        }
+    }
+
     updateNodeStyle(nodeId) {
         const node = document.getElementById(nodeId);
         if (!node) return;
@@ -1191,6 +1249,443 @@ class MindmapRenderer {
         Object.keys(window.mindmapEngine.nodeData).forEach(nodeId => {
             this.updateNodeStyle(nodeId);
         });
+    }
+
+    // Relationships Panel Setup and Management
+    setupRelationshipsPanel() {
+        // Toggle relationships panel button
+        const toggleBtn = document.getElementById('toggleRelationshipsBtn');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => this.toggleRelationshipsPanel());
+        }
+
+        // Close relationships panel button
+        const closeBtn = document.getElementById('closeRelationshipsPanel');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => this.toggleRelationshipsPanel());
+        }
+
+        // Add relationship button
+        const addBtn = document.getElementById('addRelationshipBtn');
+        if (addBtn) {
+            addBtn.addEventListener('click', () => this.openRelationshipModal());
+        }
+
+        // Collapse relationships panel button
+        const collapseBtn = document.getElementById('collapseRelationshipsPanel');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => this.toggleRelationshipsPanelCollapse());
+        }
+
+        // Close relationship modal
+        const closeModalBtn = document.getElementById('closeRelationshipModalBtn');
+        if (closeModalBtn) {
+            closeModalBtn.addEventListener('click', () => this.closeRelationshipModal());
+        }
+
+        // Modal overlay
+        const modalOverlay = document.getElementById('relationshipModalOverlay');
+        if (modalOverlay) {
+            modalOverlay.addEventListener('click', () => this.closeRelationshipModal());
+        }
+
+        // Save relationship button
+        const saveBtn = document.getElementById('saveRelationshipBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => this.saveRelationship());
+        }
+
+        // Color picker
+        const colorOptions = document.querySelectorAll('#relationshipColorPicker .color-option');
+        colorOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                colorOptions.forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+
+        // Dash pattern picker
+        const dashOptions = document.querySelectorAll('.dash-pattern-picker .dash-option');
+        dashOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                dashOptions.forEach(o => o.classList.remove('selected'));
+                option.classList.add('selected');
+            });
+        });
+    }
+
+    toggleRelationshipsPanel() {
+        const panel = document.getElementById('relationshipsPanel');
+        if (panel) {
+            this.relationshipsPanelVisible = !this.relationshipsPanelVisible;
+            if (this.relationshipsPanelVisible) {
+                panel.classList.remove('hidden');
+            } else {
+                panel.classList.add('hidden');
+            }
+        }
+    }
+
+    toggleRelationshipsPanelCollapse() {
+        const panel = document.getElementById('relationshipsPanel');
+        if (panel) {
+            panel.classList.toggle('collapsed');
+        }
+    }
+
+    loadRelationships() {
+        const saved = localStorage.getItem('mindmap_relationships');
+        if (saved) {
+            try {
+                this.relationships = JSON.parse(saved);
+            } catch (e) {
+                console.error('Error loading relationships:', e);
+                this.relationships = [];
+            }
+        }
+        this.renderRelationships();
+    }
+
+    saveRelationships() {
+        localStorage.setItem('mindmap_relationships', JSON.stringify(this.relationships));
+    }
+
+    renderRelationships() {
+        const list = document.getElementById('relationshipsList');
+        if (!list) return;
+
+        list.innerHTML = '';
+
+        this.relationships.forEach(relationship => {
+            const item = document.createElement('div');
+            item.className = 'category-item';
+            item.dataset.id = relationship.id;
+
+            if (this.activeRelationships.has(relationship.id)) {
+                item.classList.add('active');
+            }
+
+            // Calculate count of connected nodes with this relationship
+            const nodeCount = this.getNodeCountForRelationship(relationship.id);
+
+            // Create visual dash pattern preview
+            const dashPattern = relationship.dashPattern || [];
+            const dashPatternStr = dashPattern.length > 0 ? dashPattern.join(',') : 'solid';
+
+            item.innerHTML = `
+                <div class="category-color" style="background: ${relationship.color};">
+                    <svg width="24" height="24" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);">
+                        <line x1="2" y1="12" x2="22" y2="12"
+                              stroke="${relationship.color}"
+                              stroke-width="3"
+                              stroke-dasharray="${dashPatternStr}"
+                              filter="brightness(0.7)"/>
+                    </svg>
+                </div>
+                <div class="category-info">
+                    <div class="category-name">${relationship.name}</div>
+                    <div class="category-count">${nodeCount} conexiones</div>
+                </div>
+                <div class="category-actions">
+                    <button class="category-action-btn edit-relationship-btn" title="Editar">✎</button>
+                    <button class="category-action-btn delete-relationship-btn" title="Eliminar">🗑</button>
+                </div>
+            `;
+
+            // Store relationship color for elegant active state
+            item.style.setProperty('--category-color', relationship.color);
+
+            // Toggle relationship filter
+            item.addEventListener('click', (e) => {
+                if (!e.target.classList.contains('category-action-btn')) {
+                    this.toggleRelationship(relationship.id);
+                }
+            });
+
+            // Edit button
+            const editBtn = item.querySelector('.edit-relationship-btn');
+            editBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.openRelationshipModal(relationship.id);
+            });
+
+            // Delete button
+            const deleteBtn = item.querySelector('.delete-relationship-btn');
+            deleteBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (confirm(`¿Eliminar la relación "${relationship.name}"?`)) {
+                    this.deleteRelationship(relationship.id);
+                }
+            });
+
+            list.appendChild(item);
+        });
+
+        this.updateRelationshipStats();
+    }
+
+    getNodeCountForRelationship(relationshipId) {
+        if (!window.mindmapEngine || !window.mindmapEngine.nodeData) return 0;
+
+        let count = 0;
+        Object.values(window.mindmapEngine.nodeData).forEach(data => {
+            if (data.relationships && data.relationships.includes(relationshipId)) {
+                count++;
+            }
+        });
+        return count;
+    }
+
+    updateRelationshipStats() {
+        const totalNodes = window.mindmapEngine ?
+            Object.keys(window.mindmapEngine.nodeData || {}).length : 0;
+
+        let connectedNodes = 0;
+        if (window.mindmapEngine && window.mindmapEngine.nodeData) {
+            Object.values(window.mindmapEngine.nodeData).forEach(data => {
+                if (data.relationships && data.relationships.length > 0) {
+                    connectedNodes++;
+                }
+            });
+        }
+
+        const totalEl = document.getElementById('totalNodesRelCount');
+        const connectedEl = document.getElementById('connectedNodesCount');
+
+        if (totalEl) totalEl.textContent = totalNodes;
+        if (connectedEl) connectedEl.textContent = connectedNodes;
+    }
+
+    populateNodeRelationshipsSelector(nodeId) {
+        const selector = document.getElementById('nodeRelationshipsSelector');
+        if (!selector) return;
+
+        selector.innerHTML = '';
+
+        if (this.relationships.length === 0) {
+            selector.innerHTML = '<p style="color: var(--text-muted, #999); font-style: italic; margin: 0;">No hay relaciones disponibles. Crea una primero.</p>';
+            return;
+        }
+
+        // Get current node's relationships
+        const nodeData = window.mindmapEngine.nodeData[nodeId] || {};
+        const nodeRelationships = nodeData.relationships || [];
+
+        // Create checkbox for each relationship
+        this.relationships.forEach(rel => {
+            const tag = document.createElement('label');
+            tag.className = 'relationship-tag';
+            if (nodeRelationships.includes(rel.id)) {
+                tag.classList.add('selected');
+            }
+
+            // Create checkbox
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = rel.id;
+            checkbox.checked = nodeRelationships.includes(rel.id);
+
+            // Create dash preview
+            const dashPreview = document.createElement('span');
+            dashPreview.className = 'dash-preview';
+            dashPreview.style.background = rel.color;
+
+            const name = document.createElement('span');
+            name.textContent = rel.name;
+
+            tag.appendChild(checkbox);
+            tag.appendChild(dashPreview);
+            tag.appendChild(name);
+
+            tag.addEventListener('click', () => {
+                checkbox.checked = !checkbox.checked;
+                tag.classList.toggle('selected');
+            });
+
+            selector.appendChild(tag);
+        });
+    }
+
+    openRelationshipModal(relationshipId = null) {
+        this.editingRelationshipId = relationshipId;
+
+        const modal = document.getElementById('relationshipEditModal');
+        const overlay = document.getElementById('relationshipModalOverlay');
+        const title = document.getElementById('relationshipModalTitle');
+        const nameInput = document.getElementById('relationshipNameInput');
+        const colorOptions = document.querySelectorAll('#relationshipColorPicker .color-option');
+        const dashOptions = document.querySelectorAll('.dash-pattern-picker .dash-option');
+
+        if (relationshipId) {
+            // Edit mode
+            const relationship = this.relationships.find(r => r.id === relationshipId);
+            if (relationship) {
+                title.textContent = 'Editar Relación';
+                nameInput.value = relationship.name;
+
+                // Select color
+                colorOptions.forEach(option => {
+                    option.classList.remove('selected');
+                    if (option.dataset.color === relationship.color) {
+                        option.classList.add('selected');
+                    }
+                });
+
+                // Select dash pattern
+                const patternStr = JSON.stringify(relationship.dashPattern || []);
+                dashOptions.forEach(option => {
+                    option.classList.remove('selected');
+                    if (option.dataset.pattern === patternStr) {
+                        option.classList.add('selected');
+                    }
+                });
+            }
+        } else {
+            // Create mode
+            title.textContent = 'Nueva Relación';
+            nameInput.value = '';
+
+            // Select first color by default
+            colorOptions.forEach((option, index) => {
+                option.classList.remove('selected');
+                if (index === 0) option.classList.add('selected');
+            });
+
+            // Select first dash pattern (solid) by default
+            dashOptions.forEach((option, index) => {
+                option.classList.remove('selected');
+                if (index === 0) option.classList.add('selected');
+            });
+        }
+
+        modal.classList.add('active');
+        overlay.classList.add('active');
+        nameInput.focus();
+    }
+
+    closeRelationshipModal() {
+        const modal = document.getElementById('relationshipEditModal');
+        const overlay = document.getElementById('relationshipModalOverlay');
+
+        modal.classList.remove('active');
+        overlay.classList.remove('active');
+        this.editingRelationshipId = null;
+    }
+
+    saveRelationship() {
+        const nameInput = document.getElementById('relationshipNameInput');
+        const selectedColor = document.querySelector('#relationshipColorPicker .color-option.selected');
+        const selectedDash = document.querySelector('.dash-pattern-picker .dash-option.selected');
+
+        const name = nameInput.value.trim();
+        if (!name) {
+            alert('Por favor ingresa un nombre para la relación');
+            return;
+        }
+
+        const color = selectedColor ? selectedColor.dataset.color : '#6b7280';
+        const dashPattern = selectedDash ? JSON.parse(selectedDash.dataset.pattern) : [];
+
+        if (this.editingRelationshipId) {
+            // Update existing relationship
+            const relationship = this.relationships.find(r => r.id === this.editingRelationshipId);
+            if (relationship) {
+                relationship.name = name;
+                relationship.color = color;
+                relationship.dashPattern = dashPattern;
+            }
+        } else {
+            // Create new relationship
+            const newRelationship = {
+                id: 'rel-' + Date.now(),
+                name,
+                color,
+                dashPattern,
+                nodes: []
+            };
+            this.relationships.push(newRelationship);
+        }
+
+        this.saveRelationships();
+        this.renderRelationships();
+        this.closeRelationshipModal();
+    }
+
+    deleteRelationship(relationshipId) {
+        // Remove relationship from array
+        this.relationships = this.relationships.filter(r => r.id !== relationshipId);
+
+        // Remove relationship from active filters
+        this.activeRelationships.delete(relationshipId);
+
+        // Remove relationship from all nodes
+        if (window.mindmapEngine && window.mindmapEngine.nodeData) {
+            Object.values(window.mindmapEngine.nodeData).forEach(data => {
+                if (data.relationships) {
+                    data.relationships = data.relationships.filter(id => id !== relationshipId);
+                }
+            });
+        }
+
+        this.saveRelationships();
+        this.renderRelationships();
+
+        // Redraw connections
+        if (window.mindmapEngine) {
+            window.mindmapEngine.drawConnections();
+        }
+    }
+
+    toggleRelationship(relationshipId) {
+        if (this.activeRelationships.has(relationshipId)) {
+            this.activeRelationships.delete(relationshipId);
+        } else {
+            this.activeRelationships.add(relationshipId);
+        }
+
+        this.renderRelationships();
+
+        // Redraw canvas to show/hide relationship connections
+        if (window.mindmapEngine) {
+            window.mindmapEngine.drawConnections();
+        }
+    }
+
+    assignNodesToRelationship(relationshipId, nodeIds) {
+        // Ensure all nodes have the relationship ID in their data
+        nodeIds.forEach(nodeId => {
+            if (!window.mindmapEngine.nodeData[nodeId]) {
+                window.mindmapEngine.nodeData[nodeId] = {
+                    notes: '',
+                    images: [],
+                    showInfo: false,
+                    relationships: []
+                };
+            }
+
+            if (!window.mindmapEngine.nodeData[nodeId].relationships) {
+                window.mindmapEngine.nodeData[nodeId].relationships = [];
+            }
+
+            const relationships = window.mindmapEngine.nodeData[nodeId].relationships;
+            if (!relationships.includes(relationshipId)) {
+                relationships.push(relationshipId);
+            }
+        });
+
+        // Update the relationship's nodes list
+        const relationship = this.relationships.find(r => r.id === relationshipId);
+        if (relationship) {
+            relationship.nodes = nodeIds;
+        }
+
+        this.saveRelationships();
+        this.renderRelationships();
+
+        // Redraw connections if this relationship is active
+        if (this.activeRelationships.has(relationshipId) && window.mindmapEngine) {
+            window.mindmapEngine.drawConnections();
+        }
     }
 
     generateMindmap() {

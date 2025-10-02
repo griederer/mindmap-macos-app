@@ -367,6 +367,70 @@ class MindmapEngine {
         };
 
         drawNodeConnections(this.nodes);
+
+        // Draw relationship connections
+        if (window.mindmapRenderer && window.mindmapRenderer.activeRelationships) {
+            const activeRels = Array.from(window.mindmapRenderer.activeRelationships);
+            const relationships = window.mindmapRenderer.relationships || [];
+
+            activeRels.forEach(relId => {
+                const relationship = relationships.find(r => r.id === relId);
+                if (!relationship) return;
+
+                const connectedNodes = relationship.nodes || [];
+
+                // Draw mesh: connect each node to every other node
+                for (let i = 0; i < connectedNodes.length; i++) {
+                    for (let j = i + 1; j < connectedNodes.length; j++) {
+                        const nodeId1 = connectedNodes[i];
+                        const nodeId2 = connectedNodes[j];
+
+                        // Use positions from the same system as parent-child connections
+                        const pos1 = this.positions[nodeId1];
+                        const pos2 = this.positions[nodeId2];
+
+                        if (pos1 && pos2) {
+                            // Calculate center points like parent-child connections
+                            const width1 = this.getNodeWidth(pos1.level);
+                            const width2 = this.getNodeWidth(pos2.level);
+
+                            const x1 = pos1.x + (width1 / 2);
+                            const y1 = pos1.y;
+                            const x2 = pos2.x + (width2 / 2);
+                            const y2 = pos2.y;
+
+                            this.ctx.save();
+                            this.ctx.strokeStyle = relationship.color;
+                            this.ctx.globalAlpha = 0.4;
+                            this.ctx.lineWidth = 2;
+                            this.ctx.lineCap = 'round';
+                            this.ctx.setLineDash(relationship.dashPattern || []);
+
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x1, y1);
+                            this.ctx.lineTo(x2, y2);
+                            this.ctx.stroke();
+
+                            this.ctx.restore();
+                        }
+                    }
+                }
+            });
+
+            // Reset line dash for normal connections
+            this.ctx.setLineDash([]);
+        }
+    }
+
+    getNodeCenter(nodeElement) {
+        const rect = nodeElement.getBoundingClientRect();
+        const containerRect = document.getElementById('nodesContainer').getBoundingClientRect();
+
+        // Calculate center position relative to the canvas/container
+        return {
+            x: rect.left - containerRect.left + rect.width / 2,
+            y: rect.top - containerRect.top + rect.height / 2
+        };
     }
 
     renderNodes(root) {
@@ -603,6 +667,11 @@ class MindmapEngine {
             });
         }
 
+        // Populate relationships selector
+        if (window.mindmapRenderer && window.mindmapRenderer.populateNodeRelationshipsSelector) {
+            window.mindmapRenderer.populateNodeRelationshipsSelector(nodeId);
+        }
+
         setTimeout(() => {
             modal.classList.add('active');
             overlay.classList.add('active');
@@ -743,6 +812,9 @@ class MindmapEngine {
         // Add categories submenu if categories exist
         this.updateCategoriesSubmenu(menu, nodeId);
 
+        // Add relationships submenu if relationships exist
+        this.updateRelationshipsSubmenu(menu, nodeId);
+
         setTimeout(() => {
             menu.classList.add('active');
         }, 10);
@@ -821,6 +893,85 @@ class MindmapEngine {
             const emptyItem = document.createElement('div');
             emptyItem.className = 'category-submenu-item disabled';
             emptyItem.textContent = 'No hay categorías';
+            emptyItem.style.fontStyle = 'italic';
+            emptyItem.style.opacity = '0.5';
+            submenu.appendChild(emptyItem);
+        }
+    }
+
+    updateRelationshipsSubmenu(menu, nodeId) {
+        // Check if submenu already exists
+        let submenu = menu.querySelector('.relationships-submenu');
+
+        if (!submenu) {
+            // Create relationships menu item with submenu
+            const relationshipsItem = document.createElement('div');
+            relationshipsItem.className = 'context-menu-item relationships-menu-item';
+            relationshipsItem.innerHTML = '🔗 Relaciones ►';
+
+            submenu = document.createElement('div');
+            submenu.className = 'relationships-submenu';
+            submenu.style.display = 'none';
+
+            relationshipsItem.appendChild(submenu);
+
+            // Insert before delete option
+            const deleteItem = menu.querySelector('#contextDelete');
+            menu.insertBefore(relationshipsItem, deleteItem);
+
+            // Toggle submenu on hover
+            relationshipsItem.addEventListener('mouseenter', () => {
+                submenu.style.display = 'block';
+            });
+
+            relationshipsItem.addEventListener('mouseleave', () => {
+                submenu.style.display = 'none';
+            });
+        }
+
+        // Clear and rebuild submenu
+        submenu.innerHTML = '';
+
+        if (window.mindmapRenderer && window.mindmapRenderer.relationships.length > 0) {
+            const nodeData = this.nodeData[nodeId] || {};
+            const nodeRelationships = nodeData.relationships || [];
+
+            window.mindmapRenderer.relationships.forEach(relationship => {
+                const item = document.createElement('div');
+                item.className = 'relationship-submenu-item';
+
+                const isAssigned = nodeRelationships.includes(relationship.id);
+                const checkbox = isAssigned ? '☑' : '☐';
+
+                // Show line preview with dash pattern
+                const dashPattern = relationship.dashPattern || [];
+                const dashPatternStr = dashPattern.length > 0 ? dashPattern.join(',') : '';
+
+                item.innerHTML = `
+                    ${checkbox}
+                    <svg width="16" height="12" style="display:inline-block;vertical-align:middle;margin-right:4px;">
+                        <line x1="0" y1="6" x2="16" y2="6"
+                              stroke="${relationship.color}"
+                              stroke-width="2"
+                              stroke-dasharray="${dashPatternStr}"/>
+                    </svg>
+                    ${relationship.name}
+                `;
+
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    if (window.mindmapRenderer) {
+                        window.mindmapRenderer.assignRelationshipToNode(nodeId, relationship.id);
+                    }
+                    this.updateRelationshipsSubmenu(menu, nodeId);
+                });
+
+                submenu.appendChild(item);
+            });
+        } else {
+            const emptyItem = document.createElement('div');
+            emptyItem.className = 'relationship-submenu-item disabled';
+            emptyItem.textContent = 'No hay relaciones';
             emptyItem.style.fontStyle = 'italic';
             emptyItem.style.opacity = '0.5';
             submenu.appendChild(emptyItem);
@@ -950,10 +1101,42 @@ class MindmapEngine {
         this.nodeData[nodeId].description = document.getElementById('modalDescription').value;
         this.nodeData[nodeId].notes = document.getElementById('modalNotes').value;
 
+        // Save relationships
+        const selectedRelationships = [];
+        const relCheckboxes = document.querySelectorAll('#nodeRelationshipsSelector input[type="checkbox"]:checked');
+        relCheckboxes.forEach(cb => selectedRelationships.push(cb.value));
+
+        if (!this.nodeData[nodeId]) {
+            this.nodeData[nodeId] = {};
+        }
+        this.nodeData[nodeId].relationships = selectedRelationships;
+
+        // Update relationship objects to include this node
+        if (window.mindmapRenderer && window.mindmapRenderer.relationships) {
+            window.mindmapRenderer.relationships.forEach(rel => {
+                if (selectedRelationships.includes(rel.id)) {
+                    if (!rel.nodes) rel.nodes = [];
+                    if (!rel.nodes.includes(nodeId)) {
+                        rel.nodes.push(nodeId);
+                    }
+                } else {
+                    if (rel.nodes) {
+                        rel.nodes = rel.nodes.filter(id => id !== nodeId);
+                    }
+                }
+            });
+            window.mindmapRenderer.saveRelationships();
+        }
+
         // Auto-save nodeData to localStorage for current project
         this.saveNodeDataToStorage();
 
         this.renderNodes(this.nodes);
+
+        // Redraw connections if any relationships are active
+        if (window.mindmapRenderer && window.mindmapRenderer.activeRelationships && window.mindmapRenderer.activeRelationships.size > 0) {
+            this.drawConnections();
+        }
 
         // Close modal
         document.getElementById('editModal').classList.remove('active');
