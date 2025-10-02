@@ -6,7 +6,7 @@
 
 body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-    background: linear-gradient(135deg, #f8f6f4 0%, #f0ebe7 100%);
+    background: #f4f0ed;
     overflow: hidden;
     height: 100vh;
     position: relative;
@@ -450,7 +450,7 @@ body::before {
 }
 
 .node-content.central {
-    background: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
+    background: #f7c49f;
     color: #1A1614;
     font-size: 16px;
     font-weight: 600;
@@ -461,7 +461,7 @@ body::before {
 }
 
 .node-content.level-1 {
-    background: linear-gradient(135deg, #fdd5b1 0%, #ffe0c7 100%);
+    background: #fedabc;
     color: #1A1614;
     font-size: 14px;
     font-weight: 600;
@@ -470,7 +470,7 @@ body::before {
 }
 
 .node-content.level-2 {
-    background: linear-gradient(135deg, #ffe8d6 0%, #fff0e6 100%);
+    background: #ffecde;
     color: #1A1614;
     font-size: 13px;
     font-weight: 500;
@@ -479,7 +479,7 @@ body::before {
 }
 
 .node-content.level-3 {
-    background: linear-gradient(135deg, #fff3eb 0%, #fff8f3 100%);
+    background: #fff5ef;
     color: #1A1614;
     font-size: 12px;
     font-weight: 500;
@@ -488,7 +488,7 @@ body::before {
 }
 
 .node-content.level-4 {
-    background: linear-gradient(135deg, #fffaf7 0%, #fffdfc 100%);
+    background: #fffcfa;
     color: #1A1614;
     font-size: 12px;
     font-weight: 500;
@@ -503,8 +503,8 @@ body::before {
     transform: translateY(-50%) !important;
     width: 20px;
     height: 20px;
-    background: linear-gradient(135deg, #f5b895, #f9c9a8);
-    color: #2D2926;
+    background: #f7c49f;
+    color: #1A1614;
     border-radius: 50%;
     display: flex;
     align-items: center;
