@@ -70,7 +70,7 @@ body::before {
 .pwc-branding {
     position: absolute;
     left: 24px;
-    top: 50%;
+    top: 58%;
     transform: translateY(-50%);
     -webkit-app-region: no-drag;
     z-index: 10;
@@ -93,13 +93,13 @@ body::before {
 
 .pwc-logo {
     display: inline-block;
-    font-size: 28px;
+    font-size: 36px;
     font-weight: 700;
     background: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     font-family: 'Inter', sans-serif;
-    letter-spacing: -1px;
+    letter-spacing: -1.5px;
 }
 
 .version-badge {
@@ -1343,11 +1343,29 @@ body[data-view-mode="presentation"] .action-btn:not(:first-child) {
 }
 
 .category-item.active {
-    background: var(--accent-gradient);
-    border-color: var(--accent-primary);
+    background: var(--bg-node);
+    border-left: 4px solid var(--category-color);
+    border-right: 2px solid var(--border-primary);
+    border-top: 2px solid var(--border-primary);
+    border-bottom: 2px solid var(--border-primary);
     transform: translateX(6px) scale(1.02);
     box-shadow: 0 6px 16px var(--shadow-lg),
-                0 0 20px var(--accent-primary);
+                -4px 0 12px var(--category-color),
+                0 0 30px rgba(0, 0, 0, 0.05);
+    position: relative;
+}
+
+.category-item.active::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(90deg, var(--category-color) 0%, transparent 40%);
+    opacity: 0.08;
+    pointer-events: none;
+    border-radius: 8px;
 }
 
 .category-color {
@@ -1356,6 +1374,8 @@ body[data-view-mode="presentation"] .action-btn:not(:first-child) {
     border-radius: 6px;
     flex-shrink: 0;
     border: 2px solid rgba(0, 0, 0, 0.1);
+    position: relative;
+    z-index: 1;
 }
 
 .category-info {
@@ -1364,6 +1384,8 @@ body[data-view-mode="presentation"] .action-btn:not(:first-child) {
     flex-direction: column;
     gap: 4px;
     min-width: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .category-name {
@@ -1384,6 +1406,8 @@ body[data-view-mode="presentation"] .action-btn:not(:first-child) {
     display: flex;
     gap: 6px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
 }
 
 .category-action-btn {
@@ -1627,30 +1651,32 @@ body[data-view-mode="presentation"] .add-category-btn {
 }
 
 .node-content.has-category {
+    border-left: 4px solid var(--category-highlight-color);
+    box-shadow: 0 6px 16px var(--shadow-lg),
+                -4px 0 12px var(--category-highlight-color),
+                0 0 30px rgba(0, 0, 0, 0.05);
     position: relative;
-    background: var(--category-bg, white);
-    border: 2px solid transparent;
-    border-image: var(--category-border, rgba(220, 105, 0, 0.4)) 1;
-    box-shadow: 0 0 20px var(--category-shadow, rgba(220, 105, 0, 0.15)),
-                inset 0 0 30px var(--category-glow, rgba(220, 105, 0, 0.05));
-    transform: scale(1.02);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Support for gradient borders */
 .node-content.has-category::before {
     content: '';
     position: absolute;
-    inset: -2px;
-    background: var(--category-border, rgba(220, 105, 0, 0.4));
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+    background: linear-gradient(90deg, var(--category-highlight-color) 0%, transparent 70%);
+    opacity: 0.6;
+    pointer-events: none;
     border-radius: inherit;
-    z-index: -1;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    z-index: 0;
 }
 
-.node-content.has-category[style*="linear-gradient"]::before {
-    opacity: 1;
+.node-content.has-category .node-text,
+.node-content.has-category .node-description {
+    position: relative;
+    z-index: 1;
 }
 
 .category-badge {

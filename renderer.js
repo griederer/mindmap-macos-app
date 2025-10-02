@@ -865,6 +865,9 @@ class MindmapRenderer {
                 </div>
             `;
 
+            // Store category color for elegant active state AFTER innerHTML
+            item.style.setProperty('--category-color', category.color);
+
             // Toggle category filter
             item.addEventListener('click', (e) => {
                 if (!e.target.classList.contains('category-action-btn')) {
@@ -1059,10 +1062,7 @@ class MindmapRenderer {
                 node.classList.remove('category-filtered');
                 // Remove visual highlighting
                 node.classList.remove('has-category');
-                node.style.removeProperty('--category-bg');
-                node.style.removeProperty('--category-border');
-                node.style.removeProperty('--category-shadow');
-                node.style.removeProperty('--category-glow');
+                node.style.removeProperty('--category-highlight-color');
                 // Remove badge
                 const badge = node.querySelector('.category-badge');
                 if (badge) badge.remove();
@@ -1080,10 +1080,7 @@ class MindmapRenderer {
                 node.classList.add('category-filtered');
                 // Remove visual highlighting
                 node.classList.remove('has-category');
-                node.style.removeProperty('--category-bg');
-                node.style.removeProperty('--category-border');
-                node.style.removeProperty('--category-shadow');
-                node.style.removeProperty('--category-glow');
+                node.style.removeProperty('--category-highlight-color');
             } else {
                 // Check if node has any active category
                 const hasActiveCategory = nodeData.categories.some(catId =>
@@ -1098,10 +1095,7 @@ class MindmapRenderer {
                     node.classList.add('category-filtered');
                     // Remove visual highlighting for non-matching nodes
                     node.classList.remove('has-category');
-                    node.style.removeProperty('--category-bg');
-                    node.style.removeProperty('--category-border');
-                    node.style.removeProperty('--category-shadow');
-                    node.style.removeProperty('--category-glow');
+                    node.style.removeProperty('--category-highlight-color');
                 }
             }
         });
@@ -1146,10 +1140,7 @@ class MindmapRenderer {
         if (!nodeData || !nodeData.categories || nodeData.categories.length === 0) {
             // Remove category styling
             node.classList.remove('has-category');
-            node.style.removeProperty('--category-bg');
-            node.style.removeProperty('--category-border');
-            node.style.removeProperty('--category-shadow');
-            node.style.removeProperty('--category-glow');
+            node.style.removeProperty('--category-highlight-color');
             return;
         }
 
@@ -1159,55 +1150,21 @@ class MindmapRenderer {
             .map(catId => this.categories.find(c => c.id === catId))
             .filter(cat => cat !== undefined);
 
-        // If no active categories match, use first category as fallback
-        const categoriesToShow = activeMatchingCategories.length > 0
-            ? activeMatchingCategories
-            : [this.categories.find(c => c.id === nodeData.categories[0])].filter(c => c);
+        // Only highlight if there are active matching categories
+        if (activeMatchingCategories.length === 0) {
+            console.log(`Node ${nodeId} has no matching active categories`);
+            return;
+        }
 
-        if (categoriesToShow.length === 0) return;
+        // Use first matching category for elegant highlighting
+        const category = activeMatchingCategories[0];
+
+        console.log(`Highlighting node ${nodeId} with category ${category.name} (${category.color})`);
 
         node.classList.add('has-category');
 
-        if (categoriesToShow.length === 1) {
-            // Single category - use solid color
-            const category = categoriesToShow[0];
-            const r = parseInt(category.color.slice(1, 3), 16);
-            const g = parseInt(category.color.slice(3, 5), 16);
-            const b = parseInt(category.color.slice(5, 7), 16);
-
-            node.style.setProperty('--category-bg', `rgba(${r}, ${g}, ${b}, 0.08)`);
-            node.style.setProperty('--category-border', `rgba(${r}, ${g}, ${b}, 0.6)`);
-            node.style.setProperty('--category-shadow', `rgba(${r}, ${g}, ${b}, 0.2)`);
-            node.style.setProperty('--category-glow', `rgba(${r}, ${g}, ${b}, 0.05)`);
-        } else {
-            // Multiple categories - create gradients
-            const colors = categoriesToShow.map(cat => {
-                const r = parseInt(cat.color.slice(1, 3), 16);
-                const g = parseInt(cat.color.slice(3, 5), 16);
-                const b = parseInt(cat.color.slice(5, 7), 16);
-                return { r, g, b, hex: cat.color };
-            });
-
-            // Create linear gradient for background
-            const bgGradient = colors.map((c, i) =>
-                `rgba(${c.r}, ${c.g}, ${c.b}, 0.08) ${i * (100 / (colors.length - 1))}%`
-            ).join(', ');
-
-            // Create linear gradient for border
-            const borderGradient = colors.map((c, i) =>
-                `rgba(${c.r}, ${c.g}, ${c.b}, 0.6) ${i * (100 / (colors.length - 1))}%`
-            ).join(', ');
-
-            // Use average color for shadow/glow
-            const avgR = Math.round(colors.reduce((sum, c) => sum + c.r, 0) / colors.length);
-            const avgG = Math.round(colors.reduce((sum, c) => sum + c.g, 0) / colors.length);
-            const avgB = Math.round(colors.reduce((sum, c) => sum + c.b, 0) / colors.length);
-
-            node.style.setProperty('--category-bg', `linear-gradient(135deg, ${bgGradient})`);
-            node.style.setProperty('--category-border', `linear-gradient(135deg, ${borderGradient})`);
-            node.style.setProperty('--category-shadow', `rgba(${avgR}, ${avgG}, ${avgB}, 0.2)`);
-            node.style.setProperty('--category-glow', `rgba(${avgR}, ${avgG}, ${avgB}, 0.05)`);
-        }
+        // Store category color for elegant border and dust effect
+        node.style.setProperty('--category-highlight-color', category.color);
 
         // Add category badge if node has multiple categories assigned
         if (nodeData.categories.length > 1) {
