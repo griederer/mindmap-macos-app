@@ -1973,3 +1973,97 @@ body[data-view-mode="presentation"] .add-category-btn {
     display: inline-block;
 }
 
+
+/* ================================
+   Drag and Drop Reordering Styles
+   ================================ */
+
+.node {
+    cursor: grab;
+}
+
+.node.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+}
+
+.node.drag-over-top {
+    position: relative;
+}
+
+.node.drag-over-top::before {
+    content: '';
+    position: absolute;
+    top: -3px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(76, 175, 80, 0.6);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    z-index: 1000;
+}
+
+.node.drag-over-bottom {
+    position: relative;
+}
+
+.node.drag-over-bottom::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: rgba(76, 175, 80, 0.6);
+    border-radius: 2px;
+    box-shadow: 0 0 8px rgba(76, 175, 80, 0.4);
+    z-index: 1000;
+}
+
+.drop-indicator {
+    position: fixed;
+    height: 4px;
+    background: rgba(76, 175, 80, 0.8);
+    border-radius: 2px;
+    box-shadow: 0 0 12px rgba(76, 175, 80, 0.6);
+    pointer-events: none;
+    z-index: 10000;
+    transition: all 0.1s ease;
+}
+
+/* Disable drag in presentation mode */
+body[data-view-mode="presentation"] .node {
+    cursor: default;
+    user-select: none;
+    -webkit-user-drag: none;
+}
+
+body[data-view-mode="presentation"] .node[draggable="true"] {
+    draggable: false;
+}
+
+/* Image indicator for nodes with images */
+.image-indicator {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-left: 6px;
+    padding: 2px 4px;
+    background: rgba(245, 184, 149, 0.15);
+    border-radius: 4px;
+    color: rgba(245, 184, 149, 0.7);
+    opacity: 0.6;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+}
+
+.image-indicator:hover {
+    opacity: 1;
+    background: rgba(245, 184, 149, 0.25);
+    color: rgba(245, 184, 149, 1);
+}
+
+.node-content:hover .image-indicator {
+    opacity: 0.9;
+}

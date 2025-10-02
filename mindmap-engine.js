@@ -14,6 +14,9 @@ class MindmapEngine {
         this.nodeWidths = {};
         this.connectionPaths = [];
 
+        // Initialize node reorder manager
+        this.reorderManager = new NodeReorderManager(this);
+
         this.initCanvas();
         this.setupAnimationLoop();
         this.setupImageLightbox();
@@ -182,22 +185,54 @@ class MindmapEngine {
         const verticalPadding = 40;
         const infoBoxMinHeight = 280;
 
+        // 🔧 FIX: Cache para arrays ordenados - garantiza consistencia
+        const sortedChildrenCache = new Map();
+
         // ✨ v2.6: Smart node ordering by importance
-        const sortChildrenByImportance = (children) => {
-            return [...children].sort((a, b) => {
-                // Priority 1: Nodes with visible info panels
-                const aHasInfo = this.nodeData[a.id]?.showInfo ? 1 : 0;
-                const bHasInfo = this.nodeData[b.id]?.showInfo ? 1 : 0;
-                if (aHasInfo !== bHasInfo) return bHasInfo - aHasInfo;
+        const sortChildrenByImportance = (children, parentNode) => {
+            // 🔧 FIX 3: Si ya calculamos el orden para este nodo, usar cache
+            if (parentNode && sortedChildrenCache.has(parentNode.id)) {
+                return sortedChildrenCache.get(parentNode.id);
+            }
 
-                // Priority 2: Number of children (more children = more important)
-                const aChildren = (a.children || []).length;
-                const bChildren = (b.children || []).length;
-                if (aChildren !== bChildren) return bChildren - aChildren;
+            let sortedArray;
 
-                // Priority 3: Title length (more content = more important)
-                return b.title.length - a.title.length;
-            });
+            // If custom order exists, apply it
+            if (this.reorderManager && parentNode) {
+                const hasCustomOrder = this.reorderManager.customOrders[parentNode.id];
+                if (hasCustomOrder) {
+                    // 🔧 FIX 1: SIEMPRE devolver COPIA para evitar referencias compartidas
+                    const childrenCopy = [...(children || [])];
+                    const parentCopy = { ...parentNode, children: childrenCopy };
+                    this.reorderManager.applyCustomOrder(parentCopy);
+                    sortedArray = [...parentCopy.children]; // Copia del resultado
+                }
+            }
+
+            // Otherwise, sort by importance
+            if (!sortedArray) {
+                sortedArray = [...(children || [])].sort((a, b) => {
+                    // Priority 1: Nodes with visible info panels
+                    const aHasInfo = this.nodeData[a.id]?.showInfo ? 1 : 0;
+                    const bHasInfo = this.nodeData[b.id]?.showInfo ? 1 : 0;
+                    if (aHasInfo !== bHasInfo) return bHasInfo - aHasInfo;
+
+                    // Priority 2: Number of children (more children = more important)
+                    const aChildren = (a.children || []).length;
+                    const bChildren = (b.children || []).length;
+                    if (aChildren !== bChildren) return bChildren - aChildren;
+
+                    // Priority 3: Title length (more content = more important)
+                    return b.title.length - a.title.length;
+                });
+            }
+
+            // 🔧 FIX 3: Guardar en cache para consistencia
+            if (parentNode) {
+                sortedChildrenCache.set(parentNode.id, sortedArray);
+            }
+
+            return sortedArray;
         };
 
         // Calculate height including info boxes
@@ -226,8 +261,8 @@ class MindmapEngine {
                 return baseHeight;
             }
 
-            // ✨ v2.6: Sort children before calculating height
-            const sortedChildren = sortChildrenByImportance(node.children);
+            // ✨ v2.6: Sort children before calculating height (usa cache)
+            const sortedChildren = sortChildrenByImportance(node.children, node);
 
             let totalHeight = 0;
             sortedChildren.forEach(child => {
@@ -254,8 +289,11 @@ class MindmapEngine {
             positions[node.id] = { x, y, parentId, level };
 
             if (node.children && node.children.length > 0 && node.expanded) {
-                // ✨ v2.6: Sort children by importance
-                const sortedChildren = sortChildrenByImportance(node.children);
+                // 🔧 FIX 2: Crear SNAPSHOT del array ANTES de cualquier operación
+                const childrenSnapshot = [...node.children];
+
+                // ✨ v2.6: Sort children by importance (usa cache)
+                const sortedChildren = sortChildrenByImportance(childrenSnapshot, node);
                 const childrenHeights = sortedChildren.map(child => calculateHeight(child));
 
                 // ✨ v2.6: Adaptive padding
@@ -561,6 +599,16 @@ class MindmapEngine {
                 textSpan.textContent = node.title;
                 nodeContent.appendChild(textSpan);
 
+                // Add image indicator if node has images
+                const nodeDataInfo = this.nodeData[node.id] || {};
+                if (nodeDataInfo.images && nodeDataInfo.images.length > 0) {
+                    const imageIndicator = document.createElement('span');
+                    imageIndicator.className = 'image-indicator';
+                    imageIndicator.title = `${nodeDataInfo.images.length} imagen(es)`;
+                    imageIndicator.innerHTML = '<i data-lucide="image" style="width: 14px; height: 14px;"></i>';
+                    nodeContent.appendChild(imageIndicator);
+                }
+
                 // Add toggle if has children
                 if (hasChildren) {
                     const toggleSpan = document.createElement('span');
@@ -574,6 +622,9 @@ class MindmapEngine {
                 }
 
                 nodeEl.appendChild(nodeContent);
+
+                // Make node draggable for reordering
+                this.reorderManager.makeDraggable(nodeEl, node);
 
                 // Extra info panel - Show description + notes + images
                 const extraInfo = document.createElement('div');

@@ -2058,6 +2058,17 @@ class MindmapRenderer {
             window.mindmapEngine.nodeData = {};
         }
 
+        // Load custom orders if available
+        const savedOrders = localStorage.getItem(`mindmap-orders-${projectId}`);
+        if (savedOrders && window.mindmapEngine?.reorderManager) {
+            try {
+                const orders = JSON.parse(savedOrders);
+                window.mindmapEngine.reorderManager.importOrders(orders);
+            } catch (e) {
+                console.error('Error loading custom orders:', e);
+            }
+        }
+
         document.getElementById('outlineInput').value = project.content;
         this.renderProjects();
         this.generateMindmap();
@@ -2088,6 +2099,12 @@ class MindmapRenderer {
             const project = this.projects.find(p => p.id === this.currentProject);
             if (project) {
                 project.content = document.getElementById('outlineInput').value;
+            }
+
+            // Save custom orders for current project
+            if (window.mindmapEngine?.reorderManager) {
+                const orders = window.mindmapEngine.reorderManager.exportOrders();
+                localStorage.setItem(`mindmap-orders-${this.currentProject}`, JSON.stringify(orders));
             }
         }
 
@@ -2184,6 +2201,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 nodes: mindmapEngine?.nodeData || {},
                 categories: window.mindmapRenderer?.categories || [],
                 relationships: window.mindmapRenderer?.relationships || [],
+                customOrders: mindmapEngine?.reorderManager?.exportOrders() || {},
                 metadata: {
                     created: new Date().toISOString(),
                     modified: new Date().toISOString(),
