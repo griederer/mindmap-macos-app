@@ -61,10 +61,19 @@ body::before {
     padding-top: 38px;
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     box-shadow: 0 4px 20px rgba(0,0,0,0.15);
     position: relative;
     -webkit-app-region: drag;
+}
+
+.pwc-branding {
+    position: absolute;
+    left: 24px;
+    top: 50%;
+    transform: translateY(-50%);
+    -webkit-app-region: no-drag;
+    z-index: 10;
 }
 
 .header .controls {
@@ -84,13 +93,13 @@ body::before {
 
 .pwc-logo {
     display: inline-block;
-    font-size: 32px;
-    font-weight: 400;
+    font-size: 20px;
+    font-weight: 600;
     background: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     font-family: 'Inter', sans-serif;
-    letter-spacing: -2px;
+    letter-spacing: 0.5px;
 }
 
 .version-badge {
