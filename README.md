@@ -162,8 +162,42 @@ The app includes sample data for "IA Responsable" (Responsible AI) covering:
 - **Memory usage**: < 100MB for large mindmaps
 - **Startup time**: < 2 seconds
 
+## 🤖 MCP Server Integration
+
+### Claude Code Integration
+PWC Mindmap Pro now includes an **MCP (Model Context Protocol) server** that enables control through natural language via Claude Code!
+
+**Location**: `/mcp-server/`
+
+### Features
+- **Create mindmaps** with natural language commands
+- **Add nodes** with automatic descriptions
+- **Manage projects** programmatically through Claude Code
+
+### Quick Start
+```bash
+# Install the MCP server
+cd mcp-server
+npm install
+
+# Add to Claude Code
+claude mcp add pwc-mindmap node ~/Documents/GitHub/mindmap-macos-app/mcp-server/index.js
+```
+
+### Usage Examples
+```
+Create a mindmap about "Solar System" with nodes for Planets and Moons
+```
+```
+Add a node "Earth" under "Planets" in the Solar System project
+```
+
+**Full documentation**: See `/mcp-server/README.md`
+
 ## Future Enhancements
 
+- [x] MCP server for Claude Code integration
+- [ ] Image search and auto-attachment (MCP Phase 2)
 - [ ] Real-time collaboration
 - [ ] Export to various image formats
 - [ ] Plugin system
