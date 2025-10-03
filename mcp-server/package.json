@@ -1,17 +1,29 @@
 {
   "name": "pwc-mindmap-mcp",
-  "version": "1.0.0",
-  "description": "MCP server for PWC Mindmap Pro - enables Claude Code to create and manipulate mindmaps",
+  "version": "2.0.0",
+  "description": "Complete MCP server for PWC Mindmap Pro - full control over mindmap creation and manipulation",
   "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules node_modules/jest/bin/jest.js --watch"
   },
-  "keywords": ["mcp", "mindmap", "claude"],
+  "keywords": [
+    "mcp",
+    "mindmap",
+    "claude",
+    "unsplash",
+    "complete"
+  ],
   "author": "Gonzalo Riederer",
   "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^0.5.0",
     "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.2.0"
   }
 }
