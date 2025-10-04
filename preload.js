@@ -57,5 +57,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Remove listeners
   removeAllListeners: () => {
     ipcRenderer.removeAllListeners();
+  },
+
+  // Listen for projects directory changes
+  onProjectsChanged: (callback) => {
+    ipcRenderer.on('projects-changed', (event, data) => callback(event, data));
   }
 });

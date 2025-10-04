@@ -362,6 +362,70 @@ class MindmapRenderer {
         setTimeout(() => {
             this.resetView();
         }, 100);
+
+        // Listen for file system changes from main process
+        window.electronAPI.onProjectsChanged((event, data) => {
+            console.log('Projects changed:', data);
+            this.handleProjectsChanged(data);
+        });
+    }
+
+    /**
+     * Handle projects directory changes (from FileWatcher)
+     */
+    handleProjectsChanged(data) {
+        const { action, path: filePath } = data;
+
+        switch (action) {
+            case 'add':
+                console.log(`New project added: ${filePath}`);
+                // Refresh project list if projects panel is open
+                this.refreshProjectsList();
+                // Show notification
+                this.showNotification('New project detected', 'success');
+                break;
+            case 'change':
+                console.log(`Project modified: ${filePath}`);
+                // If current project was modified externally, ask to reload
+                if (this.currentProjectPath === filePath) {
+                    this.askToReloadProject();
+                }
+                break;
+            case 'delete':
+                console.log(`Project deleted: ${filePath}`);
+                this.refreshProjectsList();
+                break;
+        }
+    }
+
+    /**
+     * Refresh projects list
+     */
+    async refreshProjectsList() {
+        // This will be implemented when RendererProjectManager is integrated
+        console.log('Refreshing projects list...');
+        // TODO: Call rendererProjectManager.listProjects() and update UI
+    }
+
+    /**
+     * Show notification to user
+     */
+    showNotification(message, type = 'info') {
+        // Simple console notification for now
+        console.log(`[${type.toUpperCase()}] ${message}`);
+
+        // You can add a toast notification here later
+        // For now, just log to console
+    }
+
+    /**
+     * Ask user to reload externally modified project
+     */
+    askToReloadProject() {
+        const shouldReload = confirm('This project was modified externally. Reload?');
+        if (shouldReload) {
+            this.generateMindmap();
+        }
     }
 
     setupEventListeners() {

@@ -17,6 +17,7 @@ const __dirname = path.dirname(__filename);
 
 // Projects directory path
 const PROJECTS_DIR = path.join(os.homedir(), 'Documents', 'PWC Mindmaps');
+const METADATA_FILE = path.join(PROJECTS_DIR, '.metadata.json');
 
 // Unsplash API (free tier - 50 requests/hour)
 const UNSPLASH_ACCESS_KEY = 'demo'; // Replace with your own key for production
@@ -225,6 +226,96 @@ class MindmapMCPServer {
             required: ['projectName', 'nodeTitle', 'notes'],
           },
         },
+
+        // === CATEGORY MANAGEMENT ===
+        {
+          name: 'create_category',
+          description: 'Create a new category for node organization',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectName: { type: 'string', description: 'Project name' },
+              name: { type: 'string', description: 'Category name' },
+              color: { type: 'string', description: 'Hex color code (e.g., #ff6b6b)' },
+            },
+            required: ['projectName', 'name', 'color'],
+          },
+        },
+        {
+          name: 'assign_category',
+          description: 'Assign a category to a node',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectName: { type: 'string', description: 'Project name' },
+              nodeTitle: { type: 'string', description: 'Node title' },
+              categoryName: { type: 'string', description: 'Category name' },
+            },
+            required: ['projectName', 'nodeTitle', 'categoryName'],
+          },
+        },
+
+        // === RELATIONSHIP MANAGEMENT ===
+        {
+          name: 'create_relationship',
+          description: 'Create a new relationship type for connections',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectName: { type: 'string', description: 'Project name' },
+              name: { type: 'string', description: 'Relationship name (e.g., "depends on")' },
+              color: { type: 'string', description: 'Hex color code' },
+              dashPattern: {
+                type: 'string',
+                description: 'SVG dash pattern (e.g., "5,5" for dashed, "0" for solid)',
+                default: '0'
+              },
+            },
+            required: ['projectName', 'name', 'color'],
+          },
+        },
+        {
+          name: 'connect_nodes',
+          description: 'Create a connection between two nodes',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectName: { type: 'string', description: 'Project name' },
+              fromNodeTitle: { type: 'string', description: 'Source node title' },
+              toNodeTitle: { type: 'string', description: 'Target node title' },
+              relationshipName: { type: 'string', description: 'Relationship type name' },
+            },
+            required: ['projectName', 'fromNodeTitle', 'toNodeTitle', 'relationshipName'],
+          },
+        },
+
+        // === LAYOUT CONTROL ===
+        {
+          name: 'set_focus_mode',
+          description: 'Set focused node for filtered view',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectName: { type: 'string', description: 'Project name' },
+              nodeTitle: { type: 'string', description: 'Node title to focus (null to unfocus)' },
+            },
+            required: ['projectName'],
+          },
+        },
+        {
+          name: 'set_node_position',
+          description: 'Set custom position for a node',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              projectName: { type: 'string', description: 'Project name' },
+              nodeTitle: { type: 'string', description: 'Node title' },
+              x: { type: 'number', description: 'X coordinate' },
+              y: { type: 'number', description: 'Y coordinate' },
+            },
+            required: ['projectName', 'nodeTitle', 'x', 'y'],
+          },
+        },
       ],
     }));
 
@@ -264,6 +355,24 @@ class MindmapMCPServer {
           // Advanced Operations
           case 'update_node_notes':
             return await this.updateNodeNotes(args);
+
+          // Category Management
+          case 'create_category':
+            return await this.createCategory(args);
+          case 'assign_category':
+            return await this.assignCategory(args);
+
+          // Relationship Management
+          case 'create_relationship':
+            return await this.createRelationship(args);
+          case 'connect_nodes':
+            return await this.connectNodes(args);
+
+          // Layout Control
+          case 'set_focus_mode':
+            return await this.setFocusMode(args);
+          case 'set_node_position':
+            return await this.setNodePosition(args);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -375,6 +484,9 @@ class MindmapMCPServer {
     await fs.mkdir(PROJECTS_DIR, { recursive: true });
     await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2));
 
+    // Update metadata to sync with Electron app
+    await this.updateMetadata(projectPath);
+
     return {
       content: [
         {
@@ -479,6 +591,7 @@ class MindmapMCPServer {
     projectData.metadata.modified = new Date().toISOString();
 
     await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2));
+    await this.updateMetadata(projectPath);
 
     return {
       content: [
@@ -899,6 +1012,397 @@ class MindmapMCPServer {
         },
       ],
     };
+  }
+
+  // ==================== CATEGORY MANAGEMENT ====================
+
+  async createCategory({ projectName, name, color }) {
+    const projectPath = path.join(PROJECTS_DIR, `${projectName}.pmap`);
+
+    let projectData;
+    try {
+      const data = await fs.readFile(projectPath, 'utf-8');
+      projectData = JSON.parse(data);
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: `Error: Project "${projectName}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Initialize categories array if not exists
+    if (!projectData.categories) {
+      projectData.categories = [];
+    }
+
+    // Check if category already exists
+    const exists = projectData.categories.find(c => c.name === name);
+    if (exists) {
+      return {
+        content: [{ type: 'text', text: `Error: Category "${name}" already exists` }],
+        isError: true,
+      };
+    }
+
+    // Create category
+    const category = {
+      id: `cat-${Date.now()}-${projectData.categories.length}`,
+      name,
+      color,
+      nodeIds: []
+    };
+
+    projectData.categories.push(category);
+    projectData.metadata.modified = new Date().toISOString();
+
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2));
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Created category "${name}" with color ${color} in "${projectName}"`,
+        },
+      ],
+    };
+  }
+
+  async assignCategory({ projectName, nodeTitle, categoryName }) {
+    const projectPath = path.join(PROJECTS_DIR, `${projectName}.pmap`);
+
+    let projectData;
+    try {
+      const data = await fs.readFile(projectPath, 'utf-8');
+      projectData = JSON.parse(data);
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: `Error: Project "${projectName}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Find category
+    const category = projectData.categories?.find(c => c.name === categoryName);
+    if (!category) {
+      return {
+        content: [{ type: 'text', text: `Error: Category "${categoryName}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Find node
+    const lines = projectData.content.split('\n');
+    const nodeIndex = lines.findIndex(
+      (line) => this.cleanTitle(line).toLowerCase() === nodeTitle.toLowerCase()
+    );
+
+    if (nodeIndex === -1) {
+      return {
+        content: [{ type: 'text', text: `Error: Node "${nodeTitle}" not found` }],
+        isError: true,
+      };
+    }
+
+    const nodeId = `node-${nodeIndex}`;
+
+    // Assign category to node
+    if (!category.nodeIds.includes(nodeId)) {
+      category.nodeIds.push(nodeId);
+      projectData.metadata.modified = new Date().toISOString();
+      await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2));
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Assigned category "${categoryName}" to node "${nodeTitle}" in "${projectName}"`,
+        },
+      ],
+    };
+  }
+
+  // ==================== RELATIONSHIP MANAGEMENT ====================
+
+  async createRelationship({ projectName, name, color, dashPattern = '0' }) {
+    const projectPath = path.join(PROJECTS_DIR, `${projectName}.pmap`);
+
+    let projectData;
+    try {
+      const data = await fs.readFile(projectPath, 'utf-8');
+      projectData = JSON.parse(data);
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: `Error: Project "${projectName}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Initialize relationships array if not exists
+    if (!projectData.relationships) {
+      projectData.relationships = [];
+    }
+
+    // Check if relationship already exists
+    const exists = projectData.relationships.find(r => r.name === name);
+    if (exists) {
+      return {
+        content: [{ type: 'text', text: `Error: Relationship "${name}" already exists` }],
+        isError: true,
+      };
+    }
+
+    // Create relationship
+    const relationship = {
+      id: `rel-${Date.now()}-${projectData.relationships.length}`,
+      name,
+      color,
+      dashPattern
+    };
+
+    projectData.relationships.push(relationship);
+    projectData.metadata.modified = new Date().toISOString();
+
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2));
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Created relationship "${name}" with color ${color} in "${projectName}"`,
+        },
+      ],
+    };
+  }
+
+  async connectNodes({ projectName, fromNodeTitle, toNodeTitle, relationshipName }) {
+    const projectPath = path.join(PROJECTS_DIR, `${projectName}.pmap`);
+
+    let projectData;
+    try {
+      const data = await fs.readFile(projectPath, 'utf-8');
+      projectData = JSON.parse(data);
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: `Error: Project "${projectName}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Find relationship
+    const relationship = projectData.relationships?.find(r => r.name === relationshipName);
+    if (!relationship) {
+      return {
+        content: [{ type: 'text', text: `Error: Relationship "${relationshipName}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Find nodes
+    const lines = projectData.content.split('\n');
+    const fromNodeIndex = lines.findIndex(
+      (line) => this.cleanTitle(line).toLowerCase() === fromNodeTitle.toLowerCase()
+    );
+    const toNodeIndex = lines.findIndex(
+      (line) => this.cleanTitle(line).toLowerCase() === toNodeTitle.toLowerCase()
+    );
+
+    if (fromNodeIndex === -1) {
+      return {
+        content: [{ type: 'text', text: `Error: Node "${fromNodeTitle}" not found` }],
+        isError: true,
+      };
+    }
+
+    if (toNodeIndex === -1) {
+      return {
+        content: [{ type: 'text', text: `Error: Node "${toNodeTitle}" not found` }],
+        isError: true,
+      };
+    }
+
+    const fromNodeId = `node-${fromNodeIndex}`;
+    const toNodeId = `node-${toNodeIndex}`;
+
+    // Initialize connections array if not exists
+    if (!projectData.connections) {
+      projectData.connections = [];
+    }
+
+    // Create connection
+    const connection = {
+      id: `conn-${Date.now()}-${projectData.connections.length}`,
+      fromNodeId,
+      toNodeId,
+      relationshipId: relationship.id
+    };
+
+    projectData.connections.push(connection);
+    projectData.metadata.modified = new Date().toISOString();
+
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2));
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Connected "${fromNodeTitle}" to "${toNodeTitle}" with relationship "${relationshipName}" in "${projectName}"`,
+        },
+      ],
+    };
+  }
+
+  // ==================== LAYOUT CONTROL ====================
+
+  async setFocusMode({ projectName, nodeTitle = null }) {
+    const projectPath = path.join(PROJECTS_DIR, `${projectName}.pmap`);
+
+    let projectData;
+    try {
+      const data = await fs.readFile(projectPath, 'utf-8');
+      projectData = JSON.parse(data);
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: `Error: Project "${projectName}" not found` }],
+        isError: true,
+      };
+    }
+
+    if (!nodeTitle) {
+      // Unfocus
+      projectData.focusedNodeId = null;
+      projectData.metadata.modified = new Date().toISOString();
+      await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2));
+
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `✅ Cleared focus mode in "${projectName}"`,
+          },
+        ],
+      };
+    }
+
+    // Find node
+    const lines = projectData.content.split('\n');
+    const nodeIndex = lines.findIndex(
+      (line) => this.cleanTitle(line).toLowerCase() === nodeTitle.toLowerCase()
+    );
+
+    if (nodeIndex === -1) {
+      return {
+        content: [{ type: 'text', text: `Error: Node "${nodeTitle}" not found` }],
+        isError: true,
+      };
+    }
+
+    const nodeId = `node-${nodeIndex}`;
+    projectData.focusedNodeId = nodeId;
+    projectData.metadata.modified = new Date().toISOString();
+
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2));
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Set focus mode to "${nodeTitle}" in "${projectName}"`,
+        },
+      ],
+    };
+  }
+
+  async setNodePosition({ projectName, nodeTitle, x, y }) {
+    const projectPath = path.join(PROJECTS_DIR, `${projectName}.pmap`);
+
+    let projectData;
+    try {
+      const data = await fs.readFile(projectPath, 'utf-8');
+      projectData = JSON.parse(data);
+    } catch (error) {
+      return {
+        content: [{ type: 'text', text: `Error: Project "${projectName}" not found` }],
+        isError: true,
+      };
+    }
+
+    // Find node
+    const lines = projectData.content.split('\n');
+    const nodeIndex = lines.findIndex(
+      (line) => this.cleanTitle(line).toLowerCase() === nodeTitle.toLowerCase()
+    );
+
+    if (nodeIndex === -1) {
+      return {
+        content: [{ type: 'text', text: `Error: Node "${nodeTitle}" not found` }],
+        isError: true,
+      };
+    }
+
+    const nodeId = `node-${nodeIndex}`;
+
+    // Initialize customPositions if not exists
+    if (!projectData.customPositions) {
+      projectData.customPositions = {};
+    }
+
+    projectData.customPositions[nodeId] = { x, y };
+    projectData.metadata.modified = new Date().toISOString();
+
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2));
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `✅ Set position of "${nodeTitle}" to (${x}, ${y}) in "${projectName}"`,
+        },
+      ],
+    };
+  }
+
+  // ==================== METADATA MANAGEMENT ====================
+
+  async loadMetadata() {
+    try {
+      const data = await fs.readFile(METADATA_FILE, 'utf-8');
+      return JSON.parse(data);
+    } catch (error) {
+      // Metadata doesn't exist, return default
+      return {
+        recentProjects: [],
+        favorites: [],
+        lastOpened: null,
+      };
+    }
+  }
+
+  async saveMetadata(metadata) {
+    try {
+      await fs.mkdir(PROJECTS_DIR, { recursive: true });
+      await fs.writeFile(METADATA_FILE, JSON.stringify(metadata, null, 2));
+    } catch (error) {
+      console.error('Error saving metadata:', error);
+    }
+  }
+
+  async updateMetadata(projectPath) {
+    const metadata = await this.loadMetadata();
+
+    // Remove if already exists
+    metadata.recentProjects = (metadata.recentProjects || []).filter((p) => p !== projectPath);
+
+    // Add to front
+    metadata.recentProjects.unshift(projectPath);
+
+    // Keep only last 20
+    metadata.recentProjects = metadata.recentProjects.slice(0, 20);
+
+    // Update last opened
+    metadata.lastOpened = projectPath;
+
+    await this.saveMetadata(metadata);
   }
 
   // ==================== HELPER METHODS ====================

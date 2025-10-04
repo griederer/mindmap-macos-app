@@ -280,6 +280,201 @@ class MindmapMCPServerTest {
   getLineTitle(line) {
     return line.replace(/^\s*(\d+\.|[\*\-])\s*/, '').split('|')[0].trim();
   }
+
+  // === NEW METHODS FOR PHASE 2 ===
+
+  async createCategory({ projectName, name, color }) {
+    const projectPath = path.join(this.projectsDir, `${projectName}.pmap`);
+    const projectData = JSON.parse(await fs.readFile(projectPath, 'utf8'));
+
+    if (!projectData.categories) {
+      projectData.categories = [];
+    }
+
+    const exists = projectData.categories.find(c => c.name === name);
+    if (exists) {
+      return {
+        content: [{ type: 'text', text: `Error: Category "${name}" already exists` }],
+        isError: true
+      };
+    }
+
+    const category = {
+      id: `cat-${Date.now()}-${projectData.categories.length}`,
+      name,
+      color,
+      nodeIds: []
+    };
+
+    projectData.categories.push(category);
+    projectData.metadata.modified = new Date().toISOString();
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2), 'utf8');
+
+    return {
+      content: [{ type: 'text', text: `✅ Created category "${name}" with color ${color} in "${projectName}"` }]
+    };
+  }
+
+  async assignCategory({ projectName, nodeTitle, categoryName }) {
+    const projectPath = path.join(this.projectsDir, `${projectName}.pmap`);
+    const projectData = JSON.parse(await fs.readFile(projectPath, 'utf8'));
+
+    const category = projectData.categories?.find(c => c.name === categoryName);
+    if (!category) {
+      return {
+        content: [{ type: 'text', text: `Error: Category "${categoryName}" not found` }],
+        isError: true
+      };
+    }
+
+    const lines = projectData.content.split('\n');
+    const lineIndex = lines.findIndex(l => l.toLowerCase().includes(nodeTitle.toLowerCase()));
+    if (lineIndex === -1 || lineIndex === 0) {
+      return {
+        content: [{ type: 'text', text: `Error: Node "${nodeTitle}" not found` }],
+        isError: true
+      };
+    }
+
+    const nodeId = `node-${lineIndex - 1}`; // Subtract 1 because line 0 is topic
+    if (!category.nodeIds.includes(nodeId)) {
+      category.nodeIds.push(nodeId);
+    }
+
+    projectData.metadata.modified = new Date().toISOString();
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2), 'utf8');
+
+    return {
+      content: [{ type: 'text', text: `✅ Assigned category "${categoryName}" to node "${nodeTitle}"` }]
+    };
+  }
+
+  async createRelationship({ projectName, name, color, dashPattern = '0' }) {
+    const projectPath = path.join(this.projectsDir, `${projectName}.pmap`);
+    const projectData = JSON.parse(await fs.readFile(projectPath, 'utf8'));
+
+    if (!projectData.relationships) {
+      projectData.relationships = [];
+    }
+
+    const relationship = {
+      id: `rel-${Date.now()}-${projectData.relationships.length}`,
+      name,
+      color,
+      dashPattern
+    };
+
+    projectData.relationships.push(relationship);
+    projectData.metadata.modified = new Date().toISOString();
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2), 'utf8');
+
+    return {
+      content: [{ type: 'text', text: `✅ Created relationship "${name}" with color ${color}` }]
+    };
+  }
+
+  async connectNodes({ projectName, fromNodeTitle, toNodeTitle, relationshipName }) {
+    const projectPath = path.join(this.projectsDir, `${projectName}.pmap`);
+    const projectData = JSON.parse(await fs.readFile(projectPath, 'utf8'));
+
+    const relationship = projectData.relationships?.find(r => r.name === relationshipName);
+    if (!relationship) {
+      return {
+        content: [{ type: 'text', text: `Error: Relationship "${relationshipName}" not found` }],
+        isError: true
+      };
+    }
+
+    const lines = projectData.content.split('\n');
+    const fromLineIndex = lines.findIndex(l => l.toLowerCase().includes(fromNodeTitle.toLowerCase()));
+    const toLineIndex = lines.findIndex(l => l.toLowerCase().includes(toNodeTitle.toLowerCase()));
+
+    if (fromLineIndex === -1 || toLineIndex === -1 || fromLineIndex === 0 || toLineIndex === 0) {
+      return {
+        content: [{ type: 'text', text: 'Error: One or both nodes not found' }],
+        isError: true
+      };
+    }
+
+    if (!projectData.connections) {
+      projectData.connections = [];
+    }
+
+    const connection = {
+      id: `conn-${Date.now()}-${projectData.connections.length}`,
+      fromNodeId: `node-${fromLineIndex - 1}`, // Subtract 1 because line 0 is topic
+      toNodeId: `node-${toLineIndex - 1}`,     // Subtract 1 because line 0 is topic
+      relationshipId: relationship.id
+    };
+
+    projectData.connections.push(connection);
+    projectData.metadata.modified = new Date().toISOString();
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2), 'utf8');
+
+    return {
+      content: [{ type: 'text', text: `✅ Connected "${fromNodeTitle}" to "${toNodeTitle}" using "${relationshipName}"` }]
+    };
+  }
+
+  async setFocusMode({ projectName, nodeTitle }) {
+    const projectPath = path.join(this.projectsDir, `${projectName}.pmap`);
+    const projectData = JSON.parse(await fs.readFile(projectPath, 'utf8'));
+
+    if (nodeTitle === null) {
+      projectData.focusedNodeId = null;
+      projectData.metadata.modified = new Date().toISOString();
+      await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2), 'utf8');
+      return {
+        content: [{ type: 'text', text: '✅ Cleared focus mode' }]
+      };
+    }
+
+    const lines = projectData.content.split('\n');
+    const lineIndex = lines.findIndex(l => l.toLowerCase().includes(nodeTitle.toLowerCase()));
+
+    if (lineIndex === -1 || lineIndex === 0) {
+      return {
+        content: [{ type: 'text', text: `Error: Node "${nodeTitle}" not found` }],
+        isError: true
+      };
+    }
+
+    projectData.focusedNodeId = `node-${lineIndex - 1}`; // Subtract 1 because line 0 is topic
+    projectData.metadata.modified = new Date().toISOString();
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2), 'utf8');
+
+    return {
+      content: [{ type: 'text', text: `✅ Set focus mode to node "${nodeTitle}"` }]
+    };
+  }
+
+  async setNodePosition({ projectName, nodeTitle, x, y }) {
+    const projectPath = path.join(this.projectsDir, `${projectName}.pmap`);
+    const projectData = JSON.parse(await fs.readFile(projectPath, 'utf8'));
+
+    const lines = projectData.content.split('\n');
+    const lineIndex = lines.findIndex(l => l.toLowerCase().includes(nodeTitle.toLowerCase()));
+
+    if (lineIndex === -1 || lineIndex === 0) {
+      return {
+        content: [{ type: 'text', text: `Error: Node "${nodeTitle}" not found` }],
+        isError: true
+      };
+    }
+
+    if (!projectData.customPositions) {
+      projectData.customPositions = {};
+    }
+
+    const nodeId = `node-${lineIndex - 1}`; // Subtract 1 because line 0 is topic
+    projectData.customPositions[nodeId] = { x, y };
+    projectData.metadata.modified = new Date().toISOString();
+    await fs.writeFile(projectPath, JSON.stringify(projectData, null, 2), 'utf8');
+
+    return {
+      content: [{ type: 'text', text: `✅ Set position for node "${nodeTitle}" to (${x}, ${y})` }]
+    };
+  }
 }
 
 describe('PWC Mindmap MCP Server v2.0', () => {
@@ -678,6 +873,287 @@ describe('PWC Mindmap MCP Server v2.0', () => {
       expect(data.nodes['node-0']).toHaveProperty('notes');
       expect(data.nodes['node-0']).toHaveProperty('images');
       expect(data.nodes['node-0']).toHaveProperty('showInfo');
+    });
+  });
+
+  describe('Category Management', () => {
+    test('creates category successfully', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      const result = await server.createCategory({
+        projectName: 'Test',
+        name: 'Important',
+        color: '#ff6b6b'
+      });
+
+      expect(result.content[0].text).toContain('Created category "Important"');
+
+      const data = await server.getProjectData({ projectName: 'Test' });
+      expect(data.categories).toHaveLength(1);
+      expect(data.categories[0].name).toBe('Important');
+      expect(data.categories[0].color).toBe('#ff6b6b');
+      expect(data.categories[0].id).toMatch(/^cat-\d+-0$/);
+    });
+
+    test('prevents duplicate categories', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      await server.createCategory({
+        projectName: 'Test',
+        name: 'Important',
+        color: '#ff6b6b'
+      });
+
+      const result = await server.createCategory({
+        projectName: 'Test',
+        name: 'Important',
+        color: '#00ff00'
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('already exists');
+    });
+
+    test('assigns category to node', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      await server.createCategory({
+        projectName: 'Test',
+        name: 'Important',
+        color: '#ff6b6b'
+      });
+
+      const result = await server.assignCategory({
+        projectName: 'Test',
+        nodeTitle: 'Node1',
+        categoryName: 'Important'
+      });
+
+      expect(result.content[0].text).toContain('Assigned category');
+
+      const data = await server.getProjectData({ projectName: 'Test' });
+      expect(data.categories[0].nodeIds).toContain('node-0');
+    });
+
+    test('prevents assigning non-existent category', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      const result = await server.assignCategory({
+        projectName: 'Test',
+        nodeTitle: 'Node1',
+        categoryName: 'NonExistent'
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('not found');
+    });
+  });
+
+  describe('Relationship Management', () => {
+    test('creates relationship successfully', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      const result = await server.createRelationship({
+        projectName: 'Test',
+        name: 'depends on',
+        color: '#4dabf7',
+        dashPattern: '5,5'
+      });
+
+      expect(result.content[0].text).toContain('Created relationship');
+
+      const data = await server.getProjectData({ projectName: 'Test' });
+      expect(data.relationships).toHaveLength(1);
+      expect(data.relationships[0].name).toBe('depends on');
+      expect(data.relationships[0].color).toBe('#4dabf7');
+      expect(data.relationships[0].dashPattern).toBe('5,5');
+    });
+
+    test('creates relationship with solid line (default)', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      const result = await server.createRelationship({
+        projectName: 'Test',
+        name: 'leads to',
+        color: '#51cf66'
+      });
+
+      const data = await server.getProjectData({ projectName: 'Test' });
+      expect(data.relationships[0].dashPattern).toBe('0');
+    });
+
+    test('connects two nodes with relationship', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [
+          { title: 'Node1', level: 1 },
+          { title: 'Node2', level: 1 }
+        ]
+      });
+
+      await server.createRelationship({
+        projectName: 'Test',
+        name: 'depends on',
+        color: '#4dabf7'
+      });
+
+      const result = await server.connectNodes({
+        projectName: 'Test',
+        fromNodeTitle: 'Node1',
+        toNodeTitle: 'Node2',
+        relationshipName: 'depends on'
+      });
+
+      expect(result.content[0].text).toContain('Connected');
+
+      const data = await server.getProjectData({ projectName: 'Test' });
+      expect(data.connections).toHaveLength(1);
+      expect(data.connections[0].fromNodeId).toBe('node-0');
+      expect(data.connections[0].toNodeId).toBe('node-1');
+    });
+
+    test('prevents connecting with non-existent relationship', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [
+          { title: 'Node1', level: 1 },
+          { title: 'Node2', level: 1 }
+        ]
+      });
+
+      const result = await server.connectNodes({
+        projectName: 'Test',
+        fromNodeTitle: 'Node1',
+        toNodeTitle: 'Node2',
+        relationshipName: 'NonExistent'
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('not found');
+    });
+  });
+
+  describe('Focus Mode', () => {
+    test('sets focused node', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [
+          { title: 'Node1', level: 1 },
+          { title: 'Node2', level: 1 }
+        ]
+      });
+
+      const result = await server.setFocusMode({
+        projectName: 'Test',
+        nodeTitle: 'Node1'
+      });
+
+      expect(result.content[0].text).toContain('Set focus');
+
+      const data = await server.getProjectData({ projectName: 'Test' });
+      expect(data.focusedNodeId).toBe('node-0');
+    });
+
+    test('clears focus mode', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      await server.setFocusMode({
+        projectName: 'Test',
+        nodeTitle: 'Node1'
+      });
+
+      const result = await server.setFocusMode({
+        projectName: 'Test',
+        nodeTitle: null
+      });
+
+      expect(result.content[0].text).toContain('Cleared focus');
+
+      const data = await server.getProjectData({ projectName: 'Test' });
+      expect(data.focusedNodeId).toBeNull();
+    });
+  });
+
+  describe('Node Positioning', () => {
+    test('sets custom node position', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      const result = await server.setNodePosition({
+        projectName: 'Test',
+        nodeTitle: 'Node1',
+        x: 100,
+        y: 200
+      });
+
+      expect(result.content[0].text).toContain('Set position');
+
+      const data = await server.getProjectData({ projectName: 'Test' });
+      expect(data.customPositions['node-0']).toEqual({ x: 100, y: 200 });
+    });
+
+    test('updates existing position', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      await server.setNodePosition({
+        projectName: 'Test',
+        nodeTitle: 'Node1',
+        x: 100,
+        y: 200
+      });
+
+      await server.setNodePosition({
+        projectName: 'Test',
+        nodeTitle: 'Node1',
+        x: 300,
+        y: 400
+      });
+
+      const data = await server.getProjectData({ projectName: 'Test' });
+      expect(data.customPositions['node-0']).toEqual({ x: 300, y: 400 });
+    });
+
+    test('prevents positioning non-existent node', async () => {
+      await server.createMindmap({
+        topic: 'Test',
+        nodes: [{ title: 'Node1', level: 1 }]
+      });
+
+      const result = await server.setNodePosition({
+        projectName: 'Test',
+        nodeTitle: 'NonExistent',
+        x: 100,
+        y: 200
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain('not found');
     });
   });
 });
