@@ -349,7 +349,7 @@ class MindmapRenderer {
         this.setupElectronIntegration();
         this.setupCategoriesPanel();
         this.setupRelationshipsPanel();
-        this.loadProjects();
+        // Projects will be loaded after ProjectManager is initialized in DOMContentLoaded
         this.loadCategories();
         this.loadRelationships();
     }
@@ -2060,17 +2060,70 @@ class MindmapRenderer {
     }
 
     // Project Management Methods
-    loadProjects() {
-        // Load projects from localStorage
-        const savedProjects = localStorage.getItem('mindmap-projects');
-        if (savedProjects) {
-            this.projects = JSON.parse(savedProjects);
+    async loadProjects() {
+        // Load projects from ProjectManager (reads from .metadata.json)
+        if (window.electronAPI?.projectManager) {
+            try {
+                const response = await window.electronAPI.projectManager.getRecentProjects(10);
+                console.log('Raw API response:', response);
+
+                // Handle response format: { success: true, projects: [...] }
+                const recentProjects = response.success ? response.projects : [];
+                console.log('Loaded recent projects:', recentProjects);
+
+                // Convert to old format for compatibility
+                this.projects = recentProjects.map((proj, index) => ({
+                    id: `project-${index}`,
+                    name: proj.name,
+                    path: proj.path,
+                    content: '' // Will be loaded on demand
+                }));
+                console.log('Converted projects:', this.projects);
+
+                // Add default "ENTRADA DE ESQUEMA" project if no projects exist
+                if (this.projects.length === 0) {
+                    this.projects.push({
+                        id: 'default',
+                        name: 'ENTRADA DE ESQUEMA',
+                        content: `Nuevo Mapa Mental
+1. Idea Principal
+* Subtema 1
+* Subtema 2
+2. Segunda Idea
+* Desarrollo
+* Conclusiones`
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading projects from ProjectManager:', error);
+                // Fallback to default project
+                this.projects = [{
+                    id: 'default',
+                    name: 'ENTRADA DE ESQUEMA',
+                    content: `Nuevo Mapa Mental
+1. Idea Principal
+* Subtema 1
+* Subtema 2
+2. Segunda Idea
+* Desarrollo
+* Conclusiones`
+                }];
+            }
         }
-        // If no saved projects, use the default projects from constructor
-        // (this.projects is already initialized in constructor with 5 projects including PwC ones)
 
         this.renderProjects();
         if (this.projects.length > 0) {
+            // Load first project or last opened
+            if (window.projectManager) {
+                const lastProject = await window.projectManager.getLastOpenedProject();
+                if (lastProject) {
+                    const projectIndex = this.projects.findIndex(p => p.path === lastProject);
+                    if (projectIndex >= 0) {
+                        this.loadProject(this.projects[projectIndex].id);
+                        return;
+                    }
+                }
+            }
             this.loadProject(this.projects[0].id);
         }
     }
@@ -2097,43 +2150,71 @@ class MindmapRenderer {
         });
     }
 
-    loadProject(projectId) {
+    async loadProject(projectId) {
         const project = this.projects.find(p => p.id === projectId);
         if (!project) return;
 
-        // Save current project's nodeData before switching
-        if (this.currentProject) {
-            localStorage.setItem(`mindmap-nodedata-${this.currentProject}`,
-                JSON.stringify(window.mindmapEngine.nodeData));
-        }
-
         this.currentProject = projectId;
 
-        // Load nodeData for the new project (or start fresh)
-        const savedNodeData = localStorage.getItem(`mindmap-nodedata-${projectId}`);
-        if (savedNodeData) {
+        // If project has a path, load from .pmap file
+        if (project.path && window.projectManager) {
             try {
-                window.mindmapEngine.nodeData = JSON.parse(savedNodeData);
-            } catch (e) {
-                console.error('Error loading nodeData:', e);
+                const projectData = await window.projectManager.loadProject(project.path);
+                if (projectData) {
+                    // Load content
+                    document.getElementById('outlineInput').value = projectData.content || '';
+
+                    // Load nodeData
+                    window.mindmapEngine.nodeData = projectData.nodes || {};
+
+                    // Load custom orders
+                    if (projectData.customOrders && window.mindmapEngine?.reorderManager) {
+                        window.mindmapEngine.reorderManager.importOrders(projectData.customOrders);
+                    }
+
+                    // Load categories and relationships if available
+                    if (projectData.categories) {
+                        this.categories = projectData.categories;
+                    }
+                    if (projectData.relationships) {
+                        this.relationships = projectData.relationships;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading project from file:', error);
+                // Fallback to empty project
+                document.getElementById('outlineInput').value = project.content || '';
                 window.mindmapEngine.nodeData = {};
             }
         } else {
-            window.mindmapEngine.nodeData = {};
-        }
+            // Legacy: load from hardcoded content
+            document.getElementById('outlineInput').value = project.content;
 
-        // Load custom orders if available
-        const savedOrders = localStorage.getItem(`mindmap-orders-${projectId}`);
-        if (savedOrders && window.mindmapEngine?.reorderManager) {
-            try {
-                const orders = JSON.parse(savedOrders);
-                window.mindmapEngine.reorderManager.importOrders(orders);
-            } catch (e) {
-                console.error('Error loading custom orders:', e);
+            // Load nodeData from localStorage for backward compatibility
+            const savedNodeData = localStorage.getItem(`mindmap-nodedata-${projectId}`);
+            if (savedNodeData) {
+                try {
+                    window.mindmapEngine.nodeData = JSON.parse(savedNodeData);
+                } catch (e) {
+                    console.error('Error loading nodeData:', e);
+                    window.mindmapEngine.nodeData = {};
+                }
+            } else {
+                window.mindmapEngine.nodeData = {};
+            }
+
+            // Load custom orders from localStorage
+            const savedOrders = localStorage.getItem(`mindmap-orders-${projectId}`);
+            if (savedOrders && window.mindmapEngine?.reorderManager) {
+                try {
+                    const orders = JSON.parse(savedOrders);
+                    window.mindmapEngine.reorderManager.importOrders(orders);
+                } catch (e) {
+                    console.error('Error loading custom orders:', e);
+                }
             }
         }
 
-        document.getElementById('outlineInput').value = project.content;
         this.renderProjects();
         this.generateMindmap();
     }
@@ -2300,6 +2381,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
 
         console.log('ProjectManager initialized with auto-save');
+
+        // Reload projects list from .metadata.json
+        await window.mindmapRenderer.loadProjects();
     } else {
         // Fallback to old localStorage-based auto-save
         document.getElementById('outlineInput').addEventListener('input', () => {
