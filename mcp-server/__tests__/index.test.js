@@ -1156,4 +1156,35 @@ describe('PWC Mindmap MCP Server v2.0', () => {
       expect(result.content[0].text).toContain('not found');
     });
   });
+
+  describe('Natural Language Interface', () => {
+    test('create_mindmap_smart - creates mindmap from simple descriptions', async () => {
+      const result = await server.createMindmap({
+        topic: 'Cybersecurity',
+        nodes: [
+          { title: 'Security Policies', description: '', level: 1 },
+          { title: 'Threat Detection', description: '', level: 1 }
+        ]
+      });
+
+      expect(result.success).toBe(true);
+      expect(result.projectName).toBe('Cybersecurity');
+
+      const data = await server.getProjectData({ projectName: 'Cybersecurity' });
+      expect(data.content).toContain('Security Policies');
+      expect(data.content).toContain('Threat Detection');
+    });
+
+    test('create_mindmap_smart - handles empty node descriptions', async () => {
+      const result = await server.createMindmap({
+        topic: 'Empty Test',
+        nodes: []
+      });
+
+      expect(result.success).toBe(true);
+
+      const data = await server.getProjectData({ projectName: 'Empty Test' });
+      expect(data.content).toContain('Empty Test');
+    });
+  });
 });

@@ -56,8 +56,8 @@ function createWindow() {
       mainWindow.setVibrancy('under-window');
     }
 
-    // ALWAYS open DevTools for debugging
-    mainWindow.webContents.openDevTools();
+    // DevTools disabled in production
+    // mainWindow.webContents.openDevTools();
   });
 
   // Force reload on F5

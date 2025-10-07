@@ -1,6 +1,6 @@
 {
   "name": "pwc-mindmap-mcp",
-  "version": "2.0.0",
+  "version": "4.0.0",
   "description": "Complete MCP server for PWC Mindmap Pro - full control over mindmap creation and manipulation",
   "main": "index.js",
   "type": "module",

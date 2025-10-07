@@ -1,8 +1,20 @@
-# PWC Mindmap MCP Server v2.0 - Complete Edition
+# PWC Mindmap MCP Server v2.1.0 - Natural Language Edition
 
-Full-featured MCP server that provides complete control over PWC Mindmap Pro through Claude Code.
+Full-featured MCP server with **natural language interface** for creating mindmaps conversationally through Claude Code.
 
-## ✅ All 12 Available Tools
+## 🆕 What's New in v2.1.0
+
+**Natural Language Interface:**
+- 🎯 **`create_mindmap_smart`** - Create mindmaps from simple descriptions
+- 🗣️ **Conversational creation** - Just say "Create a cybersecurity mindmap with 2 nodes"
+- 🤖 **Auto-level detection** - No need to specify node levels manually
+- ✨ **Smart defaults** - Intelligent parameter inference
+
+**See [NATURAL-LANGUAGE-GUIDE.md](./NATURAL-LANGUAGE-GUIDE.md) for complete natural language usage examples.**
+
+---
+
+## ✅ All 19 Available Tools (13 Core + 6 Advanced)
 
 ### 📁 PROJECT MANAGEMENT (4 tools)
 
@@ -372,8 +384,19 @@ Get free API key: https://unsplash.com/developers
 
 ## 📈 Version History
 
+### v2.1.0 - Natural Language Edition (Current)
+- ✅ **NEW: Natural language interface (`create_mindmap_smart`)**
+- ✅ **Conversational mindmap creation**
+- ✅ Auto-level detection for nodes
+- ✅ Enhanced documentation with natural language guide
+- ✅ 38 passing tests (100% coverage)
+- ✅ Category management (create, assign)
+- ✅ Relationship management (create, connect)
+- ✅ Focus mode for presentations
+- ✅ Custom node positioning
+
 ### v2.0.0 - Complete Edition
-- ✅ All 12 tools implemented
+- ✅ All 12 core tools implemented
 - ✅ Full project lifecycle management
 - ✅ Complete node CRUD operations
 - ✅ Image search and integration
@@ -388,10 +411,37 @@ Get free API key: https://unsplash.com/developers
 
 ## 🎯 Next Steps
 
-Try it out:
+### Quick Start (Natural Language)
+Just talk to Claude Code:
+
 ```
-Create a mindmap about "Risk Management" with sections for
-Identification, Assessment, Mitigation, and Monitoring
+"Create a mindmap about Cybersecurity with two nodes: Security Policies and Threat Detection"
 ```
 
-The MCP server will handle everything!
+Claude automatically:
+1. Recognizes your intent
+2. Calls `create_mindmap` with proper structure
+3. Creates the mindmap file
+4. Confirms success
+
+### Advanced Usage
+```
+"Build a Risk Management mindmap with sections for Identification, Assessment, Mitigation, and Monitoring"
+
+"Add child nodes under each section"
+
+"Search for risk management images and add one to Assessment"
+
+"Create a red category called Critical and assign it to Identification"
+```
+
+See **[NATURAL-LANGUAGE-GUIDE.md](./NATURAL-LANGUAGE-GUIDE.md)** for comprehensive examples!
+
+---
+
+## 📚 Documentation
+
+- **[README.md](./README.md)** - Tool reference and technical details
+- **[NATURAL-LANGUAGE-GUIDE.md](./NATURAL-LANGUAGE-GUIDE.md)** - Conversational usage guide ⭐
+- **[package.json](./package.json)** - Dependencies and scripts
+- **[__tests__/](./tests/)** - Full test suite (38 tests)

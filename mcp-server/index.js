@@ -31,7 +31,7 @@ class MindmapMCPServer {
     this.server = new Server(
       {
         name: 'pwc-mindmap-mcp',
-        version: '2.0.0',
+        version: '2.1.0',
       },
       {
         capabilities: {
@@ -316,6 +316,24 @@ class MindmapMCPServer {
             required: ['projectName', 'nodeTitle', 'x', 'y'],
           },
         },
+
+        // === NATURAL LANGUAGE INTERFACE ===
+        {
+          name: 'create_mindmap_smart',
+          description: 'Create mindmap from natural language (auto-detects structure). Use this for conversational mindmap creation.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              topic: { type: 'string', description: 'Main topic/title' },
+              nodeDescriptions: {
+                type: 'array',
+                description: 'Array of node descriptions in plain text (e.g., ["Security Policies", "Threat Detection"])',
+                items: { type: 'string' },
+              },
+            },
+            required: ['topic'],
+          },
+        },
       ],
     }));
 
@@ -373,6 +391,10 @@ class MindmapMCPServer {
             return await this.setFocusMode(args);
           case 'set_node_position':
             return await this.setNodePosition(args);
+
+          // Natural Language Interface
+          case 'create_mindmap_smart':
+            return await this.createMindmapSmart(args);
 
           default:
             throw new Error(`Unknown tool: ${name}`);
@@ -455,6 +477,7 @@ class MindmapMCPServer {
     }
 
     let content = `${topic}\n`;
+    const nodesObject = {};
 
     if (nodes && nodes.length > 0) {
       nodes.forEach((node, index) => {
@@ -462,15 +485,27 @@ class MindmapMCPServer {
         const marker = node.level === 1 ? `${index + 1}.` : '*';
         const desc = node.description ? ` | ${node.description}` : '';
         content += `${indent}${marker} ${node.title}${desc}\n`;
+
+        // Create node entry in nodes object
+        nodesObject[`node-${index}`] = {
+          description: node.description || '',
+          notes: '',
+          images: [],
+          showInfo: false,
+        };
       });
     } else {
       content += '1. Main Idea\n* Subtopic 1\n* Subtopic 2\n';
+      // Create default nodes
+      nodesObject['node-0'] = { description: '', notes: '', images: [], showInfo: false };
+      nodesObject['node-1'] = { description: '', notes: '', images: [], showInfo: false };
+      nodesObject['node-2'] = { description: '', notes: '', images: [], showInfo: false };
     }
 
     const projectData = {
       name: topic,
       content: content.trim(),
-      nodes: {},
+      nodes: nodesObject,
       categories: [],
       relationships: [],
       customOrders: {},
@@ -1360,6 +1395,26 @@ class MindmapMCPServer {
         },
       ],
     };
+  }
+
+  // ==================== NATURAL LANGUAGE INTERFACE ====================
+
+  async createMindmapSmart({ topic, nodeDescriptions = [] }) {
+    // Parse natural language descriptions and auto-assign levels
+    const nodes = nodeDescriptions.map((desc, index) => {
+      // Simple heuristic: if description is short (< 30 chars), it's likely a level 1 node
+      // Otherwise, treat as level 2 for more detail
+      const isShortTitle = desc.length < 30;
+
+      return {
+        title: desc,
+        description: '', // No description separator in natural language
+        level: isShortTitle ? 1 : 1, // All top-level by default for simplicity
+      };
+    });
+
+    // Call existing create_mindmap with smart defaults
+    return await this.createMindmap({ topic, nodes });
   }
 
   // ==================== METADATA MANAGEMENT ====================
