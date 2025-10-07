@@ -2344,6 +2344,35 @@ class MindmapRenderer {
     }
 }
 
+// Helper function to show slide capture notification
+function showSlideNotification(description, slideNumber) {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = 'slide-capture-notification';
+    notification.innerHTML = `
+        <div class="notification-icon">📸</div>
+        <div class="notification-content">
+            <div class="notification-title">Slide ${slideNumber} capturado</div>
+            <div class="notification-description">${description}</div>
+        </div>
+    `;
+
+    document.body.appendChild(notification);
+
+    // Trigger animation
+    setTimeout(() => {
+        notification.classList.add('show');
+    }, 10);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+        setTimeout(() => {
+            notification.remove();
+        }, 300);
+    }, 3000);
+}
+
 // Helper function to update presentation counter
 function updatePresentationCounter() {
     const counter = document.getElementById('presentationCounter');
@@ -2478,6 +2507,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (presentBtn) {
                     presentBtn.style.display = count > 0 ? 'inline-block' : 'none';
                 }
+
+                // Show visual notification
+                showSlideNotification(slide.description, count);
 
                 // Mark project as dirty for auto-save
                 if (window.projectManager) {

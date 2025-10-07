@@ -2367,3 +2367,56 @@ body.presentation-mode .category-indicator {
 body.presentation-mode .relationship-connection {
     display: block;
 }
+
+/* =====================================================
+   SLIDE CAPTURE NOTIFICATION
+   ===================================================== */
+
+.slide-capture-notification {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    background: rgba(33, 150, 243, 0.95);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 320px;
+}
+
+.slide-capture-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.slide-capture-notification .notification-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.slide-capture-notification .notification-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.slide-capture-notification .notification-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.slide-capture-notification .notification-description {
+    font-size: 12px;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
+}
