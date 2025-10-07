@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
 const ProjectManager = require('./project-manager');
+const chokidar = require('chokidar');
 
 // Initialize electron store for preferences
 const store = new Store();
@@ -12,6 +13,7 @@ const projectManager = new ProjectManager();
 
 let mainWindow;
 let isDev = process.argv.includes('--dev');
+let projectsWatcher = null;
 
 // Enable hardware acceleration for better performance
 app.commandLine.appendSwitch('enable-gpu-rasterization');
@@ -53,12 +55,10 @@ function createWindow() {
     if (process.platform === 'darwin') {
       mainWindow.setVibrancy('under-window');
     }
-  });
 
-  // Open DevTools in development
-  if (isDev) {
-    mainWindow.webContents.openDevTools();
-  }
+    // DevTools disabled in production
+    // mainWindow.webContents.openDevTools();
+  });
 
   // Force reload on F5
   mainWindow.webContents.on('before-input-event', (event, input) => {
@@ -69,7 +69,66 @@ function createWindow() {
 
   mainWindow.on('closed', () => {
     mainWindow = null;
+    // Stop file watcher when window closes
+    if (projectsWatcher) {
+      projectsWatcher.close();
+      projectsWatcher = null;
+    }
   });
+
+  // Start file watcher for project directory
+  setupProjectsWatcher();
+}
+
+// Setup file watcher for projects directory
+function setupProjectsWatcher() {
+  const projectsDir = projectManager.getProjectsDirectory();
+
+  // Initialize watcher
+  projectsWatcher = chokidar.watch(path.join(projectsDir, '*.pmap'), {
+    ignored: /(^|[\/\\])\../, // Ignore dotfiles
+    persistent: true,
+    ignoreInitial: true, // Don't fire events for existing files
+    awaitWriteFinish: {
+      stabilityThreshold: 500,
+      pollInterval: 100
+    }
+  });
+
+  // Watch for new projects
+  projectsWatcher
+    .on('add', (filePath) => {
+      console.log(`New project detected: ${filePath}`);
+      if (mainWindow) {
+        mainWindow.webContents.send('projects-changed', {
+          action: 'add',
+          path: filePath
+        });
+      }
+    })
+    .on('change', (filePath) => {
+      console.log(`Project modified: ${filePath}`);
+      if (mainWindow) {
+        mainWindow.webContents.send('projects-changed', {
+          action: 'change',
+          path: filePath
+        });
+      }
+    })
+    .on('unlink', (filePath) => {
+      console.log(`Project deleted: ${filePath}`);
+      if (mainWindow) {
+        mainWindow.webContents.send('projects-changed', {
+          action: 'delete',
+          path: filePath
+        });
+      }
+    })
+    .on('error', (error) => {
+      console.error('File watcher error:', error);
+    });
+
+  console.log(`Watching projects directory: ${projectsDir}`);
 }
 
 // Create app menu

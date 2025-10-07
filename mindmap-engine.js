@@ -204,7 +204,7 @@ class MindmapEngine {
                     // 🔧 FIX 1: SIEMPRE devolver COPIA para evitar referencias compartidas
                     const childrenCopy = [...(children || [])];
                     const parentCopy = { ...parentNode, children: childrenCopy };
-                    this.reorderManager.applyCustomOrder(parentCopy);
+                    this.reorderManager.applyOrder(parentCopy);
                     sortedArray = [...parentCopy.children]; // Copia del resultado
                 }
             }

@@ -1,326 +1,218 @@
 /**
- * NodeReorderManager - Handles drag-and-drop reordering of mindmap nodes
- *
- * Features:
- * - Drag and drop nodes to reorder siblings
- * - Visual feedback during drag
- * - Persist custom order in project data
- * - Restore order on load
+ * ULTRA-SIMPLE Node Reorder Manager
+ * Manual drag-and-drop - SIMPLIFIED VERSION
  */
 
 class NodeReorderManager {
     constructor(mindmapEngine) {
-        this.mindmapEngine = mindmapEngine;
+        this.engine = mindmapEngine;
         this.draggedNode = null;
         this.draggedElement = null;
-        this.dropTarget = null;
-        this.dropIndicator = null;
-        this.customOrders = {}; // { parentId: { childId: order } }
-
-        this.initializeDropIndicator();
-    }
-
-    /**
-     * Initialize the drop indicator element
-     */
-    initializeDropIndicator() {
-        this.dropIndicator = document.createElement('div');
-        this.dropIndicator.className = 'drop-indicator';
-        this.dropIndicator.style.display = 'none';
-        document.body.appendChild(this.dropIndicator);
+        this.customOrders = {};
+        console.log('🔧 NodeReorderManager initialized (SIMPLE v4)');
     }
 
     /**
      * Make a node draggable
-     * @param {HTMLElement} nodeElement - The node DOM element
-     * @param {object} nodeData - The node data object
      */
     makeDraggable(nodeElement, nodeData) {
-        nodeElement.dataset.nodeId = nodeData.id;
+        const content = nodeElement.querySelector('.node-content');
+        if (!content) return;
 
-        // Make the node content draggable (not the whole node, not just text)
-        const nodeContent = nodeElement.querySelector('.node-content');
-        if (!nodeContent) return;
+        // Make it draggable
+        nodeElement.draggable = true;
+        nodeElement.style.cursor = 'grab';
 
-        nodeContent.draggable = true;
-        nodeContent.style.cursor = 'move';
-
-        // Prevent drag if clicking on buttons
-        nodeContent.addEventListener('mousedown', (e) => {
-            if (e.target.closest('.action-btn') || e.target.closest('.toggle-icon')) {
-                nodeContent.draggable = false;
-            } else {
-                nodeContent.draggable = true;
-            }
-        });
-
-        nodeContent.addEventListener('dragstart', (e) => {
-            // Double check we're not dragging from a button
+        // DRAG START
+        nodeElement.addEventListener('dragstart', (e) => {
+            // Don't drag from buttons
             if (e.target.closest('.action-btn') || e.target.closest('.toggle-icon')) {
                 e.preventDefault();
                 return;
             }
-            this.handleDragStart(e, nodeElement, nodeData);
+
+            this.draggedNode = nodeData;
+            this.draggedElement = nodeElement;
+            nodeElement.style.opacity = '0.4';
+            nodeElement.style.cursor = 'grabbing';
+
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', nodeElement.innerHTML);
+
+            console.log('🎯 DRAG START:', nodeData.title);
         });
 
-        nodeContent.addEventListener('dragend', (e) => {
-            this.handleDragEnd(e);
+        // DRAG END
+        nodeElement.addEventListener('dragend', (e) => {
+            nodeElement.style.opacity = '1';
+            nodeElement.style.cursor = 'grab';
+
+            // Remove all highlights
+            document.querySelectorAll('.node').forEach(el => {
+                el.style.borderTop = '';
+                el.style.borderBottom = '';
+            });
+
+            this.draggedNode = null;
+            this.draggedElement = null;
+
+            console.log('✅ DRAG END');
         });
 
-        // Node element handles dragover and drop events
+        // DRAG OVER - CRITICAL for drop to work
         nodeElement.addEventListener('dragover', (e) => {
-            this.handleDragOver(e, nodeElement, nodeData);
-        });
+            // ALWAYS preventDefault - this is CRITICAL
+            e.preventDefault();
+            e.stopPropagation();
 
-        nodeElement.addEventListener('drop', (e) => {
-            this.handleDrop(e, nodeElement, nodeData);
-        });
+            if (!this.draggedNode) return;
+            if (this.draggedNode.id === nodeData.id) return;
 
-        nodeElement.addEventListener('dragleave', (e) => {
-            this.handleDragLeave(e);
-        });
-    }
+            e.dataTransfer.dropEffect = 'move';
 
-    /**
-     * Handle drag start event
-     */
-    handleDragStart(e, element, nodeData) {
-        this.draggedNode = nodeData;
-        this.draggedElement = element;
+            // Visual feedback - show where it will drop
+            const rect = nodeElement.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+            const isTop = e.clientY < midpoint;
 
-        element.style.opacity = '0.5';
-        element.classList.add('dragging');
+            // Clear both borders first
+            nodeElement.style.borderTop = '';
+            nodeElement.style.borderBottom = '';
 
-        e.dataTransfer.effectAllowed = 'move';
-        e.dataTransfer.setData('text/html', element.innerHTML);
-
-        console.log('✓ Drag started:', nodeData.title);
-    }
-
-    /**
-     * Handle drag end event
-     */
-    handleDragEnd(e) {
-        if (this.draggedElement) {
-            this.draggedElement.style.opacity = '';
-            this.draggedElement.classList.remove('dragging');
-        }
-
-        // Clean up
-        document.querySelectorAll('.node').forEach(node => {
-            node.classList.remove('drag-over', 'drag-over-top', 'drag-over-bottom');
-        });
-
-        if (this.dropIndicator) {
-            this.dropIndicator.style.display = 'none';
-        }
-
-        this.draggedNode = null;
-        this.draggedElement = null;
-        this.dropTarget = null;
-
-        console.log('✓ Drag ended');
-    }
-
-    /**
-     * Handle drag over event
-     */
-    handleDragOver(e, element, nodeData) {
-        if (!this.draggedNode || this.draggedNode.id === nodeData.id) {
-            return;
-        }
-
-        // Prevent default to allow drop
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-
-        // Check if nodes share the same parent (siblings)
-        if (!this.areSiblings(this.draggedNode, nodeData)) {
-            return;
-        }
-
-        // Calculate drop position
-        const rect = element.getBoundingClientRect();
-        const midpoint = rect.top + (rect.height / 2);
-        const isTopHalf = e.clientY < midpoint;
-
-        // Update visual feedback
-        element.classList.remove('drag-over-top', 'drag-over-bottom');
-        element.classList.add(isTopHalf ? 'drag-over-top' : 'drag-over-bottom');
-
-        // Position drop indicator
-        if (this.dropIndicator) {
-            this.dropIndicator.style.display = 'block';
-            this.dropIndicator.style.left = `${rect.left}px`;
-            this.dropIndicator.style.width = `${rect.width}px`;
-
-            if (isTopHalf) {
-                this.dropIndicator.style.top = `${rect.top - 2}px`;
+            // Show drop position
+            if (isTop) {
+                nodeElement.style.borderTop = '3px solid #4CAF50';
             } else {
-                this.dropIndicator.style.top = `${rect.bottom - 2}px`;
+                nodeElement.style.borderBottom = '3px solid #4CAF50';
             }
-        }
+        });
 
-        this.dropTarget = { node: nodeData, element, isTopHalf };
+        // DROP - Use CAPTURE phase to catch events before children
+        const dropHandler = (e) => {
+            console.log('🔥 DROP EVENT FIRED on', e.target.className, '→ handled by', nodeElement.dataset.nodeId);
+
+            e.preventDefault();
+            e.stopPropagation(); // Stop it here after we handle it
+
+            // Remove ALL highlights from all nodes
+            document.querySelectorAll('.node').forEach(el => {
+                el.style.borderTop = '';
+                el.style.borderBottom = '';
+            });
+
+            if (!this.draggedNode) {
+                console.log('❌ DROP FAILED: No draggedNode');
+                return;
+            }
+
+            if (this.draggedNode.id === nodeData.id) {
+                console.log('❌ DROP FAILED: Same node');
+                return;
+            }
+
+            console.log(`📦 DROP: "${this.draggedNode.title}" → "${nodeData.title}"`);
+
+            // Check if they're siblings
+            const areSiblings = this.areSiblings(this.draggedNode, nodeData);
+            console.log(`🔍 Are siblings? ${areSiblings}`);
+
+            if (areSiblings) {
+                // Calculate drop position
+                const rect = nodeElement.getBoundingClientRect();
+                const midpoint = rect.top + rect.height / 2;
+                const insertBefore = e.clientY < midpoint;
+
+                console.log(`📍 Insert ${insertBefore ? 'BEFORE' : 'AFTER'} (clientY: ${e.clientY}, midpoint: ${midpoint})`);
+
+                this.reorder(this.draggedNode, nodeData, insertBefore);
+            } else {
+                const parent1 = this.findParent(this.draggedNode.id);
+                const parent2 = this.findParent(nodeData.id);
+                console.log(`⚠️  Not siblings - Parent1: ${parent1?.title}, Parent2: ${parent2?.title}`);
+            }
+        };
+
+        // Add in CAPTURE phase (true = capture, false = bubble)
+        nodeElement.addEventListener('drop', dropHandler, true);
     }
 
     /**
-     * Handle drag leave event
-     */
-    handleDragLeave(e) {
-        const element = e.currentTarget;
-        element.classList.remove('drag-over-top', 'drag-over-bottom');
-    }
-
-    /**
-     * Handle drop event
-     */
-    handleDrop(e, element, nodeData) {
-        e.preventDefault();
-        e.stopPropagation();
-
-        console.log('📍 Drop event - dragged:', this.draggedNode?.title, '→ target:', this.dropTarget?.node?.title);
-
-        if (!this.draggedNode) {
-            console.warn('❌ No dragged node');
-            return;
-        }
-
-        if (!this.dropTarget) {
-            console.warn('❌ No drop target');
-            return;
-        }
-
-        // Check if trying to drop on itself
-        if (this.draggedNode.id === this.dropTarget.node.id) {
-            console.warn('❌ Cannot drop on itself');
-            return;
-        }
-
-        // Check if siblings
-        if (!this.areSiblings(this.draggedNode, this.dropTarget.node)) {
-            console.warn('❌ Cannot reorder: nodes are not siblings');
-            return;
-        }
-
-        // Perform reorder
-        console.log('🔄 Reordering nodes...');
-        this.reorderNodes(this.draggedNode, this.dropTarget.node, this.dropTarget.isTopHalf);
-
-        // Clean up
-        element.classList.remove('drag-over-top', 'drag-over-bottom');
-
-        console.log('✅ Reorder completed successfully');
-    }
-
-    /**
-     * Check if two nodes are siblings (share same parent)
-     * @param {object} node1 - First node
-     * @param {object} node2 - Second node
-     * @returns {boolean} - True if siblings
+     * Check if two nodes are siblings
      */
     areSiblings(node1, node2) {
         const parent1 = this.findParent(node1.id);
         const parent2 = this.findParent(node2.id);
 
-        return parent1 && parent2 && parent1.id === parent2.id;
+        if (!parent1 || !parent2) return false;
+        return parent1.id === parent2.id;
     }
 
     /**
-     * Find parent node of a given node
-     * @param {string} nodeId - Node ID to find parent for
-     * @returns {object|null} - Parent node or null
+     * Find parent of a node
      */
     findParent(nodeId) {
-        const findParentRecursive = (node, searchId) => {
+        const search = (node) => {
             if (!node.children) return null;
 
             for (const child of node.children) {
-                if (child.id === searchId) {
-                    return node;
-                }
-                const found = findParentRecursive(child, searchId);
+                if (child.id === nodeId) return node;
+                const found = search(child);
                 if (found) return found;
             }
             return null;
         };
 
-        return findParentRecursive(this.mindmapEngine.nodes, nodeId);
+        return search(this.engine.nodes);
     }
 
     /**
-     * Reorder nodes in the tree
-     * @param {object} draggedNode - Node being dragged
-     * @param {object} targetNode - Target node
-     * @param {boolean} insertBefore - Insert before (true) or after (false)
+     * Reorder nodes
      */
-    reorderNodes(draggedNode, targetNode, insertBefore) {
+    reorder(draggedNode, targetNode, insertBefore) {
         const parent = this.findParent(draggedNode.id);
-
         if (!parent || !parent.children) {
-            console.error('❌ Parent not found for node:', draggedNode.id);
+            console.error('❌ Parent not found');
             return;
         }
 
-        console.log('🔍 Before reorder:', parent.children.map(c => c.title));
-
-        // Remove dragged node from current position
+        // Remove dragged node
         const draggedIndex = parent.children.findIndex(c => c.id === draggedNode.id);
-        if (draggedIndex === -1) {
-            console.error('❌ Dragged node not in parent');
-            return;
-        }
+        if (draggedIndex === -1) return;
 
-        console.log(`📤 Removing "${draggedNode.title}" from index ${draggedIndex}`);
         parent.children.splice(draggedIndex, 1);
 
-        // Find new target index (after removal)
-        let targetIndex = parent.children.findIndex(c => c.id === targetNode.id);
+        // Find new target position
+        const targetIndex = parent.children.findIndex(c => c.id === targetNode.id);
+
         if (targetIndex === -1) {
-            console.error('❌ Target node not found');
-            return;
+            parent.children.push(draggedNode);
+        } else {
+            // Insert before or after based on drop position
+            const insertIndex = insertBefore ? targetIndex : targetIndex + 1;
+            parent.children.splice(insertIndex, 0, draggedNode);
         }
 
-        // Adjust index if inserting after
-        if (!insertBefore) {
-            targetIndex++;
-        }
+        console.log('📋 New order:', parent.children.map(c => c.title));
 
-        console.log(`📥 Inserting "${draggedNode.title}" at index ${targetIndex} (${insertBefore ? 'before' : 'after'} "${targetNode.title}")`);
+        // Save custom order
+        this.saveOrder(parent);
 
-        // Insert at new position
-        parent.children.splice(targetIndex, 0, draggedNode);
-
-        console.log('🔍 After reorder:', parent.children.map(c => c.title));
-
-        // 🔧 FIX 4: Secuencia ordenada con timing correcto
-
-        // PASO 1: Actualizar orden personalizado
-        this.updateCustomOrder(parent);
-        console.log('💾 Custom order updated');
-
-        // PASO 2: Forzar aplicación del orden (asegurar consistencia)
-        this.applyCustomOrder(parent);
-        console.log('✅ Custom order applied to parent.children');
-
-        // PASO 3: Marcar como dirty DESPUÉS de actualizar datos
+        // Mark as dirty
         if (window.projectManager) {
             window.projectManager.markDirty();
         }
 
-        // PASO 4: Re-render usando setTimeout para garantizar que el estado está estable
+        // Re-render
         setTimeout(() => {
-            console.log('🎨 Rendering nodes with new order');
-            this.mindmapEngine.renderNodes(this.mindmapEngine.nodes);
-            console.log(`✅ Reordered: ${draggedNode.title} ${insertBefore ? 'before' : 'after'} ${targetNode.title}`);
+            this.engine.renderNodes(this.engine.nodes);
+            console.log('✅ Reordered successfully');
         }, 0);
     }
 
     /**
-     * Update custom order for a parent's children
-     * @param {object} parent - Parent node
+     * Save custom order for a parent
      */
-    updateCustomOrder(parent) {
+    saveOrder(parent) {
         if (!this.customOrders[parent.id]) {
             this.customOrders[parent.id] = {};
         }
@@ -328,19 +220,17 @@ class NodeReorderManager {
         parent.children.forEach((child, index) => {
             this.customOrders[parent.id][child.id] = index;
         });
+
+        console.log('💾 Saved order for', parent.title);
     }
 
     /**
-     * Apply custom order to children
-     * @param {object} parent - Parent node
+     * Apply saved order to children
      */
-    applyCustomOrder(parent) {
-        if (!parent.children || !this.customOrders[parent.id]) {
-            return;
-        }
+    applyOrder(parent) {
+        if (!parent.children || !this.customOrders[parent.id]) return;
 
-        // 🔧 FIX 5: CREAR NUEVO array ordenado (no modificar in-place)
-        const orderedChildren = [...parent.children].sort((a, b) => {
+        parent.children.sort((a, b) => {
             const orderA = this.customOrders[parent.id][a.id];
             const orderB = this.customOrders[parent.id][b.id];
 
@@ -350,41 +240,15 @@ class NodeReorderManager {
 
             return orderA - orderB;
         });
-
-        // REEMPLAZAR array completo para evitar referencias viejas
-        parent.children = orderedChildren;
-
-        console.log('🔄 Applied custom order to parent:', parent.title,
-                    'Children:', parent.children.map(c => c.title));
     }
 
     /**
-     * Export custom orders for persistence
-     * @returns {object} - Custom orders object
-     */
-    exportOrders() {
-        return JSON.parse(JSON.stringify(this.customOrders));
-    }
-
-    /**
-     * Import custom orders from saved data
-     * @param {object} orders - Custom orders object
-     */
-    importOrders(orders) {
-        if (orders && typeof orders === 'object') {
-            this.customOrders = orders;
-            this.applyOrdersToTree(this.mindmapEngine.nodes);
-        }
-    }
-
-    /**
-     * Apply custom orders to entire tree recursively
-     * @param {object} node - Root node
+     * Apply orders to entire tree
      */
     applyOrdersToTree(node) {
         if (!node) return;
 
-        this.applyCustomOrder(node);
+        this.applyOrder(node);
 
         if (node.children) {
             node.children.forEach(child => this.applyOrdersToTree(child));
@@ -392,14 +256,37 @@ class NodeReorderManager {
     }
 
     /**
-     * Clear all custom orders
+     * Export orders for saving
+     */
+    exportOrders() {
+        return JSON.parse(JSON.stringify(this.customOrders));
+    }
+
+    /**
+     * Import orders from saved data
+     */
+    importOrders(orders) {
+        if (orders && typeof orders === 'object') {
+            this.customOrders = orders;
+            this.applyOrdersToTree(this.engine.nodes);
+            console.log('📥 Imported custom orders');
+        }
+    }
+
+    /**
+     * Clear all orders
      */
     clearOrders() {
         this.customOrders = {};
     }
+
+    // Not used - for compatibility
+    initializeTree() {}
+    destroyAll() {}
+    moveToParent() {}
 }
 
-// Export for use in mindmap-engine
+// Export
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = NodeReorderManager;
 }

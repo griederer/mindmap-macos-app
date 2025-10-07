@@ -1987,6 +1987,13 @@ body[data-view-mode="presentation"] .add-category-btn {
     cursor: grabbing;
 }
 
+/* Simple drag-over indicator */
+.node.drag-over {
+    background: rgba(76, 175, 80, 0.1);
+    border: 2px dashed rgba(76, 175, 80, 0.6);
+    box-shadow: 0 0 10px rgba(76, 175, 80, 0.3);
+}
+
 .node.drag-over-top {
     position: relative;
 }
@@ -2066,4 +2073,37 @@ body[data-view-mode="presentation"] .node[draggable="true"] {
 
 .node-content:hover .image-indicator {
     opacity: 0.9;
+}
+
+/* ======================
+   Sortable.js Styles
+   ====================== */
+
+.sortable-ghost {
+    opacity: 0.4;
+    background: rgba(76, 175, 80, 0.1);
+}
+
+.sortable-chosen {
+    background: rgba(76, 175, 80, 0.05);
+    border: 2px dashed rgba(76, 175, 80, 0.6);
+}
+
+.sortable-drag {
+    opacity: 0.8;
+    cursor: grabbing !important;
+}
+
+/* Make children container sortable-ready */
+.children {
+    min-height: 20px;
+}
+
+/* Better drag cursor */
+.node {
+    cursor: grab;
+}
+
+.node:active {
+    cursor: grabbing;
 }
