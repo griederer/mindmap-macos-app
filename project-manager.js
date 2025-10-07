@@ -156,13 +156,27 @@ class ProjectManager {
                     },
                     categories: [],
                     relationships: [],
-                    content: `${projectName}\n1. Main Idea\n* Subtopic 1\n* Subtopic 2`
+                    content: `${projectName}\n1. Main Idea\n* Subtopic 1\n* Subtopic 2`,
+                    presentation: {
+                        slides: [],
+                        created: new Date().toISOString(),
+                        modified: new Date().toISOString()
+                    }
                 };
             }
 
             // Update timestamps
             projectData.metadata.created = new Date().toISOString();
             projectData.metadata.modified = new Date().toISOString();
+
+            // Ensure presentation structure exists
+            if (!projectData.presentation) {
+                projectData.presentation = {
+                    slides: [],
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString()
+                };
+            }
 
             // Save project file
             fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2));
@@ -193,6 +207,15 @@ class ProjectManager {
             const data = fs.readFileSync(projectPath, 'utf-8');
             const projectData = JSON.parse(data);
 
+            // Ensure presentation data structure exists (migration)
+            if (!projectData.presentation) {
+                projectData.presentation = {
+                    slides: [],
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString()
+                };
+            }
+
             // Update metadata
             this.addToRecentProjects(projectPath);
             this.metadata.lastOpened = projectPath;
@@ -218,6 +241,11 @@ class ProjectManager {
                 projectData.metadata = {};
             }
             projectData.metadata.modified = new Date().toISOString();
+
+            // Update presentation modified timestamp if presentation data exists
+            if (projectData.presentation && projectData.presentation.slides && projectData.presentation.slides.length > 0) {
+                projectData.presentation.modified = new Date().toISOString();
+            }
 
             // Save to disk
             fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2));

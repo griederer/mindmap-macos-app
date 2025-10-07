@@ -1191,17 +1191,93 @@ class MindmapEngine {
     }
 
     exportData() {
-        return {
+        const exportedData = {
             nodes: this.nodes,
             nodeData: this.nodeData,
             timestamp: new Date().toISOString()
         };
+
+        // Include presentation data if it exists
+        if (window.presentationManager && window.presentationManager.presentation) {
+            exportedData.presentation = window.presentationManager.presentation;
+        }
+
+        return exportedData;
     }
 
     importData(data) {
         this.nodes = data.nodes;
         this.nodeData = data.nodeData || {};
+
+        // Validate and ensure presentation structure exists
+        if (data.presentation) {
+            this.validatePresentationData(data.presentation);
+        }
+
         this.renderNodes(this.nodes);
+    }
+
+    /**
+     * Validate presentation data structure
+     * @param {object} presentation - Presentation data to validate
+     * @returns {boolean} - True if valid, throws error if invalid
+     */
+    validatePresentationData(presentation) {
+        // Check required fields
+        if (!presentation.slides || !Array.isArray(presentation.slides)) {
+            throw new Error('Invalid presentation format: slides must be an array');
+        }
+
+        // Validate each slide
+        presentation.slides.forEach((slide, index) => {
+            // Required fields
+            if (typeof slide.id !== 'number') {
+                throw new Error(`Invalid slide ${index}: id must be a number`);
+            }
+            if (typeof slide.description !== 'string') {
+                throw new Error(`Invalid slide ${index}: description must be a string`);
+            }
+            if (!Array.isArray(slide.expandedNodes)) {
+                throw new Error(`Invalid slide ${index}: expandedNodes must be an array`);
+            }
+            if (!Array.isArray(slide.openInfoPanels)) {
+                throw new Error(`Invalid slide ${index}: openInfoPanels must be an array`);
+            }
+
+            // Validate zoom (must be between 0.5 and 3.0)
+            if (typeof slide.zoom !== 'number' || slide.zoom < 0.5 || slide.zoom > 3.0) {
+                throw new Error(`Invalid slide ${index}: zoom must be a number between 0.5 and 3.0`);
+            }
+
+            // Validate pan object
+            if (!slide.pan || typeof slide.pan.x !== 'number' || typeof slide.pan.y !== 'number') {
+                throw new Error(`Invalid slide ${index}: pan must have x and y coordinates`);
+            }
+
+            // Validate boolean flags
+            if (typeof slide.categoriesVisible !== 'boolean') {
+                throw new Error(`Invalid slide ${index}: categoriesVisible must be a boolean`);
+            }
+            if (typeof slide.relationshipsVisible !== 'boolean') {
+                throw new Error(`Invalid slide ${index}: relationshipsVisible must be a boolean`);
+            }
+
+            // Validate activeImage (if present)
+            if (slide.activeImage !== null && slide.activeImage !== undefined) {
+                if (typeof slide.activeImage !== 'object' ||
+                    typeof slide.activeImage.nodeId !== 'string' ||
+                    typeof slide.activeImage.imageUrl !== 'string') {
+                    throw new Error(`Invalid slide ${index}: activeImage must have nodeId and imageUrl`);
+                }
+            }
+
+            // Validate focusedNode (can be null or string)
+            if (slide.focusedNode !== null && typeof slide.focusedNode !== 'string') {
+                throw new Error(`Invalid slide ${index}: focusedNode must be null or a string`);
+            }
+        });
+
+        return true;
     }
 
     saveNodeData() {

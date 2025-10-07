@@ -2179,6 +2179,30 @@ class MindmapRenderer {
                     if (projectData.relationships) {
                         this.relationships = projectData.relationships;
                     }
+
+                    // Load presentation data if available
+                    if (projectData.presentation && window.presentationManager) {
+                        window.presentationManager.loadPresentation(projectData.presentation);
+
+                        // Update slide counter and Present button
+                        const count = window.presentationManager.getSlideCount();
+                        const slideCounter = document.getElementById('slideCounter');
+                        const presentBtn = document.getElementById('presentBtn');
+
+                        if (slideCounter) {
+                            slideCounter.textContent = `${count} slide${count !== 1 ? 's' : ''}`;
+                            slideCounter.style.display = count > 0 ? 'inline' : 'none';
+                        }
+
+                        if (presentBtn) {
+                            presentBtn.style.display = count > 0 ? 'inline-block' : 'none';
+                        }
+
+                        // Refresh presentation UI
+                        if (window.presentationUI) {
+                            window.presentationUI.refresh();
+                        }
+                    }
                 }
             } catch (error) {
                 console.error('Error loading project from file:', error);
@@ -2320,6 +2344,86 @@ class MindmapRenderer {
     }
 }
 
+// Helper function to update presentation counter
+function updatePresentationCounter() {
+    const counter = document.getElementById('presentationCounter');
+    if (!counter || !window.presentationManager) return;
+
+    const info = window.presentationManager.getCurrentSlideInfo();
+    if (info) {
+        counter.textContent = `${info.current}/${info.total}`;
+
+        // Add disabled class if at boundaries
+        if (!info.canGoNext || !info.canGoPrev) {
+            counter.classList.add('disabled');
+            setTimeout(() => counter.classList.remove('disabled'), 300);
+        }
+    }
+}
+
+// Helper function to exit presentation mode
+function exitPresentationMode() {
+    if (window.presentationManager) {
+        window.presentationManager.exitPresentationMode();
+    }
+
+    const overlay = document.getElementById('presentationOverlay');
+    if (overlay) {
+        overlay.classList.remove('active');
+    }
+    document.body.classList.remove('presentation-mode');
+}
+
+// Global keyboard handler for presentation mode
+document.addEventListener('keydown', async (e) => {
+    // Only handle if in presentation mode
+    if (!document.body.classList.contains('presentation-mode') || !window.presentationManager) {
+        return;
+    }
+
+    const info = window.presentationManager.getCurrentSlideInfo();
+    if (!info) return;
+
+    switch (e.key) {
+        case 'ArrowRight':
+            e.preventDefault();
+            if (info.canGoNext) {
+                await window.presentationManager.nextSlide();
+                updatePresentationCounter();
+            }
+            break;
+
+        case 'ArrowLeft':
+            e.preventDefault();
+            if (info.canGoPrev) {
+                await window.presentationManager.previousSlide();
+                updatePresentationCounter();
+            }
+            break;
+
+        case 'Escape':
+            e.preventDefault();
+            exitPresentationMode();
+            break;
+
+        case '1':
+        case '2':
+        case '3':
+        case '4':
+        case '5':
+        case '6':
+        case '7':
+        case '8':
+        case '9':
+        case '0':
+            e.preventDefault();
+            const slideNumber = e.key === '0' ? 10 : parseInt(e.key);
+            await window.presentationManager.jumpToSlide(slideNumber);
+            updatePresentationCounter();
+            break;
+    }
+});
+
 // Initialize renderer when DOM is ready
 document.addEventListener('DOMContentLoaded', async () => {
     window.mindmapRenderer = new MindmapRenderer();
@@ -2330,6 +2434,88 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Initialize theme system
     window.mindmapRenderer.initializeThemeButtons();
     window.mindmapRenderer.loadTheme();
+
+    // Initialize AnimationEngine
+    if (typeof AnimationEngine !== 'undefined' && window.mindmapEngine) {
+        window.animationEngine = new AnimationEngine(window.mindmapEngine);
+        console.log('AnimationEngine initialized');
+    }
+
+    // Initialize PresentationManager
+    if (typeof PresentationManager !== 'undefined' && window.mindmapEngine) {
+        window.presentationManager = new PresentationManager(window.mindmapEngine);
+        console.log('PresentationManager initialized');
+
+        // Initialize PresentationUI
+        if (typeof PresentationUI !== 'undefined') {
+            window.presentationUI = new PresentationUI(window.presentationManager, window.mindmapEngine);
+            console.log('PresentationUI initialized');
+        }
+
+        // Wire up Add Slide button
+        const addSlideBtn = document.getElementById('addSlideBtn');
+        const slideCounter = document.getElementById('slideCounter');
+        const presentBtn = document.getElementById('presentBtn');
+
+        if (addSlideBtn) {
+            addSlideBtn.addEventListener('click', () => {
+                const slide = window.presentationManager.addSlide();
+                console.log('Slide added:', slide);
+
+                // Update UI in real-time
+                if (window.presentationUI) {
+                    window.presentationUI.refresh();
+                }
+
+                // Update slide counter
+                const count = window.presentationManager.getSlideCount();
+                if (slideCounter) {
+                    slideCounter.textContent = `${count} slide${count !== 1 ? 's' : ''}`;
+                    slideCounter.style.display = count > 0 ? 'inline' : 'none';
+                }
+
+                // Show/hide Present button
+                if (presentBtn) {
+                    presentBtn.style.display = count > 0 ? 'inline-block' : 'none';
+                }
+
+                // Mark project as dirty for auto-save
+                if (window.projectManager) {
+                    window.projectManager.markDirty();
+                }
+            });
+        }
+
+        // Update counter and Present button on initialization
+        const initialCount = window.presentationManager.getSlideCount();
+        if (slideCounter) {
+            slideCounter.textContent = `${initialCount} slide${initialCount !== 1 ? 's' : ''}`;
+            slideCounter.style.display = initialCount > 0 ? 'inline' : 'none';
+        }
+        if (presentBtn) {
+            presentBtn.style.display = initialCount > 0 ? 'inline-block' : 'none';
+        }
+
+        // Wire up Present button
+        if (presentBtn) {
+            presentBtn.addEventListener('click', () => {
+                if (window.presentationManager && window.animationEngine) {
+                    const success = window.presentationManager.enterPresentationMode(window.animationEngine);
+                    if (success) {
+                        // Show presentation overlay
+                        const overlay = document.getElementById('presentationOverlay');
+                        if (overlay) {
+                            overlay.classList.add('active');
+                            document.body.classList.add('presentation-mode');
+                        }
+
+                        // Update slide counter
+                        updatePresentationCounter();
+                    }
+                }
+            });
+        }
+    }
 
     // Initialize ProjectManager
     if (typeof RendererProjectManager !== 'undefined' && window.electronAPI?.projectManager) {
@@ -2347,6 +2533,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 categories: window.mindmapRenderer?.categories || [],
                 relationships: window.mindmapRenderer?.relationships || [],
                 customOrders: mindmapEngine?.reorderManager?.exportOrders() || {},
+                presentation: window.presentationManager?.exportPresentation() || {
+                    slides: [],
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString()
+                },
                 metadata: {
                     created: new Date().toISOString(),
                     modified: new Date().toISOString(),

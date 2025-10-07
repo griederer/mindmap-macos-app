@@ -62,7 +62,8 @@ Every `.pmap` file contains:
   "connections": [],           // Array of node connections (optional)
   "customOrders": {},          // Custom child node ordering (optional)
   "nodePositions": {},         // Fixed node positions (optional)
-  "focusedNodeId": null        // Currently focused node (optional)
+  "focusedNodeId": null,       // Currently focused node (optional)
+  "presentation": {}           // Presentation mode data (optional, v4.0+)
 }
 ```
 
@@ -102,6 +103,7 @@ interface PmapFile {
   customOrders?: { [nodeId: string]: string[] };  // Custom child ordering
   nodePositions?: { [nodeId: string]: Position }; // Fixed positions
   focusedNodeId?: string | null;   // Currently focused node ID
+  presentation?: Presentation;      // Presentation mode data
 }
 ```
 
@@ -120,6 +122,7 @@ interface PmapFile {
 | `customOrders` | object | ❌ No | - | Object |
 | `nodePositions` | object | ❌ No | - | Object |
 | `focusedNodeId` | string/null | ❌ No | 50 chars | node-{id} |
+| `presentation` | object | ❌ No | - | Presentation |
 
 ---
 
@@ -393,6 +396,157 @@ interface Connection {
   ]
 }
 ```
+
+---
+
+## Presentation Mode (v4.0+)
+
+### Overview
+
+Presentation mode allows users to create slide-based presentations from their mindmaps. Each slide captures the complete state of the mindmap at a specific moment, enabling dynamic playback with smooth animations.
+
+### Presentation Object Schema
+
+```typescript
+interface Presentation {
+  slides: Slide[];                 // Array of presentation slides
+  created: string;                 // ISO-8601 timestamp
+  modified: string;                // ISO-8601 timestamp
+}
+```
+
+### Slide Object Schema
+
+```typescript
+interface Slide {
+  // Identity
+  id: number;                      // Unique slide number (1, 2, 3...)
+  description: string;             // Auto-generated or user-provided description
+
+  // Node state
+  expandedNodes: string[];         // Array of expanded node IDs
+  openInfoPanels: string[];        // Array of node IDs with info panels open
+
+  // Image state
+  activeImage: {                   // Full-screen image being displayed (if any)
+    nodeId: string;                // Node containing the image
+    imageUrl: string;              // Image data URI
+  } | null;
+
+  // View state
+  focusedNode: string | null;      // Focused node ID (for focus mode)
+  zoom: number;                    // Zoom level (e.g., 1.0, 1.5)
+  pan: Position;                   // Pan position {x, y}
+
+  // Feature toggles
+  categoriesVisible: boolean;      // Whether categories are visible
+  relationshipsVisible: boolean;   // Whether relationships are visible
+}
+```
+
+### Example Presentation Data
+
+```json
+{
+  "presentation": {
+    "slides": [
+      {
+        "id": 1,
+        "description": "Root node overview",
+        "expandedNodes": ["node-0"],
+        "openInfoPanels": [],
+        "activeImage": null,
+        "focusedNode": null,
+        "zoom": 1.0,
+        "pan": { "x": 0, "y": 0 },
+        "categoriesVisible": true,
+        "relationshipsVisible": true
+      },
+      {
+        "id": 2,
+        "description": "Identity Management expanded",
+        "expandedNodes": ["node-0", "node-1"],
+        "openInfoPanels": [],
+        "activeImage": null,
+        "focusedNode": null,
+        "zoom": 1.2,
+        "pan": { "x": -50, "y": -30 },
+        "categoriesVisible": true,
+        "relationshipsVisible": true
+      },
+      {
+        "id": 3,
+        "description": "Multi-Factor Auth details",
+        "expandedNodes": ["node-0", "node-1"],
+        "openInfoPanels": ["node-4"],
+        "activeImage": null,
+        "focusedNode": null,
+        "zoom": 1.5,
+        "pan": { "x": -100, "y": -80 },
+        "categoriesVisible": true,
+        "relationshipsVisible": false
+      },
+      {
+        "id": 4,
+        "description": "Cloud Security image",
+        "expandedNodes": ["node-0"],
+        "openInfoPanels": [],
+        "activeImage": {
+          "nodeId": "node-0",
+          "imageUrl": "data:image/jpeg;base64,/9j/4AAQ..."
+        },
+        "focusedNode": null,
+        "zoom": 1.0,
+        "pan": { "x": 0, "y": 0 },
+        "categoriesVisible": false,
+        "relationshipsVisible": false
+      }
+    ],
+    "created": "2025-10-07T16:00:00.000Z",
+    "modified": "2025-10-07T16:15:30.000Z"
+  }
+}
+```
+
+### Slide Description Auto-Generation
+
+The system automatically generates descriptive slide titles based on the slide state:
+
+| Slide State | Generated Description |
+|-------------|----------------------|
+| Root only | "Root node overview" |
+| Branch expanded | "{NodeTitle} expanded" |
+| Info panel open | "{NodeTitle} details" |
+| Image displayed | "{NodeTitle} image" |
+| Focus mode active | "Focused on {NodeTitle}" |
+| Multiple changes | "{NodeTitle} branch with details" |
+
+### Data Size Considerations
+
+- **Typical slide size**: ~500 bytes (without image references)
+- **With image URL**: +100 bytes (image data stored in node, not duplicated)
+- **100 slides**: ~50 KB
+- **File size impact**: < 1% for typical presentations
+
+### Presentation State Rules
+
+1. **Slide IDs**: Sequential integers starting from 1
+2. **Expanded nodes**: Must include all ancestors (e.g., expanding `node-2-3` requires `node-0`, `node-2`, `node-2-3`)
+3. **Open info panels**: Only nodes with `description` or `notes` fields
+4. **Active image**: Only one image can be active per slide
+5. **Zoom range**: 0.5 (50%) to 3.0 (300%)
+6. **Pan coordinates**: Relative to canvas center (0,0)
+
+### Backward Compatibility
+
+Files without `presentation` field:
+- Load normally without presentation features
+- Presentation can be added and saved later
+- No migration required
+
+Files with `presentation` field:
+- Fully supported in v4.0+
+- Older versions will ignore the field (graceful degradation)
 
 ---
 
@@ -739,7 +893,38 @@ git commit -m "docs(risk-mgmt): add mitigation strategies"
     "node-0": { "x": 400, "y": 300 }
   },
 
-  "focusedNodeId": null
+  "focusedNodeId": null,
+
+  "presentation": {
+    "slides": [
+      {
+        "id": 1,
+        "description": "Root node overview",
+        "expandedNodes": ["node-0"],
+        "openInfoPanels": [],
+        "activeImage": null,
+        "focusedNode": null,
+        "zoom": 1.0,
+        "pan": { "x": 0, "y": 0 },
+        "categoriesVisible": true,
+        "relationshipsVisible": true
+      },
+      {
+        "id": 2,
+        "description": "Identity Management expanded",
+        "expandedNodes": ["node-0", "node-1"],
+        "openInfoPanels": [],
+        "activeImage": null,
+        "focusedNode": null,
+        "zoom": 1.2,
+        "pan": { "x": -50, "y": -30 },
+        "categoriesVisible": true,
+        "relationshipsVisible": true
+      }
+    ],
+    "created": "2025-10-07T16:00:00.000Z",
+    "modified": "2025-10-07T16:15:30.000Z"
+  }
 }
 ```
 
