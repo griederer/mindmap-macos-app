@@ -2491,11 +2491,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const slide = window.presentationManager.addSlide();
                 console.log('Slide added:', slide);
 
-                // Update UI in real-time
-                if (window.presentationUI) {
-                    window.presentationUI.refresh();
-                }
-
                 // Update slide counter
                 const count = window.presentationManager.getSlideCount();
                 if (slideCounter) {
@@ -2506,6 +2501,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 // Show/hide Present button
                 if (presentBtn) {
                     presentBtn.style.display = count > 0 ? 'inline-block' : 'none';
+                }
+
+                // Update UI in real-time
+                if (window.presentationUI) {
+                    window.presentationUI.refresh();
+
+                    // Auto-open panel on first slide capture
+                    if (count === 1) {
+                        window.presentationUI.openPanel();
+                    }
                 }
 
                 // Show visual notification

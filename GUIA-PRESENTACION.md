@@ -22,8 +22,9 @@ El **Modo Presentación** te permite convertir tu mindmap en slides profesionale
    │     "Root overview"         │
    └─────────────────────────────┘
    ```
-4. La notificación desaparece después de 3 segundos
-5. El contador se actualiza: **"1 slide"** → **"2 slides"** → ...
+4. **¡NUEVO!** El panel de slides se abre automáticamente en la primera captura
+5. La notificación desaparece después de 3 segundos
+6. El contador se actualiza: **"1 slide"** → **"2 slides"** → ...
 
 ### ¿Qué se captura?
 ✅ Nodos expandidos/colapsados
@@ -331,12 +332,17 @@ ESC       → Salir
 - Muestra número y descripción
 - Auto-desaparece en 3s
 
-### 2. **Feedback Mejorado**
+### 2. **Panel Auto-Abierto** 🎬
+- El panel se abre automáticamente en la PRIMERA captura
+- Ya no necesitas buscar el botón 🎬
+- Las slides siguientes solo actualizan el panel
+
+### 3. **Feedback Mejorado**
 - Contador actualizado en tiempo real
 - Botón Present se activa dinámicamente
 - Panel se refresca automáticamente
 
-### 3. **Animaciones Suaves**
+### 4. **Animaciones Suaves**
 - 60fps garantizado
 - Cubic-bezier easing profesional
 - Transiciones naturales
