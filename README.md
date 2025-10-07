@@ -180,6 +180,9 @@ and assign it to "Risk Assessment"
 - **[MCP Complete Documentation](mcp-server/MCP-COMPLETE-DOCUMENTATION.md)** - Full API reference with examples
 - **[Natural Language Guide](mcp-server/NATURAL-LANGUAGE-GUIDE.md)** - Conversational interface guide
 - **[MCP Server README](mcp-server/README.md)** - Quick start and overview
+- **[SCHEMA.md](SCHEMA.md)** - Complete `.pmap` file format specification
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture and system design
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Developer guide and contribution workflow
 
 ---
 
@@ -440,23 +443,37 @@ tail -f ~/Documents/"PWC Mindmaps"/.mcp-server.log
 
 ## Contributing
 
-We welcome contributions! Please follow these steps:
+We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed guidelines on:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass (`npm test`)
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+- 🚀 **Development Setup** - Getting started with local development
+- 📁 **Project Structure** - Understanding the codebase
+- 💻 **Coding Standards** - JavaScript style guide and best practices
+- 🧪 **Testing Guidelines** - Writing and running tests
+- 📝 **Commit Guidelines** - Conventional commits format
+- 🔄 **Pull Request Process** - How to submit changes
+- 🎯 **Code Review** - What to expect during review
 
-### Development Guidelines
+### Quick Start for Contributors
 
-- Follow existing code style
-- Add tests for new features
-- Update documentation
-- Keep commits atomic and descriptive
+```bash
+# 1. Fork and clone
+git clone https://github.com/YOUR_USERNAME/mindmap-macos-app.git
+cd mindmap-macos-app
+
+# 2. Install dependencies
+npm install && cd mcp-server && npm install && cd ..
+
+# 3. Create feature branch
+git checkout -b feature/your-feature-name
+
+# 4. Start development
+npm start
+
+# 5. Run tests
+npm test
+```
+
+For full details, see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ---
 
