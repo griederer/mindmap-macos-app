@@ -205,7 +205,13 @@ class ProjectManager {
             }
 
             const data = fs.readFileSync(projectPath, 'utf-8');
-            const projectData = JSON.parse(data);
+            let projectData = JSON.parse(data);
+
+            // ✨ v5.0 Migration: Convert v5.0 format to v4.0 compatible format
+            if (projectData.version === '5.0.0' && projectData.nodes && typeof projectData.nodes === 'object' && !Array.isArray(projectData.nodes)) {
+                console.log('[v5.0 Migration] Detecting v5.0 format, converting to v4.0 compatible...');
+                projectData = this.migrateV5ToV4(projectData);
+            }
 
             // Ensure presentation data structure exists (migration)
             if (!projectData.presentation) {
@@ -226,6 +232,122 @@ class ProjectManager {
             console.error('Error loading project:', error);
             throw error;
         }
+    }
+
+    /**
+     * Migrate v5.0 format to v4.0 compatible format
+     * @param {object} v5Data - v5.0 project data
+     * @returns {object} - v4.0 compatible project data
+     */
+    migrateV5ToV4(v5Data) {
+        console.log('[v5.0 Migration] Starting migration...');
+
+        // Use existing content field (which has the outline structure)
+        const content = v5Data.content || this.convertV5NodesToOutline(v5Data.nodes);
+
+        // Create ID mapping: v5 ID -> v4 ID (node-0, node-1, etc.)
+        const v5ToV4IdMap = {};
+        const nodeIds = Object.keys(v5Data.nodes);
+        nodeIds.forEach((v5Id, index) => {
+            v5ToV4IdMap[v5Id] = `node-${index}`;
+        });
+
+        console.log('[v5.0 Migration] ID Mapping:', v5ToV4IdMap);
+
+        // Build v4.0 compatible structure
+        const v4Data = {
+            name: v5Data.name,
+            content: content,
+            nodes: this.extractV5NodeDataWithMapping(v5Data.nodes, v5ToV4IdMap),
+            metadata: v5Data.metadata || {
+                created: new Date().toISOString(),
+                modified: new Date().toISOString(),
+                version: '4.0'
+            },
+            categories: v5Data.categories || [],
+            relationships: v5Data.relationships || [],
+            customOrders: v5Data.customOrders || {},
+            presentation: v5Data.presentation || {
+                slides: [],
+                created: new Date().toISOString(),
+                modified: new Date().toISOString()
+            }
+        };
+
+        console.log('[v5.0 Migration] Migration complete. Node count:', Object.keys(v4Data.nodes).length);
+        return v4Data;
+    }
+
+    /**
+     * Convert v5.0 nodes object to outline format
+     * @param {object} nodesObj - v5.0 nodes object
+     * @param {string} existingContent - Existing content field (fallback)
+     * @returns {string} - Outline text
+     */
+    convertV5NodesToOutline(nodesObj, existingContent) {
+        // If content field exists and is not empty, use it as a base
+        if (existingContent && existingContent.trim()) {
+            return existingContent;
+        }
+
+        // Otherwise, build outline from nodes hierarchy
+        // Find root node (typically the first one or one with no parent references)
+        const nodeIds = Object.keys(nodesObj);
+        if (nodeIds.length === 0) {
+            return 'Empty Project';
+        }
+
+        // Build parent-child map from content field or assume order
+        // For Phase 1, we'll use the simple content field approach
+        // The content field in v5.0 test files has the structure already
+        const lines = [];
+
+        // Add nodes in order (this is a simple Phase 1 implementation)
+        nodeIds.forEach((nodeId, index) => {
+            const node = nodesObj[nodeId];
+            if (index === 0) {
+                // Root node
+                lines.push(node.title);
+            } else {
+                // Child nodes (for Phase 1, all are level 1)
+                lines.push(`${index}. ${node.title}`);
+            }
+        });
+
+        return lines.join('\n');
+    }
+
+    /**
+     * Extract node data (descriptions, notes, images) from v5.0 nodes with ID mapping
+     * @param {object} nodesObj - v5.0 nodes object
+     * @param {object} idMap - Mapping from v5 IDs to v4 IDs
+     * @returns {object} - nodeData structure for v4.0
+     */
+    extractV5NodeDataWithMapping(nodesObj, idMap) {
+        const nodeData = {};
+
+        Object.keys(nodesObj).forEach(v5Id => {
+            const v5Node = nodesObj[v5Id];
+            const v4Id = idMap[v5Id];
+
+            if (!v4Id) {
+                console.warn(`[v5.0 Migration] No v4 ID mapping for v5 ID: ${v5Id}`);
+                return;
+            }
+
+            // Create v4.0 compatible nodeData entry with v4 ID as key
+            nodeData[v4Id] = {
+                description: v5Node.description || '',
+                notes: v5Node.notes || '',
+                images: v5Node.images || [],
+                showInfo: v5Node.showInfo || false,
+                categories: v5Node.categoryIds || [],
+                relationships: v5Node.relationshipIds || []
+            };
+        });
+
+        console.log('[v5.0 Migration] Extracted node data:', nodeData);
+        return nodeData;
     }
 
     /**
