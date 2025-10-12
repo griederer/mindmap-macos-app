@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PWC Mindmap Pro</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Using system fonts for better performance and offline support -->
     <link rel="stylesheet" href="styles.css?v=202509301657">
     <link rel="stylesheet" href="themes.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="node_modules/lucide/dist/umd/lucide.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -66,6 +66,9 @@
                 </button>
                 <button class="btn" id="addSlideBtn" title="Capturar Slide Actual">
                     📸
+                </button>
+                <button class="btn" id="toggleCaptureModeBtn" title="Modo Captura (Log de Acciones)">
+                    📹
                 </button>
                 <span class="slide-counter" id="slideCounter" style="display: none; margin-left: 8px; font-size: 12px; color: #666;">0 slides</span>
                 <button class="btn" id="presentBtn" title="Iniciar Presentación" style="display: none;">
@@ -479,6 +482,28 @@
         🎬
     </button>
 
+    <!-- Capture Log Panel -->
+    <div class="capture-log-panel" id="captureLogPanel">
+        <div class="capture-log-header">
+            <h3>📹 Capturar Slides</h3>
+            <button class="panel-close-btn" id="closeCaptureLogPanel">✕</button>
+        </div>
+
+        <div class="capture-log-info">
+            <p>Modo captura: registra tus acciones y captura slides desde el log</p>
+        </div>
+
+        <div class="capture-log-list" id="captureLogList">
+            <!-- Actions will be rendered dynamically -->
+        </div>
+
+        <div class="capture-log-footer">
+            <button class="clear-log-btn" id="clearLogBtn">
+                🗑️ Limpiar Log
+            </button>
+        </div>
+    </div>
+
     <!-- Relationship Edit Modal -->
     <div class="modal-overlay" id="relationshipModalOverlay"></div>
     <div class="edit-modal category-edit-modal" id="relationshipEditModal">
@@ -547,11 +572,13 @@
     <!-- Application Scripts -->
     <script src="node-reorder-manager.js"></script>
     <script src="renderer-project-manager.js"></script>
+    <script src="mindmap-engine.js"></script>
     <script src="animation-engine.js"></script>
     <script src="presentation-manager.js"></script>
+    <script src="presentation-mode.js"></script>
     <script src="presentation-ui.js"></script>
+    <script src="capture-log.js"></script>
     <script src="renderer.js"></script>
-    <script src="mindmap-engine.js"></script>
     <script>
         // Initialize Lucide icons
         lucide.createIcons();

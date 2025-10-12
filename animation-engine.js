@@ -20,6 +20,25 @@ class AnimationEngine {
     }
 
     /**
+     * Helper: Find a node by ID in the tree
+     * @param {string} nodeId - ID to search for
+     * @returns {object|null} - Found node or null
+     */
+    findNodeById(nodeId) {
+        const search = (node) => {
+            if (node.id === nodeId) return node;
+            if (node.children && node.children.length > 0) {
+                for (const child of node.children) {
+                    const found = search(child);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return this.mindmapEngine.nodes ? search(this.mindmapEngine.nodes) : null;
+    }
+
+    /**
      * Calculate the path of nodes between two states
      * @param {object} fromState - Starting state
      * @param {object} toState - Target state
@@ -100,7 +119,7 @@ class AnimationEngine {
     orderNodesByHierarchy(nodeIds) {
         return nodeIds
             .map(id => {
-                const node = this.mindmapEngine.nodes.find(n => n.id === id);
+                const node = this.findNodeById(id);
                 return { id, level: node ? node.level : 999 };
             })
             .sort((a, b) => a.level - b.level)
@@ -115,7 +134,7 @@ class AnimationEngine {
      */
     animateNodeExpansion(nodeId, duration = 300) {
         return new Promise((resolve) => {
-            const node = this.mindmapEngine.nodes.find(n => n.id === nodeId);
+            const node = this.findNodeById(nodeId);
 
             if (!node || !node.element) {
                 resolve();
@@ -133,7 +152,7 @@ class AnimationEngine {
 
             if (!childrenContainer) {
                 // No children, just toggle
-                this.mindmapEngine.toggleChildren(nodeId);
+                this.mindmapEngine.toggleNode(nodeId);
                 resolve();
                 return;
             }
@@ -145,7 +164,7 @@ class AnimationEngine {
             childrenContainer.style.transition = `height ${duration}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
 
             // Toggle to expand
-            this.mindmapEngine.toggleChildren(nodeId);
+            this.mindmapEngine.toggleNode(nodeId);
 
             // Measure target height
             requestAnimationFrame(() => {
@@ -176,7 +195,7 @@ class AnimationEngine {
      */
     animateNodeCollapse(nodeId, duration = 300) {
         return new Promise((resolve) => {
-            const node = this.mindmapEngine.nodes.find(n => n.id === nodeId);
+            const node = this.findNodeById(nodeId);
 
             if (!node || !node.element) {
                 resolve();
@@ -192,7 +211,7 @@ class AnimationEngine {
             const childrenContainer = node.element.querySelector('.children');
 
             if (!childrenContainer) {
-                this.mindmapEngine.toggleChildren(nodeId);
+                this.mindmapEngine.toggleNode(nodeId);
                 resolve();
                 return;
             }
@@ -213,7 +232,7 @@ class AnimationEngine {
             childrenContainer.style.opacity = '0';
 
             setTimeout(() => {
-                this.mindmapEngine.toggleChildren(nodeId);
+                this.mindmapEngine.toggleNode(nodeId);
                 childrenContainer.style.height = '';
                 childrenContainer.style.opacity = '';
                 childrenContainer.style.overflow = '';
@@ -303,8 +322,13 @@ class AnimationEngine {
                 this.mindmapEngine.pan.x = startPan.x + (targetPan.x - startPan.x) * eased;
                 this.mindmapEngine.pan.y = startPan.y + (targetPan.y - startPan.y) * eased;
 
-                // Update transform
-                this.mindmapEngine.updateTransform();
+                // Re-render to apply zoom/pan changes
+                if (this.mindmapEngine.renderNodes && this.mindmapEngine.nodes) {
+                    this.mindmapEngine.renderNodes(this.mindmapEngine.nodes);
+                }
+                if (this.mindmapEngine.drawConnections) {
+                    this.mindmapEngine.drawConnections();
+                }
 
                 if (progress < 1) {
                     requestAnimationFrame(animate);

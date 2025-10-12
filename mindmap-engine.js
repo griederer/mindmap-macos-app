@@ -407,29 +407,37 @@ class MindmapEngine {
 
         drawNodeConnections(this.nodes);
 
-        // Draw relationship connections
+        // ✨ v5.0: Draw relationship connections - SIMPLIFIED APPROACH
+        // If 2+ nodes share a relationshipId → draw line between them
         if (window.mindmapRenderer && window.mindmapRenderer.activeRelationships) {
             const activeRels = Array.from(window.mindmapRenderer.activeRelationships);
             const relationships = window.mindmapRenderer.relationships || [];
 
-            activeRels.forEach(relId => {
-                const relationship = relationships.find(r => r.id === relId);
+            // For each active relationship, find all nodes that have it
+            activeRels.forEach(relationshipId => {
+                const relationship = relationships.find(r => r.id === relationshipId);
                 if (!relationship) return;
 
-                const connectedNodes = relationship.nodes || [];
+                // Collect all nodes with this relationshipId
+                const nodesWithThisRel = [];
+                Object.keys(this.nodeData).forEach(nodeId => {
+                    const nodeRels = this.nodeData[nodeId].relationships || [];
+                    if (nodeRels.includes(relationshipId)) {
+                        nodesWithThisRel.push(nodeId);
+                    }
+                });
 
-                // Draw mesh: connect each node to every other node
-                for (let i = 0; i < connectedNodes.length; i++) {
-                    for (let j = i + 1; j < connectedNodes.length; j++) {
-                        const nodeId1 = connectedNodes[i];
-                        const nodeId2 = connectedNodes[j];
+                // Draw line between each pair of nodes
+                for (let i = 0; i < nodesWithThisRel.length; i++) {
+                    for (let j = i + 1; j < nodesWithThisRel.length; j++) {
+                        const nodeId1 = nodesWithThisRel[i];
+                        const nodeId2 = nodesWithThisRel[j];
 
-                        // Use positions from the same system as parent-child connections
                         const pos1 = this.positions[nodeId1];
                         const pos2 = this.positions[nodeId2];
 
                         if (pos1 && pos2) {
-                            // Calculate center points like parent-child connections
+                            // Calculate center points
                             const width1 = this.getNodeWidth(pos1.level);
                             const width2 = this.getNodeWidth(pos2.level);
 
@@ -439,15 +447,40 @@ class MindmapEngine {
                             const y2 = pos2.y;
 
                             this.ctx.save();
-                            this.ctx.strokeStyle = relationship.color;
-                            this.ctx.globalAlpha = 0.4;
-                            this.ctx.lineWidth = 2;
+                            this.ctx.strokeStyle = relationship.color || '#999';
+                            this.ctx.globalAlpha = 0.6;
+                            this.ctx.lineWidth = 3;
                             this.ctx.lineCap = 'round';
-                            this.ctx.setLineDash(relationship.dashPattern || []);
+
+                            // Parse dashPattern: "5,5" -> [5,5] or [] for solid
+                            const dashPattern = relationship.dashPattern
+                                ? (typeof relationship.dashPattern === 'string'
+                                    ? relationship.dashPattern.split(',').map(Number).filter(n => !isNaN(n))
+                                    : relationship.dashPattern)
+                                : [];
+
+                            this.ctx.setLineDash(dashPattern);
 
                             this.ctx.beginPath();
                             this.ctx.moveTo(x1, y1);
                             this.ctx.lineTo(x2, y2);
+                            this.ctx.stroke();
+
+                            // Draw arrow at endpoint
+                            const angle = Math.atan2(y2 - y1, x2 - x1);
+                            const arrowSize = 10;
+                            this.ctx.setLineDash([]); // Solid arrow
+                            this.ctx.beginPath();
+                            this.ctx.moveTo(x2, y2);
+                            this.ctx.lineTo(
+                                x2 - arrowSize * Math.cos(angle - Math.PI / 6),
+                                y2 - arrowSize * Math.sin(angle - Math.PI / 6)
+                            );
+                            this.ctx.moveTo(x2, y2);
+                            this.ctx.lineTo(
+                                x2 - arrowSize * Math.cos(angle + Math.PI / 6),
+                                y2 - arrowSize * Math.sin(angle + Math.PI / 6)
+                            );
                             this.ctx.stroke();
 
                             this.ctx.restore();
@@ -690,6 +723,16 @@ class MindmapEngine {
         const node = this.findNode(nodeId, this.nodes);
         if (node && node.children && node.children.length > 0) {
             node.expanded = !node.expanded;
+
+            // Log action for capture mode
+            if (window.captureLog) {
+                const actionType = node.expanded ? 'expand' : 'collapse';
+                window.captureLog.logAction(actionType, {
+                    nodeId: nodeId,
+                    nodeText: node.title
+                });
+            }
+
             this.renderNodes(this.nodes);
         }
     }
@@ -782,8 +825,19 @@ class MindmapEngine {
             data.images.forEach((img, idx) => {
                 const imgDiv = document.createElement('div');
                 imgDiv.className = 'uploaded-image';
+
+                // ✨ v5.0: Support both old format (string) and new format (object)
+                let imgSrc;
+                if (typeof img === 'string') {
+                    imgSrc = img; // Old v4.0 format
+                } else if (typeof img === 'object' && img.url) {
+                    imgSrc = img.url; // New v5.0 format
+                } else {
+                    return; // Skip invalid image data
+                }
+
                 imgDiv.innerHTML = `
-                    <img src="${img}" alt="Image ${idx + 1}">
+                    <img src="${imgSrc}" alt="Image ${idx + 1}">
                     <button class="remove-image" onclick="mindmapEngine.removeImage(${idx})">×</button>
                 `;
                 imagesContainer.appendChild(imgDiv);
@@ -837,8 +891,33 @@ class MindmapEngine {
             if (hasImages) {
                 infoHTML += '<div class="info-images">';
                 data.images.forEach((img, idx) => {
-                    if (img && img.startsWith('data:image')) {
+                    // ✨ v5.0: Support both old format (string) and new format (object)
+                    if (typeof img === 'string' && img.startsWith('data:image')) {
+                        // Old v4.0 format: base64 data URI
                         infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
+                    } else if (typeof img === 'object' && img.url) {
+                        // New v5.0 format: structured image object
+                        const imgUrl = img.url;
+                        const imgAlt = img.alt || `Image ${idx + 1}`;
+                        const photographer = img.photographer || '';
+                        const photographerUrl = img.photographerUrl || '';
+
+                        infoHTML += `<img src="${imgUrl}" alt="${imgAlt}" />`;
+
+                        // Add attribution if photographer info is available
+                        if (photographer) {
+                            infoHTML += '<div class="image-attribution">';
+                            infoHTML += 'Photo by ';
+                            if (photographerUrl) {
+                                infoHTML += `<a href="${photographerUrl}" target="_blank">${photographer}</a>`;
+                            } else {
+                                infoHTML += photographer;
+                            }
+                            if (img.source) {
+                                infoHTML += ` on ${img.source}`;
+                            }
+                            infoHTML += '</div>';
+                        }
                     }
                 });
                 infoHTML += '</div>';
@@ -858,6 +937,17 @@ class MindmapEngine {
 
         // Toggle the showInfo flag
         this.nodeData[nodeId].showInfo = !this.nodeData[nodeId].showInfo;
+
+        // Log action for capture mode (only when opening info panel)
+        if (this.nodeData[nodeId].showInfo && window.captureLog) {
+            const node = this.findNode(nodeId, this.nodes);
+            if (node) {
+                window.captureLog.logAction('info', {
+                    nodeId: nodeId,
+                    nodeText: node.title
+                });
+            }
+        }
 
         // Auto-save nodeData to localStorage for current project
         this.saveNodeDataToStorage();
@@ -922,6 +1012,36 @@ class MindmapEngine {
             }
         }
         return null;
+    }
+
+    /**
+     * Get all expanded node IDs
+     * @returns {string[]} - Array of node IDs that are currently expanded
+     */
+    getExpandedNodes() {
+        const expandedNodes = [];
+
+        const collectExpanded = (nodeOrArray) => {
+            if (!nodeOrArray) return;
+
+            if (Array.isArray(nodeOrArray)) {
+                nodeOrArray.forEach(node => collectExpanded(node));
+                return;
+            }
+
+            // Add node ID if it's expanded
+            if (nodeOrArray.expanded) {
+                expandedNodes.push(nodeOrArray.id);
+            }
+
+            // Recursively check children
+            if (nodeOrArray.children) {
+                nodeOrArray.children.forEach(child => collectExpanded(child));
+            }
+        };
+
+        collectExpanded(this.nodes);
+        return expandedNodes;
     }
 
     showContextMenu(e, nodeId, nodeTitle) {
@@ -1300,32 +1420,15 @@ class MindmapEngine {
         this.nodeData[nodeId].description = document.getElementById('modalDescription').value;
         this.nodeData[nodeId].notes = document.getElementById('modalNotes').value;
 
-        // Save relationships
+        // ✨ v5.0: Save relationships (simplified - just store relationshipIds in node)
         const selectedRelationships = [];
         const relCheckboxes = document.querySelectorAll('#nodeRelationshipsSelector input[type="checkbox"]:checked');
         relCheckboxes.forEach(cb => selectedRelationships.push(cb.value));
 
-        if (!this.nodeData[nodeId]) {
-            this.nodeData[nodeId] = {};
-        }
         this.nodeData[nodeId].relationships = selectedRelationships;
 
-        // Update relationship objects to include this node
-        if (window.mindmapRenderer && window.mindmapRenderer.relationships) {
-            window.mindmapRenderer.relationships.forEach(rel => {
-                if (selectedRelationships.includes(rel.id)) {
-                    if (!rel.nodes) rel.nodes = [];
-                    if (!rel.nodes.includes(nodeId)) {
-                        rel.nodes.push(nodeId);
-                    }
-                } else {
-                    if (rel.nodes) {
-                        rel.nodes = rel.nodes.filter(id => id !== nodeId);
-                    }
-                }
-            });
-            window.mindmapRenderer.saveRelationships();
-        }
+        // Note: No need to update relationship objects anymore
+        // The rendering logic automatically draws lines between nodes that share relationshipIds
 
         // Auto-save nodeData to localStorage for current project
         this.saveNodeDataToStorage();
@@ -1368,11 +1471,32 @@ class MindmapEngine {
         };
 
         // Event delegation for dynamically created images
+        // Store reference to engine for use in event listener
+        const engine = this;
         document.addEventListener('click', (e) => {
             if (e.target.matches('.info-images img')) {
                 e.stopPropagation();
                 const imgSrc = e.target.src;
                 lightboxImage.src = imgSrc;
+
+                // Log action for capture mode
+                if (window.captureLog && window.captureLog.isCaptureModeActive) {
+                    // Find the parent info panel to get node ID
+                    const infoPanel = e.target.closest('.info-panel');
+                    if (infoPanel) {
+                        const nodeId = infoPanel.id.replace('info-', '');
+                        const node = engine.findNode(nodeId, engine.nodes);
+                        if (node) {
+                            window.captureLog.logAction('image', {
+                                nodeId: nodeId,
+                                nodeText: node.title,
+                                imageUrl: imgSrc
+                            });
+                            console.log('[CaptureLog] Image action logged:', node.title);
+                        }
+                    }
+                }
+
                 overlay.classList.add('active');
                 setTimeout(() => {
                     overlay.classList.add('show');
@@ -1399,6 +1523,26 @@ class MindmapEngine {
                 closeLightbox();
             }
         });
+    }
+
+    /**
+     * Count total nodes in the project tree recursively
+     * @param {object|null} node - Node to count from (defaults to root)
+     * @returns {number} - Total node count
+     */
+    countProjectNodes(node = null) {
+        if (!node) node = this.nodes;
+        if (!node) return 0;
+
+        let count = 1; // Count current node
+
+        if (node.children && node.children.length > 0) {
+            node.children.forEach(child => {
+                count += this.countProjectNodes(child);
+            });
+        }
+
+        return count;
     }
 }
 

@@ -20,17 +20,42 @@ class PresentationManager {
     }
 
     /**
+     * Helper: Find a node by ID in the tree
+     * @param {string} nodeId - ID to search for
+     * @returns {object|null} - Found node or null
+     */
+    findNodeById(nodeId) {
+        const search = (node) => {
+            if (node.id === nodeId) return node;
+            if (node.children && node.children.length > 0) {
+                for (const child of node.children) {
+                    const found = search(child);
+                    if (found) return found;
+                }
+            }
+            return null;
+        };
+        return this.mindmapEngine.nodes ? search(this.mindmapEngine.nodes) : null;
+    }
+
+    /**
      * Capture the current mindmap state
      * @returns {object} - Serialized state snapshot
      */
     captureCurrentState() {
-        // Get expanded nodes from mindmap engine
+        // Get expanded nodes from mindmap engine (recursive traversal)
         const expandedNodes = [];
-        this.mindmapEngine.nodes.forEach(node => {
-            if (node.element && node.element.classList.contains('expanded')) {
+        const collectExpanded = (node) => {
+            if (node.expanded) {
                 expandedNodes.push(node.id);
             }
-        });
+            if (node.children && node.children.length > 0) {
+                node.children.forEach(child => collectExpanded(child));
+            }
+        };
+        if (this.mindmapEngine.nodes) {
+            collectExpanded(this.mindmapEngine.nodes);
+        }
 
         // Get open info panels
         const openInfoPanels = [];
@@ -90,7 +115,7 @@ class PresentationManager {
 
         // Check for focus mode
         if (state.focusedNode) {
-            const node = this.mindmapEngine.nodes.find(n => n.id === state.focusedNode);
+            const node = this.findNodeById(state.focusedNode);
             if (node) {
                 parts.push(`Focus: ${node.text}`);
             }
@@ -98,7 +123,7 @@ class PresentationManager {
 
         // Check for active image
         if (state.activeImage) {
-            const node = this.mindmapEngine.nodes.find(n => n.id === state.activeImage.nodeId);
+            const node = this.findNodeById(state.activeImage.nodeId);
             if (node) {
                 parts.push(`${node.text} (image)`);
             }
@@ -106,7 +131,7 @@ class PresentationManager {
 
         // Check for expanded nodes
         if (state.expandedNodes.length > 0) {
-            const expandedNode = this.mindmapEngine.nodes.find(n => n.id === state.expandedNodes[0]);
+            const expandedNode = this.findNodeById(state.expandedNodes[0]);
             if (expandedNode && !parts.length) {
                 parts.push(`${expandedNode.text} expanded`);
             }
@@ -114,7 +139,7 @@ class PresentationManager {
 
         // Check for open info panels
         if (state.openInfoPanels.length > 0) {
-            const infoNode = this.mindmapEngine.nodes.find(n => n.id === state.openInfoPanels[0]);
+            const infoNode = this.findNodeById(state.openInfoPanels[0]);
             if (infoNode && !parts.length) {
                 parts.push(`${infoNode.text} details`);
             }
@@ -122,8 +147,8 @@ class PresentationManager {
 
         // Default to root overview if nothing specific
         if (parts.length === 0) {
-            const rootNode = this.mindmapEngine.nodes.find(n => n.level === 0);
-            if (rootNode) {
+            const rootNode = this.mindmapEngine.nodes; // Root is the nodes object itself
+            if (rootNode && rootNode.text) {
                 parts.push(`${rootNode.text} overview`);
             } else {
                 parts.push('Overview');
@@ -139,20 +164,15 @@ class PresentationManager {
      * @returns {object} - The created slide object
      */
     addSlide(customDescription = null) {
-        const state = this.captureCurrentState();
+        // Use renderer's comprehensive state capture if available, otherwise use local method
+        const state = window.renderer ? window.renderer.captureCurrentState() : this.captureCurrentState();
         const description = customDescription || this.generateSlideDescription(state);
 
         const slide = {
             id: this.nextSlideId++,
             description,
-            expandedNodes: state.expandedNodes,
-            openInfoPanels: state.openInfoPanels,
-            activeImage: state.activeImage,
-            focusedNode: state.focusedNode,
-            zoom: state.zoom,
-            pan: state.pan,
-            categoriesVisible: state.categoriesVisible,
-            relationshipsVisible: state.relationshipsVisible
+            timestamp: new Date().toISOString(),
+            state: state  // Store the complete state object for canvas-based presentation
         };
 
         this.presentation.slides.push(slide);
@@ -331,11 +351,20 @@ class PresentationManager {
         const fromSlide = this.presentation.slides[this.currentSlideIndex];
         const toSlide = this.presentation.slides[this.currentSlideIndex + 1];
 
-        if (this.animationEngine) {
-            await this.animationEngine.animateTransition(fromSlide, toSlide, false);
-        } else {
-            this.restoreState(toSlide);
-        }
+        console.log('[PresentationManager] nextSlide:', {
+            from: this.currentSlideIndex,
+            to: this.currentSlideIndex + 1,
+            toSlide: {
+                description: toSlide.description,
+                expandedNodes: toSlide.expandedNodes,
+                zoom: toSlide.zoom,
+                pan: toSlide.pan
+            }
+        });
+
+        // For now, use direct state restore without animations
+        // TODO: Re-enable animations once working
+        this.restoreState(toSlide);
 
         this.currentSlideIndex++;
     }
@@ -352,11 +381,13 @@ class PresentationManager {
         const fromSlide = this.presentation.slides[this.currentSlideIndex];
         const toSlide = this.presentation.slides[this.currentSlideIndex - 1];
 
-        if (this.animationEngine) {
-            await this.animationEngine.animateTransition(fromSlide, toSlide, false);
-        } else {
-            this.restoreState(toSlide);
-        }
+        console.log('[PresentationManager] previousSlide:', {
+            from: this.currentSlideIndex,
+            to: this.currentSlideIndex - 1
+        });
+
+        // For now, use direct state restore without animations
+        this.restoreState(toSlide);
 
         this.currentSlideIndex--;
     }
@@ -397,17 +428,33 @@ class PresentationManager {
         // Set zoom and pan
         this.mindmapEngine.zoom = state.zoom;
         this.mindmapEngine.pan = { ...state.pan };
-        this.mindmapEngine.updateTransform();
 
-        // Expand/collapse nodes
-        this.mindmapEngine.nodes.forEach(node => {
+        // Expand/collapse nodes (recursive traversal)
+        const processNode = (node) => {
             const shouldBeExpanded = state.expandedNodes.includes(node.id);
-            const isExpanded = node.element?.classList.contains('expanded');
 
-            if (shouldBeExpanded !== isExpanded && node.element) {
-                this.mindmapEngine.toggleChildren(node.id);
+            // Set expanded state directly on data
+            if (node.children && node.children.length > 0) {
+                node.expanded = shouldBeExpanded;
+
+                // Also update the DOM element class if it exists
+                if (node.element) {
+                    if (shouldBeExpanded) {
+                        node.element.classList.add('expanded');
+                    } else {
+                        node.element.classList.remove('expanded');
+                    }
+                }
             }
-        });
+
+            // Process children recursively
+            if (node.children && node.children.length > 0) {
+                node.children.forEach(child => processNode(child));
+            }
+        };
+        if (this.mindmapEngine.nodes) {
+            processNode(this.mindmapEngine.nodes);
+        }
 
         // Set categories and relationships visibility
         if (state.categoriesVisible !== undefined) {
@@ -417,12 +464,79 @@ class PresentationManager {
             this.mindmapEngine.relationshipsVisible = state.relationshipsVisible;
         }
 
+        console.log('[PresentationManager] restoreState - about to render:', {
+            nodeCount: this.countNodes(this.mindmapEngine.nodes),
+            expandedInState: state.expandedNodes.length,
+            zoom: this.mindmapEngine.zoom,
+            pan: this.mindmapEngine.pan
+        });
+
+        // Re-render the mindmap
+        if (this.mindmapEngine.renderNodes && this.mindmapEngine.nodes) {
+            this.mindmapEngine.renderNodes(this.mindmapEngine.nodes);
+        }
+
         // Redraw connections
         if (this.mindmapEngine.drawConnections) {
             this.mindmapEngine.drawConnections();
         }
 
-        // TODO: Handle info panels, active images, focus mode when needed
+        // Close all existing info panels first
+        document.querySelectorAll('.info-panel.active').forEach(panel => {
+            panel.classList.remove('active');
+        });
+
+        // Restore info panels
+        if (state.openInfoPanels && state.openInfoPanels.length > 0) {
+            state.openInfoPanels.forEach(nodeId => {
+                // Find the info panel for this node
+                const panel = document.querySelector(`.info-panel[data-node-id="${nodeId}"]`);
+                if (panel) {
+                    panel.classList.add('active');
+                }
+            });
+        }
+
+        // Close existing fullscreen image first
+        const existingOverlay = document.querySelector('.image-overlay.active');
+        if (existingOverlay) {
+            existingOverlay.classList.remove('active');
+        }
+
+        // Restore active fullscreen image
+        if (state.activeImage) {
+            const overlay = document.querySelector('.image-overlay');
+            if (overlay) {
+                const img = overlay.querySelector('img');
+                if (img) {
+                    img.src = state.activeImage.imageUrl;
+                    img.dataset.nodeId = state.activeImage.nodeId;
+                }
+                overlay.classList.add('active');
+            }
+        }
+
+        // Restore focus mode
+        if (state.focusedNode) {
+            this.mindmapEngine.focusedNodeId = state.focusedNode;
+        } else {
+            this.mindmapEngine.focusedNodeId = null;
+        }
+
+        console.log('[PresentationManager] restoreState - render complete');
+    }
+
+    /**
+     * Helper: Count nodes in tree (for debugging)
+     */
+    countNodes(node) {
+        let count = 1;
+        if (node.children && node.children.length > 0) {
+            node.children.forEach(child => {
+                count += this.countNodes(child);
+            });
+        }
+        return count;
     }
 
     /**

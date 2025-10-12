@@ -340,6 +340,7 @@ class MindmapRenderer {
 
         // Relationships management
         this.relationships = [];
+        this.connections = []; // ✨ v5.0: Connections array for v4.0 format
         this.relationshipsPanelVisible = false;
         this.activeRelationships = new Set(); // Currently active/visible relationships
         this.editingRelationshipId = null;
@@ -970,28 +971,41 @@ class MindmapRenderer {
     }
 
     getNodeCountForCategory(categoryId) {
-        if (!window.mindmapEngine || !window.mindmapEngine.nodeData) return 0;
+        if (!window.mindmapEngine || !window.mindmapEngine.nodes) return 0;
 
+        // ✨ FIX: Count only nodes in current project tree
         let count = 0;
-        Object.values(window.mindmapEngine.nodeData).forEach(data => {
-            if (data.categories && data.categories.includes(categoryId)) {
+        const countRecursive = (node) => {
+            const data = window.mindmapEngine.nodeData[node.id];
+            if (data && data.categories && data.categories.includes(categoryId)) {
                 count++;
             }
-        });
+            if (node.children) {
+                node.children.forEach(child => countRecursive(child));
+            }
+        };
+        countRecursive(window.mindmapEngine.nodes);
         return count;
     }
 
     updateCategoryStats() {
-        const totalNodes = window.mindmapEngine ?
-            Object.keys(window.mindmapEngine.nodeData || {}).length : 0;
+        // ✨ FIX: Count only nodes in current project tree (not all localStorage)
+        const totalNodes = window.mindmapEngine && window.mindmapEngine.countProjectNodes ?
+            window.mindmapEngine.countProjectNodes() : 0;
 
         let categorizedNodes = 0;
-        if (window.mindmapEngine && window.mindmapEngine.nodeData) {
-            Object.values(window.mindmapEngine.nodeData).forEach(data => {
-                if (data.categories && data.categories.length > 0) {
+        if (window.mindmapEngine && window.mindmapEngine.nodes) {
+            // ✨ FIX: Count only nodes in current project that have categories
+            const countCategorized = (node) => {
+                const data = window.mindmapEngine.nodeData[node.id];
+                if (data && data.categories && data.categories.length > 0) {
                     categorizedNodes++;
                 }
-            });
+                if (node.children) {
+                    node.children.forEach(child => countCategorized(child));
+                }
+            };
+            countCategorized(window.mindmapEngine.nodes);
         }
 
         const totalEl = document.getElementById('totalNodesCount');
@@ -1085,6 +1099,16 @@ class MindmapRenderer {
                 icon
             };
             this.categories.push(newCategory);
+
+            // Log action for capture mode
+            if (window.captureLog && window.captureLog.isCaptureModeActive) {
+                window.captureLog.logAction('category', {
+                    categoryId: newCategory.id,
+                    categoryName: name,
+                    categoryColor: color,
+                    categoryIcon: icon
+                });
+            }
         }
 
         this.saveCategories();
@@ -1384,6 +1408,8 @@ class MindmapRenderer {
             this.relationshipsPanelVisible = !this.relationshipsPanelVisible;
             if (this.relationshipsPanelVisible) {
                 panel.classList.remove('hidden');
+                // ✨ FIX: Refresh relationships list when panel opens
+                this.renderRelationships();
             } else {
                 panel.classList.add('hidden');
             }
@@ -1434,7 +1460,9 @@ class MindmapRenderer {
 
             // Create visual dash pattern preview
             const dashPattern = relationship.dashPattern || [];
-            const dashPatternStr = dashPattern.length > 0 ? dashPattern.join(',') : 'solid';
+            const dashPatternStr = Array.isArray(dashPattern)
+                ? (dashPattern.length > 0 ? dashPattern.join(',') : '')
+                : (typeof dashPattern === 'string' ? dashPattern : '');
 
             item.innerHTML = `
                 <div class="category-color" style="background: ${relationship.color};">
@@ -1501,17 +1529,29 @@ class MindmapRenderer {
     }
 
     updateRelationshipStats() {
-        const totalNodes = window.mindmapEngine ?
-            Object.keys(window.mindmapEngine.nodeData || {}).length : 0;
+        // ✨ FIX: Count only nodes in current project tree (not all localStorage)
+        let totalNodes = 0;
+
+        if (window.mindmapEngine && window.mindmapEngine.countProjectNodes) {
+            totalNodes = window.mindmapEngine.countProjectNodes();
+        }
 
         let connectedNodes = 0;
-        if (window.mindmapEngine && window.mindmapEngine.nodeData) {
-            Object.values(window.mindmapEngine.nodeData).forEach(data => {
-                if (data.relationships && data.relationships.length > 0) {
+        if (window.mindmapEngine && window.mindmapEngine.nodes) {
+            // Count only nodes in current project that have relationships
+            const countConnected = (node) => {
+                const data = window.mindmapEngine.nodeData[node.id];
+                if (data && data.relationships && data.relationships.length > 0) {
                     connectedNodes++;
                 }
-            });
+                if (node.children) {
+                    node.children.forEach(child => countConnected(child));
+                }
+            };
+            countConnected(window.mindmapEngine.nodes);
         }
+
+        console.log('[DEBUG] Final stats - totalNodes:', totalNodes, 'connectedNodes:', connectedNodes);
 
         const totalEl = document.getElementById('totalNodesRelCount');
         const connectedEl = document.getElementById('connectedNodesCount');
@@ -1561,9 +1601,19 @@ class MindmapRenderer {
             tag.appendChild(dashPreview);
             tag.appendChild(name);
 
-            tag.addEventListener('click', () => {
-                checkbox.checked = !checkbox.checked;
-                tag.classList.toggle('selected');
+            // ✨ FIX: Handle checkbox changes directly, prevent label interference
+            checkbox.addEventListener('change', (e) => {
+                e.stopPropagation();
+                tag.classList.toggle('selected', checkbox.checked);
+            });
+
+            // ✨ FIX: Allow clicking label/text to toggle checkbox
+            tag.addEventListener('click', (e) => {
+                // Only toggle if clicking the label itself, not the checkbox
+                if (e.target !== checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    tag.classList.toggle('selected', checkbox.checked);
+                }
             });
 
             selector.appendChild(tag);
@@ -1668,6 +1718,16 @@ class MindmapRenderer {
                 nodes: []
             };
             this.relationships.push(newRelationship);
+
+            // Log action for capture mode
+            if (window.captureLog && window.captureLog.isCaptureModeActive) {
+                window.captureLog.logAction('relationship', {
+                    relationshipId: newRelationship.id,
+                    relationshipName: name,
+                    relationshipColor: color,
+                    dashPattern: dashPattern
+                });
+            }
         }
 
         this.saveRelationships();
@@ -1931,6 +1991,193 @@ class MindmapRenderer {
         document.getElementById('mindmapWrapper').style.transform = `scale(${this.scale})`;
     }
 
+    /**
+     * Capture current mindmap state for presentation slides
+     * @returns {object} - Current state object
+     */
+    captureCurrentState() {
+        const container = document.getElementById('mindmapContainer');
+        const wrapper = document.getElementById('mindmapWrapper');
+
+        // Get current scroll position
+        const scrollLeft = container.scrollLeft;
+        const scrollTop = container.scrollTop;
+
+        // Get current zoom/transform
+        const scale = this.scale;
+        const transformOrigin = wrapper.style.transformOrigin || '300px 1500px';
+
+        // Get expanded nodes
+        const expandedNodes = window.mindmapEngine.getExpandedNodes();
+
+        // Get visible info panels
+        const visibleInfoPanels = Object.keys(window.mindmapEngine.nodeData)
+            .filter(nodeId => window.mindmapEngine.nodeData[nodeId]?.showInfo);
+
+        // Get active categories
+        const activeCategories = Array.from(this.activeCategories || []);
+
+        // Get active relationships
+        const activeRelationships = Array.from(this.activeRelationships || []);
+
+        // Check for fullscreen image
+        const lightbox = document.querySelector('.image-lightbox-overlay.active');
+        let fullscreenImage = null;
+        if (lightbox) {
+            const img = lightbox.querySelector('img');
+            if (img) {
+                fullscreenImage = { imageUrl: img.src };
+            }
+        }
+
+        return {
+            scrollLeft,
+            scrollTop,
+            scale,
+            transformOrigin,
+            expandedNodes,
+            visibleInfoPanels,
+            activeCategories,
+            activeRelationships,
+            fullscreenImage
+        };
+    }
+
+    /**
+     * Restore mindmap state for presentation slides
+     * @param {object} state - State object from captureCurrentState()
+     */
+    restoreState(state) {
+        console.log('[Renderer] restoreState CALLED with state:', state);
+
+        if (!state) {
+            console.warn('[Renderer] No state provided to restoreState');
+            return;
+        }
+
+        const container = document.getElementById('mindmapContainer');
+        const wrapper = document.getElementById('mindmapWrapper');
+
+        console.log('[Renderer] Container:', container, 'Wrapper:', wrapper);
+
+        // Task 2.2: Restore scroll position
+        if (state.scrollLeft !== undefined) {
+            console.log('[Renderer] Restoring scrollLeft:', state.scrollLeft);
+            container.scrollLeft = state.scrollLeft;
+        }
+        if (state.scrollTop !== undefined) {
+            console.log('[Renderer] Restoring scrollTop:', state.scrollTop);
+            container.scrollTop = state.scrollTop;
+        }
+
+        // Task 2.3: Restore zoom
+        if (state.scale !== undefined) {
+            console.log('[Renderer] Restoring scale:', state.scale);
+            this.scale = state.scale;
+            wrapper.style.transform = `scale(${this.scale})`;
+        }
+        if (state.transformOrigin) {
+            console.log('[Renderer] Restoring transformOrigin:', state.transformOrigin);
+            wrapper.style.transformOrigin = state.transformOrigin;
+        }
+
+        // Task 2.4: Restore node expand/collapse
+        if (state.expandedNodes && Array.isArray(state.expandedNodes)) {
+            console.log('[Renderer] Restoring expanded nodes:', state.expandedNodes);
+
+            // First, collapse all nodes
+            const collapseAll = (node) => {
+                if (node.children && node.children.length > 0) {
+                    node.expanded = false;
+                    node.children.forEach(child => collapseAll(child));
+                }
+            };
+            if (window.mindmapEngine.nodes) {
+                console.log('[Renderer] Collapsing all nodes first');
+                collapseAll(window.mindmapEngine.nodes);
+            }
+
+            // Then expand only the specified nodes
+            state.expandedNodes.forEach(nodeId => {
+                const node = window.mindmapEngine.findNode(nodeId, window.mindmapEngine.nodes);
+                console.log(`[Renderer] Looking for node ${nodeId}:`, node);
+                if (node && node.children && node.children.length > 0) {
+                    console.log(`[Renderer] Expanding node ${nodeId}: ${node.text}`);
+                    node.expanded = true;
+                } else {
+                    console.warn(`[Renderer] Could not expand node ${nodeId} - not found or no children`);
+                }
+            });
+
+            // Re-render nodes
+            console.log('[Renderer] Calling renderNodes to apply expansion changes');
+            window.mindmapEngine.renderNodes(window.mindmapEngine.nodes);
+            console.log('[Renderer] renderNodes completed');
+        }
+
+        // Restore visible info panels
+        if (state.visibleInfoPanels && Array.isArray(state.visibleInfoPanels)) {
+            console.log('[Renderer] Restoring visible info panels:', state.visibleInfoPanels);
+
+            // First close all info panels
+            Object.keys(window.mindmapEngine.nodeData).forEach(nodeId => {
+                window.mindmapEngine.nodeData[nodeId].showInfo = false;
+            });
+
+            // Then show only the specified panels
+            state.visibleInfoPanels.forEach(nodeId => {
+                if (window.mindmapEngine.nodeData[nodeId]) {
+                    console.log(`[Renderer] Showing info panel for node ${nodeId}`);
+                    window.mindmapEngine.nodeData[nodeId].showInfo = true;
+                }
+            });
+
+            // Re-render to show/hide panels
+            console.log('[Renderer] Re-rendering for info panels');
+            window.mindmapEngine.renderNodes(window.mindmapEngine.nodes);
+        }
+
+        // Restore active categories
+        if (state.activeCategories && Array.isArray(state.activeCategories)) {
+            console.log('[Renderer] Restoring active categories:', state.activeCategories);
+            this.activeCategories = new Set(state.activeCategories);
+            // Re-render to apply category filtering
+            window.mindmapEngine.renderNodes(window.mindmapEngine.nodes);
+        }
+
+        // Restore active relationships
+        if (state.activeRelationships && Array.isArray(state.activeRelationships)) {
+            console.log('[Renderer] Restoring active relationships:', state.activeRelationships);
+            this.activeRelationships = new Set(state.activeRelationships);
+            // Re-render to apply relationship filtering
+            window.mindmapEngine.renderNodes(window.mindmapEngine.nodes);
+        }
+
+        // Restore fullscreen image
+        const lightboxOverlay = document.querySelector('.image-lightbox-overlay');
+        if (lightboxOverlay) {
+            if (state.fullscreenImage && state.fullscreenImage.imageUrl) {
+                console.log('[Renderer] Restoring fullscreen image:', state.fullscreenImage);
+                const img = lightboxOverlay.querySelector('img');
+                if (img) {
+                    img.src = state.fullscreenImage.imageUrl;
+                    lightboxOverlay.classList.add('active');
+                    setTimeout(() => {
+                        lightboxOverlay.classList.add('show');
+                    }, 10);
+                }
+            } else {
+                // Close fullscreen image if not in state
+                lightboxOverlay.classList.remove('show');
+                setTimeout(() => {
+                    lightboxOverlay.classList.remove('active');
+                }, 300);
+            }
+        }
+
+        console.log('[Renderer] State restoration COMPLETE');
+    }
+
     exportData() {
         const exportObj = window.mindmapEngine.exportData();
         const dataStr = JSON.stringify(exportObj, null, 2);
@@ -2017,20 +2264,54 @@ class MindmapRenderer {
         document.getElementById('fileInput').click();
     }
 
-    loadFileContent(data) {
+    async loadFileContent(data) {
         try {
             if (data.path.endsWith('.json') || data.path.endsWith('.pmap')) {
-                const parsed = JSON.parse(data.content);
-                if (parsed.nodes) {
-                    window.mindmapEngine.importData(parsed);
+                // Use ProjectManager to load the file (handles v5.0 migration automatically)
+                if (window.projectManager) {
+                    const projectData = await window.projectManager.loadProject(data.path);
+
+                    // Load content into textarea
+                    document.getElementById('outlineInput').value = projectData.content || '';
+
+                    // Load nodeData
+                    window.mindmapEngine.nodeData = projectData.nodes || {};
+
+                    // Load custom orders if available
+                    if (projectData.customOrders && window.mindmapEngine?.reorderManager) {
+                        window.mindmapEngine.reorderManager.importOrders(projectData.customOrders);
+                    }
+
+                    // Load categories, relationships, and connections
+                    if (projectData.categories) {
+                        this.categories = projectData.categories;
+                    }
+                    if (projectData.relationships) {
+                        this.relationships = projectData.relationships;
+                    }
+                    // ✨ v5.0: Load connections array for v4.0 relationship format
+                    if (projectData.connections) {
+                        this.connections = projectData.connections;
+                    }
+
+                    // Generate mindmap from content
+                    this.generateMindmap();
                 } else {
-                    throw new Error('Invalid mindmap file format');
+                    // Fallback: parse JSON directly (old behavior)
+                    const parsed = JSON.parse(data.content);
+                    if (parsed.nodes) {
+                        window.mindmapEngine.importData(parsed);
+                    } else {
+                        throw new Error('Invalid mindmap file format');
+                    }
                 }
             } else {
+                // Plain text file
                 document.getElementById('outlineInput').value = data.content;
                 this.generateMindmap();
             }
         } catch (error) {
+            console.error('Error loading file:', error);
             alert(`Error al cargar el archivo: ${error.message}`);
         }
     }
@@ -2457,6 +2738,9 @@ document.addEventListener('keydown', async (e) => {
 document.addEventListener('DOMContentLoaded', async () => {
     window.mindmapRenderer = new MindmapRenderer();
 
+    // Create alias for presentation system compatibility
+    window.renderer = window.mindmapRenderer;
+
     // Load saved view mode
     window.mindmapRenderer.loadViewMode();
 
@@ -2471,6 +2755,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // Initialize PresentationManager
+    console.log('[DEBUG] Checking PresentationManager initialization:', {
+        PresentationManagerExists: typeof PresentationManager !== 'undefined',
+        mindmapEngineExists: !!window.mindmapEngine,
+        PresentationManagerType: typeof PresentationManager,
+        mindmapEngineType: typeof window.mindmapEngine
+    });
+
     if (typeof PresentationManager !== 'undefined' && window.mindmapEngine) {
         window.presentationManager = new PresentationManager(window.mindmapEngine);
         console.log('PresentationManager initialized');
@@ -2481,13 +2772,72 @@ document.addEventListener('DOMContentLoaded', async () => {
             console.log('PresentationUI initialized');
         }
 
+        // Initialize PresentationMode
+        if (typeof PresentationMode !== 'undefined' && window.renderer) {
+            window.presentationMode = new PresentationMode(window.renderer, window.presentationManager);
+            console.log('PresentationMode initialized');
+
+            // Wire up presentation mode button
+            const presentModeBtn = document.getElementById('presentModeBtn');
+            if (presentModeBtn) {
+                presentModeBtn.addEventListener('click', () => {
+                    if (!window.presentationMode.isActive) {
+                        window.presentationMode.start();
+                    } else {
+                        window.presentationMode.stop();
+                    }
+                });
+            }
+        }
+
+        // Initialize CaptureLog
+        if (typeof CaptureLog !== 'undefined') {
+            window.captureLog = new CaptureLog(window.presentationManager);
+            console.log('CaptureLog initialized');
+
+            // Wire up toggle capture mode button
+            const toggleCaptureModeBtn = document.getElementById('toggleCaptureModeBtn');
+            if (toggleCaptureModeBtn) {
+                toggleCaptureModeBtn.addEventListener('click', () => {
+                    window.captureLog.toggleCaptureMode();
+                    toggleCaptureModeBtn.classList.toggle('active');
+                    console.log('[CaptureLog] Capture mode toggled');
+                });
+            }
+
+            // Wire up close capture log panel button
+            const closeCaptureLogPanel = document.getElementById('closeCaptureLogPanel');
+            if (closeCaptureLogPanel) {
+                closeCaptureLogPanel.addEventListener('click', () => {
+                    window.captureLog.stopCaptureMode();
+                    const toggleBtn = document.getElementById('toggleCaptureModeBtn');
+                    if (toggleBtn) {
+                        toggleBtn.classList.remove('active');
+                    }
+                });
+            }
+
+            // Wire up clear log button
+            const clearLogBtn = document.getElementById('clearLogBtn');
+            if (clearLogBtn) {
+                clearLogBtn.addEventListener('click', () => {
+                    window.captureLog.clearLog();
+                    console.log('[CaptureLog] Log cleared');
+                });
+            }
+        }
+
         // Wire up Add Slide button
         const addSlideBtn = document.getElementById('addSlideBtn');
         const slideCounter = document.getElementById('slideCounter');
         const presentBtn = document.getElementById('presentBtn');
 
+        console.log('[DEBUG] Button elements:', { addSlideBtn: !!addSlideBtn, slideCounter: !!slideCounter, presentBtn: !!presentBtn });
+
         if (addSlideBtn) {
+            console.log('[DEBUG] Adding click listener to addSlideBtn');
             addSlideBtn.addEventListener('click', () => {
+                console.log('[DEBUG] ADD SLIDE BUTTON CLICKED!');
                 const slide = window.presentationManager.addSlide();
                 console.log('Slide added:', slide);
 
@@ -2535,20 +2885,18 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Wire up Present button
         if (presentBtn) {
+            console.log('[DEBUG] Adding click listener to presentBtn');
             presentBtn.addEventListener('click', () => {
-                if (window.presentationManager && window.animationEngine) {
-                    const success = window.presentationManager.enterPresentationMode(window.animationEngine);
-                    if (success) {
-                        // Show presentation overlay
-                        const overlay = document.getElementById('presentationOverlay');
-                        if (overlay) {
-                            overlay.classList.add('active');
-                            document.body.classList.add('presentation-mode');
-                        }
+                console.log('[DEBUG] PRESENT BUTTON CLICKED!');
 
-                        // Update slide counter
-                        updatePresentationCounter();
+                if (window.presentationMode) {
+                    if (!window.presentationMode.isActive) {
+                        window.presentationMode.start();
+                    } else {
+                        window.presentationMode.stop();
                     }
+                } else {
+                    console.error('[DEBUG] PresentationMode not initialized');
                 }
             });
         }

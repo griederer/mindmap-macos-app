@@ -5,7 +5,7 @@
 }
 
 body {
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
     background: #f4f0ed;
     overflow: hidden;
     height: 100vh;
@@ -98,7 +98,7 @@ body::before {
     background: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-family: 'Inter', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     letter-spacing: -1.5px;
 }
 
@@ -307,7 +307,7 @@ body::before {
     padding: 14px;
     border: 2px solid rgba(220, 105, 0, 0.2);
     border-radius: 8px;
-    font-family: 'Inter', monospace;
+    font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
     font-size: 12px;
     line-height: 1.6;
     resize: none;
@@ -796,7 +796,7 @@ body[data-view-mode="presentation"] .action-btn:not(:first-child) {
     padding: 14px;
     border: 2px solid rgba(220, 105, 0, 0.15);
     border-radius: 10px;
-    font-family: 'Inter', sans-serif;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
     font-size: 14px;
     line-height: 1.6;
     resize: vertical;
@@ -1190,7 +1190,7 @@ body[data-view-mode="presentation"] .action-btn:not(:first-child) {
     width: 100%;
     height: 100%;
     background-color: rgba(0, 0, 0, 0.9);
-    z-index: 10000;
+    z-index: 9000;
     opacity: 0;
     transition: opacity 300ms ease-out;
     cursor: pointer;
@@ -2283,11 +2283,12 @@ body[data-view-mode="presentation"] .node[draggable="true"] {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.95);
+    background: transparent;
     z-index: 10000;
     display: none;
     justify-content: center;
     align-items: center;
+    pointer-events: none; /* Allow clicks to pass through */
 }
 
 .presentation-overlay.active {
@@ -2301,6 +2302,26 @@ body[data-view-mode="presentation"] .node[draggable="true"] {
     display: flex;
     justify-content: center;
     align-items: center;
+    pointer-events: none;
+}
+
+/* Hide all UI elements in presentation mode */
+body.presentation-mode .toolbar,
+body.presentation-mode .floating-toolbar,
+body.presentation-mode #slidesPanel,
+body.presentation-mode .node-options-menu {
+    display: none !important;
+}
+
+/* Bring mindmap to front and make it fullscreen in presentation mode */
+body.presentation-mode #mindmapContainer {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    z-index: 9999 !important;
+    background: #1a1a1a !important;
 }
 
 .presentation-counter {
@@ -2419,4 +2440,175 @@ body.presentation-mode .relationship-connection {
     overflow: hidden;
     text-overflow: ellipsis;
     max-width: 240px;
+}
+
+/* ===================================
+   CAPTURE LOG PANEL
+   =================================== */
+
+.capture-log-panel {
+    position: fixed;
+    left: 0;
+    top: 100px;
+    width: 320px;
+    height: calc(100vh - 100px);
+    background: white;
+    border-right: 1px solid #e0e0e0;
+    box-shadow: 2px 0 12px rgba(0,0,0,0.08);
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 8000;
+    display: flex;
+    flex-direction: column;
+}
+
+.capture-log-panel.active {
+    transform: translateX(0);
+}
+
+.capture-log-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(135deg, #2D2926 0%, #3a3633 100%);
+}
+
+.capture-log-header h3 {
+    font-size: 16px;
+    font-weight: 600;
+    color: white;
+    margin: 0;
+}
+
+.capture-log-info {
+    padding: 12px 20px;
+    background: #f5f5f5;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.capture-log-info p {
+    font-size: 12px;
+    color: #666;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.capture-log-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 12px;
+}
+
+.capture-log-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    transition: all 0.2s ease;
+}
+
+.capture-log-item:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.capture-log-item.captured {
+    background: #f5f5f5;
+    opacity: 0.7;
+}
+
+.log-item-icon {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #f0f0f0;
+    border-radius: 6px;
+}
+
+.log-item-icon i {
+    width: 18px;
+    height: 18px;
+    color: #666;
+}
+
+.log-item-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.log-item-description {
+    font-size: 13px;
+    font-weight: 500;
+    color: #333;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.log-item-timestamp {
+    font-size: 11px;
+    color: #999;
+}
+
+.log-item-capture {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
+    color: #2D2926;
+    border: none;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.log-item-capture:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 6px rgba(245, 184, 149, 0.4);
+}
+
+.log-item-capture:disabled {
+    background: #e0e0e0;
+    color: #999;
+    cursor: not-allowed;
+}
+
+.capture-log-footer {
+    padding: 12px 20px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.clear-log-btn {
+    width: 100%;
+    padding: 10px;
+    background: white;
+    color: #666;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.clear-log-btn:hover {
+    background: #f5f5f5;
+    border-color: #ccc;
+}
+
+/* Toggle button active state */
+#toggleCaptureModeBtn.active {
+    background: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
+    color: #2D2926;
 }

@@ -326,16 +326,22 @@ class PresentationUI {
      * @param {number} slideId - Slide ID to preview
      */
     previewSlide(slideId) {
+        console.log('[PresentationUI] previewSlide called with slideId:', slideId);
+
         const slide = this.presentationManager.getSlide(slideId);
+        console.log('[PresentationUI] Got slide:', slide);
+
         if (!slide) {
-            console.error('Slide not found:', slideId);
+            console.error('[PresentationUI] Slide not found:', slideId);
             return;
         }
 
         // Store current state for restoration
         const currentState = this.presentationManager.captureCurrentState();
+        console.log('[PresentationUI] Captured current state for restoration:', currentState);
 
         // Apply slide state
+        console.log('[PresentationUI] Calling restoreSlideState with slide:', slide);
         this.restoreSlideState(slide);
 
         // Show notification
@@ -347,27 +353,19 @@ class PresentationUI {
      * @param {object} slide - Slide data
      */
     restoreSlideState(slide) {
-        // Set zoom and pan
-        if (this.mindmapEngine.zoom !== slide.zoom ||
-            this.mindmapEngine.pan.x !== slide.pan.x ||
-            this.mindmapEngine.pan.y !== slide.pan.y) {
+        console.log('[PresentationUI] restoreSlideState called with slide:', slide);
+        console.log('[PresentationUI] Slide state:', slide.state);
+        console.log('[PresentationUI] window.renderer exists:', !!window.renderer);
+        console.log('[PresentationUI] window.renderer.restoreState exists:', !!(window.renderer && window.renderer.restoreState));
 
-            this.mindmapEngine.zoom = slide.zoom;
-            this.mindmapEngine.pan = { ...slide.pan };
-            this.mindmapEngine.updateTransform();
+        // Use the renderer's restoreState method with the slide's state object
+        if (window.renderer && window.renderer.restoreState && slide.state) {
+            console.log('[PresentationUI] Calling window.renderer.restoreState with state:', slide.state);
+            window.renderer.restoreState(slide.state);
+            console.log('[PresentationUI] window.renderer.restoreState call completed');
+        } else {
+            console.error('[PresentationUI] Cannot restore state - missing renderer, restoreState method, or slide.state');
         }
-
-        // Expand/collapse nodes
-        this.mindmapEngine.nodes.forEach(node => {
-            const shouldBeExpanded = slide.expandedNodes.includes(node.id);
-            const isExpanded = node.element?.classList.contains('expanded');
-
-            if (shouldBeExpanded !== isExpanded && node.element) {
-                this.mindmapEngine.toggleChildren(node.id);
-            }
-        });
-
-        // TODO: Handle info panels, images, focus mode when implemented
     }
 
     /**

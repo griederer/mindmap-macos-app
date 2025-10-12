@@ -57,7 +57,7 @@ function createWindow() {
     }
 
     // DevTools disabled in production
-    // mainWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools(); // TEMPORARY DEBUG
   });
 
   // Force reload on F5

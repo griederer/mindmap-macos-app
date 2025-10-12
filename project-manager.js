@@ -207,6 +207,14 @@ class ProjectManager {
             const data = fs.readFileSync(projectPath, 'utf-8');
             let projectData = JSON.parse(data);
 
+            console.log('[DEBUG] Loaded project data:', {
+                version: projectData.version,
+                hasNodesObject: typeof projectData.nodes === 'object',
+                nodesIsArray: Array.isArray(projectData.nodes),
+                hasContent: !!projectData.content,
+                contentLength: projectData.content ? projectData.content.length : 0
+            });
+
             // ✨ v5.0 Migration: Convert v5.0 format to v4.0 compatible format
             if (projectData.version === '5.0.0' && projectData.nodes && typeof projectData.nodes === 'object' && !Array.isArray(projectData.nodes)) {
                 console.log('[v5.0 Migration] Detecting v5.0 format, converting to v4.0 compatible...');
@@ -244,6 +252,7 @@ class ProjectManager {
 
         // Use existing content field (which has the outline structure)
         const content = v5Data.content || this.convertV5NodesToOutline(v5Data.nodes);
+        console.log('[v5.0 Migration] Content field:', content);
 
         // Create ID mapping: v5 ID -> v4 ID (node-0, node-1, etc.)
         const v5ToV4IdMap = {};
@@ -253,6 +262,14 @@ class ProjectManager {
         });
 
         console.log('[v5.0 Migration] ID Mapping:', v5ToV4IdMap);
+
+        // ✨ Convert v5.0 relationships to v4.0 format (relationships + connections)
+        const { relationships, connections } = this.convertV5RelationshipsToV4(
+            v5Data.relationships || [],
+            v5ToV4IdMap
+        );
+
+        console.log('[v5.0 Migration] Converted relationships:', relationships.length, 'connections:', connections.length);
 
         // Build v4.0 compatible structure
         const v4Data = {
@@ -265,7 +282,8 @@ class ProjectManager {
                 version: '4.0'
             },
             categories: v5Data.categories || [],
-            relationships: v5Data.relationships || [],
+            relationships: relationships,
+            connections: connections,
             customOrders: v5Data.customOrders || {},
             presentation: v5Data.presentation || {
                 slides: [],
@@ -275,7 +293,58 @@ class ProjectManager {
         };
 
         console.log('[v5.0 Migration] Migration complete. Node count:', Object.keys(v4Data.nodes).length);
+        console.log('[v5.0 Migration] Migrated data:', v4Data);
         return v4Data;
+    }
+
+    /**
+     * Convert v5.0 relationships to v4.0 format (separate relationships and connections)
+     * v5.0: relationships have a "nodes" array with 2 node IDs
+     * v4.0: relationships define types, connections link specific nodes
+     * @param {Array} v5Relationships - v5.0 relationships array
+     * @param {Object} idMap - Mapping from v5 IDs to v4 IDs
+     * @returns {{relationships: Array, connections: Array}} - v4.0 relationships and connections
+     */
+    convertV5RelationshipsToV4(v5Relationships, idMap) {
+        const relationships = [];
+        const connections = [];
+        let connCounter = 0;
+
+        v5Relationships.forEach(v5Rel => {
+            // Create v4.0 relationship type (without the "nodes" field)
+            const v4Rel = {
+                id: v5Rel.id,
+                name: v5Rel.name,
+                color: v5Rel.color,
+                dashPattern: Array.isArray(v5Rel.dashPattern)
+                    ? v5Rel.dashPattern.join(',')  // Convert [5, 5] to "5,5"
+                    : (v5Rel.dashPattern || '0')    // Or keep existing string
+            };
+            relationships.push(v4Rel);
+
+            // Create v4.0 connection if v5 relationship has nodes defined
+            if (v5Rel.nodes && v5Rel.nodes.length >= 2) {
+                const fromV5Id = v5Rel.nodes[0];
+                const toV5Id = v5Rel.nodes[1];
+                const fromV4Id = idMap[fromV5Id];
+                const toV4Id = idMap[toV5Id];
+
+                if (fromV4Id && toV4Id) {
+                    const connection = {
+                        id: `conn-${Date.now()}-${connCounter++}`,
+                        fromNodeId: fromV4Id,
+                        toNodeId: toV4Id,
+                        relationshipId: v5Rel.id
+                    };
+                    connections.push(connection);
+                    console.log(`[v5.0 Migration] Created connection: ${fromV4Id} -> ${toV4Id} (${v5Rel.name})`);
+                } else {
+                    console.warn(`[v5.0 Migration] Could not map node IDs for relationship ${v5Rel.id}: ${fromV5Id}, ${toV5Id}`);
+                }
+            }
+        });
+
+        return { relationships, connections };
     }
 
     /**
