@@ -790,6 +790,36 @@ class MindmapEngine {
             });
         }
 
+        // Render videos in modal
+        const videosContainer = document.getElementById('modalVideos');
+        videosContainer.innerHTML = '';
+
+        const videos = window.videoManager ? window.videoManager.getNodeVideos(nodeId) : [];
+        if (videos && videos.length > 0) {
+            videos.forEach((video, idx) => {
+                const videoDiv = document.createElement('div');
+                videoDiv.className = 'uploaded-video';
+
+                const durationStr = window.videoManager.formatDuration(video.duration);
+                const sizeStr = window.videoManager.formatFileSize(video.size);
+                const loopChecked = video.loop ? 'checked' : '';
+
+                videoDiv.innerHTML = `
+                    <img src="${video.thumbnail}" class="video-thumbnail" alt="Video thumbnail">
+                    <div class="video-metadata">
+                        <div class="video-filename">${video.filename}</div>
+                        <div class="video-info">${durationStr} • ${sizeStr}</div>
+                        <label class="video-loop-control">
+                            <input type="checkbox" ${loopChecked} onchange="mindmapEngine.toggleVideoLoop(${idx}, this.checked)">
+                            <span>Loop</span>
+                        </label>
+                    </div>
+                    <button class="remove-video" onclick="mindmapEngine.removeVideo(${idx})">×</button>
+                `;
+                videosContainer.appendChild(videoDiv);
+            });
+        }
+
         // Populate relationships selector
         if (window.mindmapRenderer && window.mindmapRenderer.populateNodeRelationshipsSelector) {
             window.mindmapRenderer.populateNodeRelationshipsSelector(nodeId);
@@ -811,12 +841,14 @@ class MindmapEngine {
 
         let infoHTML = '';
 
-        // Priority order: description > notes > images
+        // Priority order: description > notes > images > videos
         const hasDescription = data.description && data.description.trim();
         const hasNotes = data.notes && data.notes.trim();
         const hasImages = data.images && data.images.length > 0;
+        const videos = window.videoManager ? window.videoManager.getNodeVideos(nodeId) : [];
+        const hasVideos = videos && videos.length > 0;
 
-        if (hasDescription || hasNotes || hasImages) {
+        if (hasDescription || hasNotes || hasImages || hasVideos) {
             // 1. Show user-defined description (from edit modal)
             if (hasDescription) {
                 const formattedDesc = data.description
@@ -840,6 +872,23 @@ class MindmapEngine {
                     if (img && img.startsWith('data:image')) {
                         infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
                     }
+                });
+                infoHTML += '</div>';
+            }
+            // 4. Show uploaded videos
+            if (hasVideos) {
+                infoHTML += '<div class="info-videos">';
+                videos.forEach((video, idx) => {
+                    const durationStr = window.videoManager.formatDuration(video.duration);
+                    const loopAttr = video.loop ? 'loop' : '';
+                    infoHTML += `
+                        <div class="info-video-item">
+                            <video src="${video.url}" controls preload="metadata" ${loopAttr}>
+                                Tu navegador no soporta la reproducción de video.
+                            </video>
+                            <div class="video-info">${video.filename} • ${durationStr}</div>
+                        </div>
+                    `;
                 });
                 infoHTML += '</div>';
             }
@@ -1190,6 +1239,28 @@ class MindmapEngine {
         }
     }
 
+    removeVideo(index) {
+        if (window.currentEditingNode && window.videoManager) {
+            const video = window.videoManager.getNodeVideos(window.currentEditingNode)[index];
+
+            // TODO: If external video, delete the actual file from .media/ folder
+            // This will be implemented when we add the file system integration
+
+            window.videoManager.removeVideo(window.currentEditingNode, index);
+
+            const node = this.findNode(window.currentEditingNode, this.nodes);
+            if (node) {
+                this.editNode(window.currentEditingNode, node.title);
+            }
+        }
+    }
+
+    toggleVideoLoop(index, loop) {
+        if (window.currentEditingNode && window.videoManager) {
+            window.videoManager.setVideoLoop(window.currentEditingNode, index, loop);
+        }
+    }
+
     exportData() {
         const exportedData = {
             nodes: this.nodes,
@@ -1300,6 +1371,11 @@ class MindmapEngine {
         this.nodeData[nodeId].description = document.getElementById('modalDescription').value;
         this.nodeData[nodeId].notes = document.getElementById('modalNotes').value;
 
+        // Save videos from VideoManager
+        if (window.videoManager) {
+            this.nodeData[nodeId].videos = window.videoManager.exportToNodeData(nodeId);
+        }
+
         // Save relationships
         const selectedRelationships = [];
         const relCheckboxes = document.querySelectorAll('#nodeRelationshipsSelector input[type="checkbox"]:checked');
@@ -1404,3 +1480,6 @@ class MindmapEngine {
 
 // Create global instance
 window.mindmapEngine = new MindmapEngine();
+
+// Initialize VideoManager
+window.videoManager = new VideoManager();

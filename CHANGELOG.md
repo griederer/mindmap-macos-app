@@ -1,5 +1,82 @@
 # Changelog - PWC Mindmap Pro
 
+All notable changes to PWC Mindmap Pro will be documented in this file.
+
+## [5.1.0] - 2025-10-13
+
+### ✨ Added
+- **Video Loop Control**: Toggle automatic video looping
+  - Checkbox control in edit modal for each uploaded video
+  - Loop setting persists with project data
+  - Video elements in info panels respect loop attribute
+  - Default: loop disabled for new videos
+
+### 🔧 Changed
+- Updated project format from v5.0 to v5.1
+- Enhanced `VideoManager` with `setVideoLoop()` method (video-manager.js:129)
+- Added `toggleVideoLoop()` handler to MindmapEngine (mindmap-engine.js:1257)
+- Video rendering in info panel now applies `loop` attribute (mindmap-engine.js:883)
+
+### 🎨 UI Improvements
+- Added `.video-loop-control` styling with brand colors (styles.css:1251)
+- Checkbox accent color matches PWC orange theme (#DC6900)
+- Hover states for better user feedback
+
+### 📦 Technical Details
+**Files Modified:**
+- `src/managers/video-manager.js` - Added loop property to VideoData typedef
+- `mindmap-engine.js` - Loop toggle handler and video rendering
+- `renderer.js` - Default `loop: false` for uploaded videos
+- `styles.css` - Loop control component styling
+
+**Migration:**
+- Existing projects auto-upgrade to v5.1
+- All existing videos receive `loop: false` by default
+- No data loss during migration
+
+---
+
+## [5.0.0] - 2025-10-13
+
+### 🎥 Major Feature: Video Attachment Support
+Complete video upload and playback system for mindmap nodes.
+
+### ✨ Added
+- Video file upload (MP4, WebM formats)
+- Automatic thumbnail generation from video frames
+- Hybrid storage strategy:
+  - Small videos (<2MB): Embedded as base64
+  - Large videos (≥2MB): External .media/ folder
+- Video playback in node info panels with HTML5 controls
+- Video metadata display (filename, duration, file size)
+- File validation:
+  - Maximum size: 10MB
+  - Maximum duration: 30 seconds
+  - Formats: MP4, WebM
+- Maximum 3 videos per node (prevents UI clutter)
+
+### 🏗️ Architecture
+- Created `VideoManager` class for centralized video operations
+- Implemented project format v5.0 with video support
+- Added comprehensive test suite with 100% coverage
+- Built video upload UI in edit modal
+- Integrated video rendering in node info panels
+
+### 📦 Components Added
+- `src/managers/video-manager.js` - Core video management (378 lines)
+- `__tests__/video-manager.test.js` - Complete test suite
+- `__tests__/project-manager-migration.test.js` - Migration tests
+- `test-video-upload.html` - Browser testing utility
+- `VIDEO-FEATURE-DEMO.md` - Feature documentation
+
+### 🔄 Migration
+- Auto-migration from v4.x to v5.0
+- Backward compatible (v5.0 files work without videos)
+- Preserves all existing data (nodes, categories, relationships)
+- Non-destructive upgrade path
+
+---
+
 ## [2.6.0] - 2025-09-30
 
 ### 🎨 Visual Enhancements
