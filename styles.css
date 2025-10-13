@@ -1152,6 +1152,197 @@ body[data-view-mode="presentation"] .action-btn:not(:first-child) {
     box-shadow: 0 3px 12px rgba(214, 48, 49, 0.4);
 }
 
+/* Video upload styles */
+.upload-progress {
+    margin-top: 16px;
+    padding: 12px;
+    background: rgba(220, 105, 0, 0.05);
+    border-radius: 8px;
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(220, 105, 0, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 8px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: linear-gradient(135deg, #f5b895, #f9c9a8);
+    transition: width 0.3s ease;
+    width: 0%;
+}
+
+.progress-text {
+    font-size: 12px;
+    color: #DC6900;
+    font-weight: 600;
+}
+
+.uploaded-videos {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 20px;
+}
+
+.uploaded-video {
+    position: relative;
+    background: white;
+    border: 2px solid rgba(220, 105, 0, 0.15);
+    border-radius: 10px;
+    padding: 14px;
+    transition: all 0.2s;
+}
+
+.uploaded-video:hover {
+    border-color: #DC6900;
+    box-shadow: 0 4px 12px rgba(220, 105, 0, 0.2);
+}
+
+.video-thumbnail {
+    width: 100%;
+    height: 120px;
+    object-fit: cover;
+    border-radius: 6px;
+    margin-bottom: 10px;
+    background: rgba(220, 105, 0, 0.05);
+}
+
+.video-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.video-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.video-filename {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2D2926;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.video-details {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #666;
+}
+
+.video-duration,
+.video-size {
+    background: rgba(220, 105, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Video loop control */
+.video-loop-control {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 8px;
+    font-size: 12px;
+    color: #2D2926;
+    cursor: pointer;
+    user-select: none;
+}
+
+.video-loop-control input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #DC6900;
+}
+
+.video-loop-control span {
+    font-weight: 500;
+}
+
+.video-loop-control:hover {
+    color: #DC6900;
+}
+
+.remove-video {
+    background: linear-gradient(135deg, #D63031, #E74C3C);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    box-shadow: 0 2px 8px rgba(214, 48, 49, 0.3);
+    flex-shrink: 0;
+}
+
+.remove-video:hover {
+    transform: scale(1.15);
+    box-shadow: 0 3px 12px rgba(214, 48, 49, 0.4);
+}
+
+/* Videos in node info panels */
+.info-videos {
+    margin-top: 12px;
+}
+
+.info-video-item {
+    margin-bottom: 14px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px;
+    padding: 8px;
+}
+
+.info-video-item video {
+    width: 100%;
+    max-height: 200px;
+    border-radius: 6px;
+    background: #000;
+}
+
+.info-video-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding: 0 4px;
+}
+
+.info-video-name {
+    font-size: 12px;
+    color: #2D2926;
+    font-weight: 500;
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.info-video-duration {
+    font-size: 11px;
+    color: #666;
+    background: rgba(220, 105, 0, 0.1);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
 /* Smooth scrollbar */
 ::-webkit-scrollbar {
     width: 8px;
@@ -2106,4 +2297,317 @@ body[data-view-mode="presentation"] .node[draggable="true"] {
 
 .node:active {
     cursor: grabbing;
+}
+
+/* ======================
+   Presentation Slides Panel
+   ====================== */
+
+.slides-list {
+    padding: 12px;
+    max-height: calc(100vh - 180px);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.slide-item {
+    display: grid;
+    grid-template-columns: 32px 120px 1fr auto;
+    gap: 12px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.02);
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    cursor: grab;
+    transition: all 0.2s ease;
+    align-items: center;
+}
+
+.slide-item:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 0, 0, 0.15);
+    transform: translateX(2px);
+}
+
+.slide-item:active {
+    cursor: grabbing;
+}
+
+.slide-number {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: #2196F3;
+    color: white;
+    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.slide-thumbnail {
+    width: 120px;
+    height: 80px;
+    background: #f5f5f5;
+    border-radius: 6px;
+    background-size: cover;
+    background-position: center;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.slide-description {
+    font-size: 13px;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.slide-actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.slide-item:hover .slide-actions {
+    opacity: 1;
+}
+
+.slide-action-btn {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+}
+
+.slide-action-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.slide-action-btn.delete:hover {
+    background: rgba(244, 67, 54, 0.1);
+}
+
+.no-slides-message {
+    padding: 32px 20px;
+    text-align: center;
+    color: #999;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+/* Sortable.js specific styles for slides */
+.slide-item-ghost {
+    opacity: 0.4;
+    background: rgba(33, 150, 243, 0.1);
+}
+
+.slide-item-chosen {
+    background: rgba(33, 150, 243, 0.05);
+    border: 2px dashed rgba(33, 150, 243, 0.6);
+}
+
+.slide-item-drag {
+    opacity: 0.8;
+    cursor: grabbing !important;
+}
+
+/* Slide preview notification */
+.slide-preview-notification {
+    position: fixed;
+    top: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(33, 150, 243, 0.95);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    z-index: 10000;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    animation: slideInDown 0.3s ease;
+}
+
+.slide-preview-notification.fade-out {
+    animation: fadeOut 0.3s ease forwards;
+}
+
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+/* =====================================================
+   PRESENTATION MODE STYLES
+   ===================================================== */
+
+.presentation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.95);
+    z-index: 10000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.presentation-overlay.active {
+    display: flex;
+}
+
+.presentation-content {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.presentation-counter {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    z-index: 10001;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+}
+
+.presentation-counter.disabled {
+    opacity: 0.3;
+}
+
+.presentation-exit-hint {
+    position: fixed;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    z-index: 10001;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+    animation: fadeInOut 3s ease-in-out infinite;
+}
+
+@keyframes fadeInOut {
+    0%, 100% {
+        opacity: 0.3;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Hide UI elements during presentation */
+body.presentation-mode .sidebar,
+body.presentation-mode .toolbar,
+body.presentation-mode .categories-panel,
+body.presentation-mode .relationship-panel,
+body.presentation-mode .toggle-categories-btn,
+body.presentation-mode .toggle-relationship-btn {
+    display: none !important;
+}
+
+/* Ensure mindmap is centered and visible */
+body.presentation-mode #canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* Ensure categories and relationships render correctly in presentation */
+body.presentation-mode .category-indicator {
+    display: block;
+}
+
+body.presentation-mode .relationship-connection {
+    display: block;
+}
+
+/* =====================================================
+   SLIDE CAPTURE NOTIFICATION
+   ===================================================== */
+
+.slide-capture-notification {
+    position: fixed;
+    top: 80px;
+    right: 24px;
+    background: rgba(33, 150, 243, 0.95);
+    color: white;
+    padding: 16px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
+    transform: translateX(400px);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 320px;
+}
+
+.slide-capture-notification.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+.slide-capture-notification .notification-icon {
+    font-size: 24px;
+    line-height: 1;
+}
+
+.slide-capture-notification .notification-content {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.slide-capture-notification .notification-title {
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.slide-capture-notification .notification-description {
+    font-size: 12px;
+    opacity: 0.9;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 240px;
 }

@@ -145,24 +145,39 @@ class ProjectManager {
             }
 
             if (!projectData) {
-                // Create from scratch
+                // Create from scratch with v5.1 format
                 projectData = {
                     name: projectName,
                     nodes: [],
+                    nodeData: {}, // v5.1: nodeData for descriptions, notes, images, videos
                     metadata: {
                         created: new Date().toISOString(),
                         modified: new Date().toISOString(),
-                        version: '1.0'
+                        version: '5.1' // Latest version with video support
                     },
                     categories: [],
                     relationships: [],
-                    content: `${projectName}\n1. Main Idea\n* Subtopic 1\n* Subtopic 2`
+                    content: `${projectName}\n1. Main Idea\n* Subtopic 1\n* Subtopic 2`,
+                    presentation: {
+                        slides: [],
+                        created: new Date().toISOString(),
+                        modified: new Date().toISOString()
+                    }
                 };
             }
 
             // Update timestamps
             projectData.metadata.created = new Date().toISOString();
             projectData.metadata.modified = new Date().toISOString();
+
+            // Ensure presentation structure exists
+            if (!projectData.presentation) {
+                projectData.presentation = {
+                    slides: [],
+                    created: new Date().toISOString(),
+                    modified: new Date().toISOString()
+                };
+            }
 
             // Save project file
             fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2));
@@ -191,7 +206,10 @@ class ProjectManager {
             }
 
             const data = fs.readFileSync(projectPath, 'utf-8');
-            const projectData = JSON.parse(data);
+            let projectData = JSON.parse(data);
+
+            // Migrate project data to latest version
+            projectData = this.migrateProjectData(projectData);
 
             // Update metadata
             this.addToRecentProjects(projectPath);
@@ -203,6 +221,81 @@ class ProjectManager {
             console.error('Error loading project:', error);
             throw error;
         }
+    }
+
+    /**
+     * Migrate project data to the latest version
+     * Supports: v1.0 → v5.0 → v5.1
+     * @param {object} projectData - Raw project data
+     * @returns {object} - Migrated project data
+     */
+    migrateProjectData(projectData) {
+        const currentVersion = projectData.metadata?.version || projectData.version || '1.0';
+
+        // v1.0 to v5.0 migration (if needed)
+        if (currentVersion === '1.0') {
+            projectData = this.migrateV1ToV5(projectData);
+        }
+
+        // v5.0 to v5.1 migration (add videos support)
+        if (currentVersion === '5.0' || !projectData.metadata?.version || projectData.metadata.version === '5.0') {
+            projectData = this.migrateV5ToV5_1(projectData);
+        }
+
+        return projectData;
+    }
+
+    /**
+     * Migrate v1.0 to v5.0 (existing migration)
+     * @param {object} projectData - v1.0 project data
+     * @returns {object} - v5.0 project data
+     */
+    migrateV1ToV5(projectData) {
+        // Ensure presentation data structure exists
+        if (!projectData.presentation) {
+            projectData.presentation = {
+                slides: [],
+                created: new Date().toISOString(),
+                modified: new Date().toISOString()
+            };
+        }
+
+        // Update version
+        if (!projectData.metadata) {
+            projectData.metadata = {};
+        }
+        projectData.metadata.version = '5.0';
+
+        return projectData;
+    }
+
+    /**
+     * Migrate v5.0 to v5.1 (add videos field)
+     * @param {object} projectData - v5.0 project data
+     * @returns {object} - v5.1 project data
+     */
+    migrateV5ToV5_1(projectData) {
+        // Ensure nodeData exists
+        if (!projectData.nodeData) {
+            projectData.nodeData = {};
+        }
+
+        // Add empty videos array to each node in nodeData if missing
+        Object.keys(projectData.nodeData).forEach(nodeId => {
+            if (!projectData.nodeData[nodeId].videos) {
+                projectData.nodeData[nodeId].videos = [];
+            }
+        });
+
+        // Update version
+        if (!projectData.metadata) {
+            projectData.metadata = {};
+        }
+        projectData.metadata.version = '5.1';
+
+        console.log('Migrated project to v5.1 (video support enabled)');
+
+        return projectData;
     }
 
     /**
@@ -218,6 +311,11 @@ class ProjectManager {
                 projectData.metadata = {};
             }
             projectData.metadata.modified = new Date().toISOString();
+
+            // Update presentation modified timestamp if presentation data exists
+            if (projectData.presentation && projectData.presentation.slides && projectData.presentation.slides.length > 0) {
+                projectData.presentation.modified = new Date().toISOString();
+            }
 
             // Save to disk
             fs.writeFileSync(projectPath, JSON.stringify(projectData, null, 2));
@@ -459,6 +557,38 @@ class ProjectManager {
      */
     getLastOpenedProject() {
         return this.metadata.lastOpened;
+    }
+
+    /**
+     * Ensure .media/ folder exists for external video/image storage
+     * @param {string} projectPath - Full path to project file
+     * @returns {string} - Path to media folder
+     */
+    ensureMediaFolder(projectPath) {
+        try {
+            const projectDir = path.dirname(projectPath);
+            const mediaDir = path.join(projectDir, '.media');
+
+            if (!fs.existsSync(mediaDir)) {
+                fs.mkdirSync(mediaDir, { recursive: true });
+                console.log(`Created .media folder: ${mediaDir}`);
+            }
+
+            return mediaDir;
+        } catch (error) {
+            console.error('Error ensuring media folder:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Get path to .media/ folder for a project
+     * @param {string} projectPath - Full path to project file
+     * @returns {string} - Path to media folder
+     */
+    getMediaFolder(projectPath) {
+        const projectDir = path.dirname(projectPath);
+        return path.join(projectDir, '.media');
     }
 }
 

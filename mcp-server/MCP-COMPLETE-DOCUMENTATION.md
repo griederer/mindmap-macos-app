@@ -16,6 +16,13 @@
 9. [Troubleshooting](#troubleshooting)
 10. [Changelog](#changelog)
 
+## Related Documentation
+
+- **[SCHEMA.md](../SCHEMA.md)** - Complete `.pmap` file format specification
+- **[ARCHITECTURE.md](../ARCHITECTURE.md)** - Technical architecture and system design
+- **[CONTRIBUTING.md](../CONTRIBUTING.md)** - Developer guide and contribution workflow
+- **[README.md](../README.md)** - Main project documentation
+
 ---
 
 ## Overview

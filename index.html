@@ -64,6 +64,13 @@
                 <button class="btn" id="exportDataBtn" title="Exportar">
                     <i data-lucide="download" style="width: 16px; height: 16px;"></i>
                 </button>
+                <button class="btn" id="addSlideBtn" title="Capturar Slide Actual">
+                    📸
+                </button>
+                <span class="slide-counter" id="slideCounter" style="display: none; margin-left: 8px; font-size: 12px; color: #666;">0 slides</span>
+                <button class="btn" id="presentBtn" title="Iniciar Presentación" style="display: none;">
+                    ▶️
+                </button>
             </div>
         </div>
 
@@ -279,6 +286,23 @@
                 <div class="uploaded-images" id="modalImages"></div>
             </div>
 
+            <div class="upload-section">
+                <label>🎥 Videos (max 30s, 10MB)</label>
+                <label class="upload-label" for="videoUpload">
+                    📹 Cargar Video
+                </label>
+                <input type="file" id="videoUpload" accept="video/mp4,video/webm" multiple>
+
+                <div class="upload-progress" id="videoUploadProgress" style="display: none;">
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="videoProgressFill"></div>
+                    </div>
+                    <span class="progress-text" id="videoProgressText">0%</span>
+                </div>
+
+                <div class="uploaded-videos" id="modalVideos"></div>
+            </div>
+
             <button class="save-btn" id="saveNodeBtn">💾 Guardar Cambios</button>
         </div>
     </div>
@@ -452,6 +476,26 @@
         🔗
     </button>
 
+    <!-- Slides Panel -->
+    <div class="categories-panel hidden" id="slidesPanel">
+        <div class="categories-header">
+            <h3>Slides de Presentación</h3>
+            <div class="categories-header-buttons">
+                <button class="panel-collapse-btn" id="collapseSlidesPanel" title="Colapsar panel">◀</button>
+                <button class="panel-close-btn" id="closeSlidesPanel">✕</button>
+            </div>
+        </div>
+
+        <div class="slides-list" id="slidesList">
+            <!-- Slides will be rendered dynamically -->
+        </div>
+    </div>
+
+    <!-- Toggle Slides Button -->
+    <button class="toggle-categories-btn" id="toggleSlidesPanel" title="Mostrar/Ocultar Slides" style="top: 320px;">
+        🎬
+    </button>
+
     <!-- Relationship Edit Modal -->
     <div class="modal-overlay" id="relationshipModalOverlay"></div>
     <div class="edit-modal category-edit-modal" id="relationshipEditModal">
@@ -498,16 +542,32 @@
         </div>
     </div>
 
+    <!-- Presentation Mode Overlay -->
+    <div class="presentation-overlay" id="presentationOverlay">
+        <div class="presentation-content" id="presentationContent">
+            <!-- Mindmap will be displayed here -->
+        </div>
+        <div class="presentation-counter" id="presentationCounter">1/1</div>
+        <div class="presentation-exit-hint">Presiona ESC para salir</div>
+    </div>
+
+    <!-- External Libraries -->
+    <script src="node_modules/sortablejs/Sortable.min.js"></script>
+
     <!-- Manager Classes (Centralized State Management) -->
     <script src="src/managers/state-manager.js"></script>
     <script src="src/managers/category-manager.js"></script>
     <script src="src/managers/relationship-manager.js"></script>
     <script src="src/managers/image-manager.js"></script>
+    <script src="src/managers/video-manager.js"></script>
     <script src="src/managers/manager-integration.js"></script>
 
     <!-- Application Scripts -->
     <script src="node-reorder-manager.js"></script>
     <script src="renderer-project-manager.js"></script>
+    <script src="animation-engine.js"></script>
+    <script src="presentation-manager.js"></script>
+    <script src="presentation-ui.js"></script>
     <script src="renderer.js"></script>
     <script src="mindmap-engine.js"></script>
     <script>

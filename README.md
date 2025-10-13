@@ -1,14 +1,39 @@
-# PWC Mindmap Pro v4.0 - Professional Mindmap Editor for macOS
+# PWC Mindmap Pro v5.1 - Professional Mindmap Editor for macOS
 
-**Version**: 4.0.0
-**Release Date**: October 7, 2025
+**Version**: 5.1.0
+**Release Date**: October 13, 2025
 **Author**: Gonzalo Riederer
 
-A sophisticated, native-feeling mindmap application for macOS built with Electron, featuring smooth animations, Canvas-based connections, MCP integration, and extensive customization options.
+A sophisticated, native-feeling mindmap application for macOS built with Electron, featuring smooth animations, Canvas-based connections, video support, MCP integration, and extensive customization options.
 
 ---
 
-## 🎉 What's New in v4.0.0
+## 🎉 What's New in v5.1.0
+
+### 🎥 Video Loop Control
+
+- ✅ **Video Loop Toggle** - Control automatic video looping for each uploaded video
+- ✅ **Per-Video Settings** - Each video has independent loop configuration
+- ✅ **Persistent State** - Loop preference saved with project data
+- ✅ **UI Controls** - Checkbox in edit modal for easy configuration
+
+### 📦 Technical Improvements
+
+- ✅ **Auto-Migration** - Projects automatically upgrade from v5.0 to v5.1
+- ✅ **Enhanced VideoManager** - Added `setVideoLoop()` method with proper state management
+- ✅ **Video Rendering** - Info panel respects loop attribute for seamless playback
+
+---
+
+## 🎬 What's New in v5.0.0
+
+### 🎥 Video Support
+
+- ✅ **Video Upload** - Attach MP4/WebM videos to any node (max 30s, 10MB)
+- ✅ **Smart Storage** - Hybrid system: <2MB embedded, ≥2MB external in `.media/` folder
+- ✅ **Thumbnail Generation** - Automatic thumbnail creation from video frames
+- ✅ **Video Playback** - Full player controls in node info panels
+- ✅ **Progress Feedback** - Real-time upload progress with validation
 
 ### 🎯 Major Fixes & Improvements
 
@@ -18,7 +43,7 @@ A sophisticated, native-feeling mindmap application for macOS built with Electro
 - ✅ **Real-time Sync** - Projects automatically appear when created via MCP server
 - ✅ **Enhanced Metadata** - Complete `.metadata.json` tracking for recent projects and favorites
 
-### 🚀 New Features
+### 🚀 Core Features (v4.0+)
 
 - **MCP Server v4.0.0** - Complete natural language mindmap creation and management
 - **Unsplash Integration** - Search and attach images to nodes via MCP
@@ -40,11 +65,13 @@ A sophisticated, native-feeling mindmap application for macOS built with Electro
 ### 🧠 **Advanced Mindmap Functionality**
 - **Hierarchical node structure** with unlimited depth
 - **Expandable/collapsible branches** for focus management
-- **Rich node content** with descriptions, notes, and images
+- **Rich node content** with descriptions, notes, images, and videos
 - **Info Panel System** - Toggle detailed information for each node
   - Primary description (auto-imported from outline)
   - Optional additional notes
   - Image attachments with thumbnail preview
+  - Video attachments with playback controls (NEW in v5.0)
+  - Video loop control for continuous playback (NEW in v5.1)
   - Unsplash image search integration
 - **Smooth curved connections** drawn with Canvas for optimal performance
 - **Drag-to-pan** and **zoom with ⌘+scroll**
@@ -70,9 +97,11 @@ A sophisticated, native-feeling mindmap application for macOS built with Electro
 ### 📁 **File Support**
 - **Import**: Markdown (.md), Text (.txt), JSON (.json), PWC Mindmap (.pmap)
 - **Export**: JSON, PWC Mindmap format, Image (PNG/SVG)
+- **Media**: MP4/WebM videos (max 30s, 10MB), Images via Unsplash
 - **Auto-save** functionality with save status indicator
 - **Recent files** menu integration
 - **Metadata tracking** - Recent projects, favorites, last opened
+- **Smart storage** - Hybrid video storage (embedded <2MB, external ≥2MB)
 
 ### ⌨️ **Keyboard Shortcuts**
 - `⌘+N` - New mindmap
@@ -180,6 +209,9 @@ and assign it to "Risk Assessment"
 - **[MCP Complete Documentation](mcp-server/MCP-COMPLETE-DOCUMENTATION.md)** - Full API reference with examples
 - **[Natural Language Guide](mcp-server/NATURAL-LANGUAGE-GUIDE.md)** - Conversational interface guide
 - **[MCP Server README](mcp-server/README.md)** - Quick start and overview
+- **[SCHEMA.md](SCHEMA.md)** - Complete `.pmap` file format specification
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Technical architecture and system design
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** - Developer guide and contribution workflow
 
 ---
 
@@ -258,9 +290,10 @@ The built app will be in the `dist/` folder.
 
 ## Data Format
 
-### .pmap File Structure (v4.0)
+### .pmap File Structure (v5.1)
 ```json
 {
+  "formatVersion": "5.1",
   "name": "Cloud Security",
   "content": "Cloud Security\n1. Identity Management\n* Multi-Factor Auth",
   "nodes": {
@@ -272,6 +305,18 @@ The built app will be in the `dist/` folder.
           "url": "https://images.unsplash.com/...",
           "thumb": "https://...",
           "photographer": "John Doe"
+        }
+      ],
+      "videos": [
+        {
+          "url": "data:video/mp4;base64,...",
+          "thumbnail": "data:image/jpeg;base64,...",
+          "filename": "demo.mp4",
+          "size": 1887436,
+          "duration": 8.0,
+          "storageType": "embedded",
+          "addedAt": "2025-10-13T19:00:00.000Z",
+          "loop": false
         }
       ],
       "showInfo": false
@@ -414,7 +459,9 @@ tail -f ~/Documents/"PWC Mindmaps"/.mcp-server.log
 
 ## Roadmap
 
-### ✅ Completed (v4.0)
+### ✅ Completed (v5.1)
+- [x] Video upload with smart storage (v5.0)
+- [x] Video loop control (v5.1)
 - [x] MCP server for Claude Code integration
 - [x] Natural language mindmap creation
 - [x] Unsplash image integration
@@ -423,12 +470,14 @@ tail -f ~/Documents/"PWC Mindmaps"/.mcp-server.log
 - [x] Fixed project selector
 - [x] Dynamic project loading
 
-### 🔄 In Progress
-- [ ] Export to PNG/SVG/PDF
+### 🔄 In Progress (v5.2)
+- [ ] Audio attachment support
+- [ ] External video storage implementation
 - [ ] Advanced search and filtering
-- [ ] Templates library
 
 ### 📋 Planned
+- [ ] Export to PNG/SVG/PDF
+- [ ] Templates library
 - [ ] Real-time collaboration
 - [ ] Cloud synchronization
 - [ ] Presentation mode
@@ -440,23 +489,37 @@ tail -f ~/Documents/"PWC Mindmaps"/.mcp-server.log
 
 ## Contributing
 
-We welcome contributions! Please follow these steps:
+We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed guidelines on:
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes
-4. Add tests for new functionality
-5. Ensure all tests pass (`npm test`)
-6. Commit your changes (`git commit -m 'Add amazing feature'`)
-7. Push to the branch (`git push origin feature/amazing-feature`)
-8. Open a Pull Request
+- 🚀 **Development Setup** - Getting started with local development
+- 📁 **Project Structure** - Understanding the codebase
+- 💻 **Coding Standards** - JavaScript style guide and best practices
+- 🧪 **Testing Guidelines** - Writing and running tests
+- 📝 **Commit Guidelines** - Conventional commits format
+- 🔄 **Pull Request Process** - How to submit changes
+- 🎯 **Code Review** - What to expect during review
 
-### Development Guidelines
+### Quick Start for Contributors
 
-- Follow existing code style
-- Add tests for new features
-- Update documentation
-- Keep commits atomic and descriptive
+```bash
+# 1. Fork and clone
+git clone https://github.com/YOUR_USERNAME/mindmap-macos-app.git
+cd mindmap-macos-app
+
+# 2. Install dependencies
+npm install && cd mcp-server && npm install && cd ..
+
+# 3. Create feature branch
+git checkout -b feature/your-feature-name
+
+# 4. Start development
+npm start
+
+# 5. Run tests
+npm test
+```
+
+For full details, see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
 ---
 
@@ -505,4 +568,4 @@ SOFTWARE.
 
 **Built with ❤️ for PWC and the productivity community**
 
-**Version 4.0.0** - *"The Dynamic Project Era"*
+**Version 5.1.0** - *"The Video Loop Era"*
