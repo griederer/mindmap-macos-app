@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Video Upload - PWC Mindmap Pro</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .test-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #dc6900;
+            margin-bottom: 10px;
+        }
+
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-weight: 500;
+        }
+
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status.info {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .upload-section {
+            margin: 30px 0;
+            padding: 20px;
+            border: 2px dashed #dc6900;
+            border-radius: 8px;
+            background: #fef5f1;
+        }
+
+        .upload-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #f5b895, #f9c9a8);
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform 0.2s;
+        }
+
+        .upload-label:hover {
+            transform: translateY(-2px);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .video-preview {
+            margin-top: 20px;
+        }
+
+        .video-item {
+            background: white;
+            border: 2px solid rgba(220, 105, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+
+        .video-thumbnail {
+            width: 100%;
+            max-width: 300px;
+            height: auto;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+
+        .video-metadata {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .video-player {
+            margin-top: 20px;
+        }
+
+        .video-player video {
+            width: 100%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(220, 105, 0, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 15px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #f5b895, #f9c9a8);
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        .info-box {
+            background: #f0f8ff;
+            border-left: 4px solid #dc6900;
+            padding: 15px;
+            margin: 20px 0;
+        }
+
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🎥 Test Video Upload Feature</h1>
+        <p>Testing video upload functionality for PWC Mindmap Pro v5.1</p>
+
+        <div class="info-box">
+            <strong>Video Requirements:</strong><br>
+            • Max size: 10 MB<br>
+            • Max duration: 30 seconds<br>
+            • Formats: MP4, WebM<br>
+            • Storage: Embedded (&lt;2MB) or External (≥2MB)
+        </div>
+
+        <div id="statusMessage"></div>
+
+        <div class="upload-section">
+            <label class="upload-label" for="videoUpload">
+                📹 Select Video File
+            </label>
+            <input type="file" id="videoUpload" accept="video/mp4,video/webm">
+
+            <div class="progress-bar" id="progressBar" style="display: none;">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div id="videoPreview" class="video-preview"></div>
+
+        <div id="videoPlayer" class="video-player"></div>
+    </div>
+
+    <!-- Load VideoManager -->
+    <script src="src/managers/video-manager.js"></script>
+
+    <script>
+        // Initialize VideoManager
+        const videoManager = new VideoManager();
+        const testNodeId = 'test-node-1';
+
+        let statusDiv = document.getElementById('statusMessage');
+        let progressBar = document.getElementById('progressBar');
+        let progressFill = document.getElementById('progressFill');
+        let previewDiv = document.getElementById('videoPreview');
+        let playerDiv = document.getElementById('videoPlayer');
+
+        function showStatus(message, type = 'info') {
+            statusDiv.innerHTML = `<div class="status ${type}">${message}</div>`;
+        }
+
+        function updateProgress(percent) {
+            progressBar.style.display = 'block';
+            progressFill.style.width = percent + '%';
+            if (percent >= 100) {
+                setTimeout(() => {
+                    progressBar.style.display = 'none';
+                    progressFill.style.width = '0%';
+                }, 500);
+            }
+        }
+
+        document.getElementById('videoUpload').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            showStatus('⏳ Processing video...', 'info');
+            updateProgress(10);
+
+            try {
+                // 1. Validate video
+                updateProgress(20);
+                const validation = await videoManager.validateVideo(file);
+
+                if (!validation.valid) {
+                    showStatus('❌ Error: ' + validation.error, 'error');
+                    updateProgress(0);
+                    return;
+                }
+
+                showStatus('✅ Validation passed!', 'success');
+                updateProgress(40);
+
+                // 2. Generate thumbnail
+                const thumbnail = await videoManager.generateThumbnail(file);
+                updateProgress(60);
+
+                // 3. Determine storage type
+                const storageType = videoManager.determineStorageType(file.size);
+                const storageText = storageType === 'embedded' ?
+                    '📦 Embedded (base64)' : '💾 External (.media/)';
+
+                // 4. Get metadata
+                const duration = await videoManager.getVideoDuration(file);
+                const durationStr = videoManager.formatDuration(duration);
+                const sizeStr = videoManager.formatFileSize(file.size);
+
+                updateProgress(80);
+
+                // 5. Convert to base64 (for display)
+                const videoUrl = await videoManager.fileToBase64(file);
+
+                // 6. Add to VideoManager
+                const videoData = {
+                    url: videoUrl,
+                    thumbnail: thumbnail,
+                    filename: file.name,
+                    duration: duration,
+                    size: file.size,
+                    storageType: storageType,
+                    uploadedAt: new Date().toISOString()
+                };
+
+                videoManager.addVideo(testNodeId, videoData);
+                updateProgress(100);
+
+                // 7. Display results
+                showStatus(`✅ Video uploaded successfully!<br>
+                    📁 File: <code>${file.name}</code><br>
+                    ⏱️ Duration: <strong>${durationStr}</strong><br>
+                    📏 Size: <strong>${sizeStr}</strong><br>
+                    💾 Storage: <strong>${storageText}</strong>`, 'success');
+
+                // Show thumbnail preview
+                previewDiv.innerHTML = `
+                    <div class="video-item">
+                        <h3>Thumbnail Preview:</h3>
+                        <img src="${thumbnail}" class="video-thumbnail" alt="Video thumbnail">
+                        <div class="video-metadata">
+                            <strong>${file.name}</strong><br>
+                            ${durationStr} • ${sizeStr}
+                        </div>
+                    </div>
+                `;
+
+                // Show video player
+                playerDiv.innerHTML = `
+                    <div class="video-item">
+                        <h3>Video Playback (Info Panel View):</h3>
+                        <video src="${videoUrl}" controls preload="metadata">
+                            Your browser doesn't support video playback.
+                        </video>
+                        <div class="video-metadata">
+                            This is how the video would appear in the node info panel
+                        </div>
+                    </div>
+                `;
+
+                // Log to console
+                console.log('✅ Video added successfully:', videoData);
+                console.log('📊 Total videos for node:', videoManager.getNodeVideos(testNodeId).length);
+
+            } catch (error) {
+                console.error('Error processing video:', error);
+                showStatus('❌ Error processing video: ' + error.message, 'error');
+                updateProgress(0);
+            }
+
+            e.target.value = ''; // Reset input
+        });
+
+        // Show initial status
+        showStatus('Ready to upload video. Select a file to begin.', 'info');
+    </script>
+</body>
+</html>

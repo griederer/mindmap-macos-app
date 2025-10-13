@@ -510,6 +510,11 @@ class MindmapRenderer {
             this.handleImageUpload(e.target);
         });
 
+        // Video upload
+        document.getElementById('videoUpload').addEventListener('change', (e) => {
+            this.handleVideoUpload(e.target);
+        });
+
         // Context menu events
         document.getElementById('contextEdit').addEventListener('click', () => {
             if (window.contextNodeId && window.contextNodeTitle) {
@@ -1811,6 +1816,104 @@ class MindmapRenderer {
                 reader.readAsDataURL(file);
             });
         }
+        input.value = ''; // Reset input
+    }
+
+    async handleVideoUpload(input) {
+        if (!input.files || !window.currentEditingNode) return;
+
+        const files = Array.from(input.files);
+        const nodeId = window.currentEditingNode;
+
+        // Show progress indicator
+        const progressContainer = document.getElementById('videoUploadProgress');
+        const progressFill = document.getElementById('videoProgressFill');
+        const progressText = document.getElementById('videoProgressText');
+
+        progressContainer.style.display = 'block';
+
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+
+            // Update progress
+            const progress = Math.round(((i + 1) / files.length) * 100);
+            progressFill.style.width = `${progress}%`;
+            progressText.textContent = `${progress}%`;
+
+            // Validate video
+            const validation = await window.videoManager.validateVideo(file);
+            if (!validation.valid) {
+                alert(`Error en ${file.name}: ${validation.error}`);
+                continue;
+            }
+
+            try {
+                // Generate thumbnail
+                const thumbnail = await window.videoManager.generateThumbnail(file);
+
+                // Determine storage type
+                const storageType = window.videoManager.determineStorageType(file.size);
+
+                // Get video metadata
+                const duration = await window.videoManager.getVideoDuration(file);
+
+                let videoUrl;
+                let externalPath = null;
+
+                if (storageType === 'embedded') {
+                    // Convert to base64
+                    videoUrl = await window.videoManager.fileToBase64(file);
+                } else {
+                    // External storage - generate hash for filename
+                    const hash = await window.videoManager.generateFileHash(file);
+                    const ext = file.name.split('.').pop();
+                    const filename = `${hash}.${ext}`;
+
+                    // Store file reference (actual file saving handled by ProjectManager on save)
+                    videoUrl = `file://.media/${filename}`;
+                    externalPath = `.media/${filename}`;
+
+                    // TODO: Save actual file to .media/ folder
+                    // This will be implemented in the save workflow
+                }
+
+                // Add video to VideoManager
+                const videoData = {
+                    url: videoUrl,
+                    thumbnail: thumbnail,
+                    filename: file.name,
+                    duration: duration,
+                    size: file.size,
+                    storageType: storageType,
+                    uploadedAt: new Date().toISOString(),
+                    loop: false // Default: loop disabled
+                };
+
+                if (externalPath) {
+                    videoData.externalPath = externalPath;
+                }
+
+                window.videoManager.addVideo(nodeId, videoData);
+
+            } catch (error) {
+                console.error('Error uploading video:', error);
+                alert(`Error procesando ${file.name}: ${error.message}`);
+            }
+        }
+
+        // Hide progress indicator
+        setTimeout(() => {
+            progressContainer.style.display = 'none';
+            progressFill.style.width = '0%';
+            progressText.textContent = '0%';
+        }, 500);
+
+        // Update modal to show uploaded videos
+        const node = window.mindmapEngine.findNode(nodeId, window.mindmapEngine.nodes);
+        if (node) {
+            window.mindmapEngine.editNode(nodeId, node.title);
+        }
+
         input.value = ''; // Reset input
     }
 
