@@ -439,9 +439,23 @@ class MindmapEngine {
                             const y2 = pos2.y;
 
                             this.ctx.save();
-                            this.ctx.strokeStyle = relationship.color;
-                            this.ctx.globalAlpha = 0.4;
-                            this.ctx.lineWidth = 2;
+
+                            // ✨ Enhanced visibility: Adaptive line width (3-4px) and higher opacity
+                            const baseLineWidth = 3.5;
+                            const adaptiveLineWidth = Math.max(baseLineWidth, 4 / this.scale);
+
+                            // ✨ Enhance color saturation for better visibility
+                            const enhancedColor = this.enhanceColorSaturation(relationship.color, 1.3);
+
+                            // ✨ Add shadow/glow effect for depth
+                            this.ctx.shadowColor = enhancedColor;
+                            this.ctx.shadowBlur = 8;
+                            this.ctx.shadowOffsetX = 0;
+                            this.ctx.shadowOffsetY = 0;
+
+                            this.ctx.strokeStyle = enhancedColor;
+                            this.ctx.globalAlpha = 0.75;  // Increased from 0.4 to 0.75
+                            this.ctx.lineWidth = adaptiveLineWidth;  // Increased from 2 to 3.5-4px
                             this.ctx.lineCap = 'round';
                             this.ctx.setLineDash(relationship.dashPattern || []);
 
@@ -449,6 +463,48 @@ class MindmapEngine {
                             this.ctx.moveTo(x1, y1);
                             this.ctx.lineTo(x2, y2);
                             this.ctx.stroke();
+
+                            // Reset shadow for label
+                            this.ctx.shadowBlur = 0;
+
+                            // ✨ Draw relationship label in the center of the line
+                            if (relationship.name) {
+                                const midX = (x1 + x2) / 2;
+                                const midY = (y1 + y2) / 2;
+
+                                // Measure text dimensions
+                                this.ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
+                                const textMetrics = this.ctx.measureText(relationship.name);
+                                const textWidth = textMetrics.width;
+                                const textHeight = 11;
+
+                                // Draw semi-transparent background
+                                const padding = 4;
+                                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                                this.ctx.fillRect(
+                                    midX - textWidth / 2 - padding,
+                                    midY - textHeight / 2 - padding,
+                                    textWidth + padding * 2,
+                                    textHeight + padding * 2
+                                );
+
+                                // Draw border around label
+                                this.ctx.strokeStyle = enhancedColor;
+                                this.ctx.lineWidth = 1;
+                                this.ctx.setLineDash([]);
+                                this.ctx.strokeRect(
+                                    midX - textWidth / 2 - padding,
+                                    midY - textHeight / 2 - padding,
+                                    textWidth + padding * 2,
+                                    textHeight + padding * 2
+                                );
+
+                                // Draw text
+                                this.ctx.fillStyle = enhancedColor;
+                                this.ctx.textAlign = 'center';
+                                this.ctx.textBaseline = 'middle';
+                                this.ctx.fillText(relationship.name, midX, midY);
+                            }
 
                             this.ctx.restore();
                         }
@@ -1475,6 +1531,84 @@ class MindmapEngine {
                 closeLightbox();
             }
         });
+    }
+
+    /**
+     * Enhance color saturation for better visibility
+     * @param {string} color - Hex color code (e.g., "#ff6600")
+     * @param {number} factor - Saturation multiplier (1.0 = no change, >1.0 = more saturated)
+     * @returns {string} Enhanced hex color
+     */
+    enhanceColorSaturation(color, factor = 1.3) {
+        // Convert hex to RGB
+        let r, g, b;
+        if (color.startsWith('#')) {
+            const hex = color.slice(1);
+            r = parseInt(hex.slice(0, 2), 16);
+            g = parseInt(hex.slice(2, 4), 16);
+            b = parseInt(hex.slice(4, 6), 16);
+        } else if (color.startsWith('rgb')) {
+            const match = color.match(/\d+/g);
+            r = parseInt(match[0]);
+            g = parseInt(match[1]);
+            b = parseInt(match[2]);
+        } else {
+            return color; // Return original if format unknown
+        }
+
+        // Convert RGB to HSL
+        r /= 255;
+        g /= 255;
+        b /= 255;
+
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        let h, s, l = (max + min) / 2;
+
+        if (max === min) {
+            h = s = 0; // Achromatic
+        } else {
+            const d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+
+            switch (max) {
+                case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
+                case g: h = ((b - r) / d + 2) / 6; break;
+                case b: h = ((r - g) / d + 4) / 6; break;
+            }
+        }
+
+        // Enhance saturation
+        s = Math.min(1, s * factor);
+
+        // Convert HSL back to RGB
+        const hue2rgb = (p, q, t) => {
+            if (t < 0) t += 1;
+            if (t > 1) t -= 1;
+            if (t < 1/6) return p + (q - p) * 6 * t;
+            if (t < 1/2) return q;
+            if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        };
+
+        let r2, g2, b2;
+        if (s === 0) {
+            r2 = g2 = b2 = l; // Achromatic
+        } else {
+            const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+            const p = 2 * l - q;
+            r2 = hue2rgb(p, q, h + 1/3);
+            g2 = hue2rgb(p, q, h);
+            b2 = hue2rgb(p, q, h - 1/3);
+        }
+
+        // Convert to hex
+        const toHex = (x) => {
+            const hex = Math.round(x * 255).toString(16);
+            return hex.length === 1 ? '0' + hex : hex;
+        };
+
+        return `#${toHex(r2)}${toHex(g2)}${toHex(b2)}`;
     }
 }
 
