@@ -1566,9 +1566,13 @@ class MindmapRenderer {
             tag.appendChild(dashPreview);
             tag.appendChild(name);
 
-            tag.addEventListener('click', () => {
-                checkbox.checked = !checkbox.checked;
-                tag.classList.toggle('selected');
+            // Only toggle class when checkbox changes
+            checkbox.addEventListener('change', () => {
+                if (checkbox.checked) {
+                    tag.classList.add('selected');
+                } else {
+                    tag.classList.remove('selected');
+                }
             });
 
             selector.appendChild(tag);
