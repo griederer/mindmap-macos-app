@@ -216,7 +216,13 @@ class ProjectManager {
             });
 
             // ✨ v5.0 Migration: Convert v5.0 format to v4.0 compatible format
-            if (projectData.version === '5.0.0' && projectData.nodes && typeof projectData.nodes === 'object' && !Array.isArray(projectData.nodes)) {
+            // v5.0 format has: nodes (hierarchical tree), nodeData (flat dictionary), metadata.topic
+            // v4.0 format has: nodes (flat nodeData dictionary), content (outline text), name
+            const isV5Format = (projectData.version === '5.0.0' || projectData.version === '5.0') &&
+                             projectData.nodeData &&  // Has separate nodeData field
+                             typeof projectData.nodeData === 'object';
+
+            if (isV5Format) {
                 console.log('[v5.0 Migration] Detecting v5.0 format, converting to v4.0 compatible...');
                 projectData = this.migrateV5ToV4(projectData);
             }
@@ -250,18 +256,27 @@ class ProjectManager {
     migrateV5ToV4(v5Data) {
         console.log('[v5.0 Migration] Starting migration...');
 
-        // Use existing content field (which has the outline structure)
-        const content = v5Data.content || this.convertV5NodesToOutline(v5Data.nodes);
-        console.log('[v5.0 Migration] Content field:', content);
+        // Extract name from metadata.topic or use default
+        const name = v5Data.name || v5Data.metadata?.topic || 'Untitled Project';
+        console.log('[v5.0 Migration] Project name:', name);
+
+        // Convert hierarchical nodes tree to outline content text
+        const content = v5Data.content || this.convertV5HierarchyToOutline(v5Data.nodes);
+        console.log('[v5.0 Migration] Content length:', content?.length || 0);
 
         // Create ID mapping: v5 ID -> v4 ID (node-0, node-1, etc.)
+        // Collect all node IDs from the hierarchical tree
+        const allV5Ids = this.collectNodeIds(v5Data.nodes);
         const v5ToV4IdMap = {};
-        const nodeIds = Object.keys(v5Data.nodes);
-        nodeIds.forEach((v5Id, index) => {
+        allV5Ids.forEach((v5Id, index) => {
             v5ToV4IdMap[v5Id] = `node-${index}`;
         });
 
         console.log('[v5.0 Migration] ID Mapping:', v5ToV4IdMap);
+        console.log('[v5.0 Migration] Total nodes:', allV5Ids.length);
+
+        // Use v5.0 nodeData and remap IDs to v4 format
+        const v4NodeData = this.remapNodeDataIds(v5Data.nodeData || {}, v5ToV4IdMap);
 
         // ✨ Convert v5.0 relationships to v4.0 format (relationships + connections)
         const { relationships, connections } = this.convertV5RelationshipsToV4(
@@ -273,9 +288,9 @@ class ProjectManager {
 
         // Build v4.0 compatible structure
         const v4Data = {
-            name: v5Data.name,
+            name: name,
             content: content,
-            nodes: this.extractV5NodeDataWithMapping(v5Data.nodes, v5ToV4IdMap),
+            nodes: v4NodeData,  // This is the flat nodeData dictionary
             metadata: v5Data.metadata || {
                 created: new Date().toISOString(),
                 modified: new Date().toISOString(),
@@ -293,7 +308,13 @@ class ProjectManager {
         };
 
         console.log('[v5.0 Migration] Migration complete. Node count:', Object.keys(v4Data.nodes).length);
-        console.log('[v5.0 Migration] Migrated data:', v4Data);
+        console.log('[v5.0 Migration] Migrated data structure:', {
+            name: v4Data.name,
+            contentLength: v4Data.content.length,
+            nodeCount: Object.keys(v4Data.nodes).length,
+            categoryCount: v4Data.categories.length,
+            relationshipCount: v4Data.relationships.length
+        });
         return v4Data;
     }
 
@@ -417,6 +438,79 @@ class ProjectManager {
 
         console.log('[v5.0 Migration] Extracted node data:', nodeData);
         return nodeData;
+    }
+
+    /**
+     * Collect all node IDs from hierarchical tree structure
+     * @param {object} rootNode - Root node of the hierarchy
+     * @returns {string[]} - Array of all node IDs
+     */
+    collectNodeIds(rootNode) {
+        const ids = [];
+
+        const traverse = (node) => {
+            if (!node) return;
+            if (node.id) ids.push(node.id);
+            if (node.children && Array.isArray(node.children)) {
+                node.children.forEach(child => traverse(child));
+            }
+        };
+
+        traverse(rootNode);
+        return ids;
+    }
+
+    /**
+     * Convert hierarchical v5.0 nodes structure to outline text
+     * @param {object} rootNode - Root node with children
+     * @returns {string} - Outline format text
+     */
+    convertV5HierarchyToOutline(rootNode) {
+        if (!rootNode) return 'Empty Project';
+
+        const lines = [];
+
+        const traverse = (node, level = 0) => {
+            if (!node) return;
+
+            if (level === 0) {
+                // Root node
+                lines.push(node.title || 'Untitled');
+            } else {
+                // Child nodes with numbering
+                const indent = '\t'.repeat(level - 1);
+                const counter = level === 1 ? `${lines.length}. ` : '* ';
+                lines.push(`${indent}${counter}${node.title || 'Untitled'}`);
+            }
+
+            if (node.children && Array.isArray(node.children)) {
+                node.children.forEach(child => traverse(child, level + 1));
+            }
+        };
+
+        traverse(rootNode);
+        return lines.join('\n');
+    }
+
+    /**
+     * Remap nodeData IDs from v5 to v4 format
+     * @param {object} nodeData - v5.0 nodeData object
+     * @param {object} idMap - Mapping from v5 IDs to v4 IDs
+     * @returns {object} - v4.0 nodeData with remapped IDs
+     */
+    remapNodeDataIds(nodeData, idMap) {
+        const remapped = {};
+
+        Object.keys(nodeData).forEach(v5Id => {
+            const v4Id = idMap[v5Id];
+            if (v4Id) {
+                remapped[v4Id] = nodeData[v5Id];
+            } else {
+                console.warn(`[v5.0 Migration] No v4 ID for v5 ID: ${v5Id}`);
+            }
+        });
+
+        return remapped;
     }
 
     /**

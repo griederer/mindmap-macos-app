@@ -407,8 +407,8 @@ class MindmapEngine {
 
         drawNodeConnections(this.nodes);
 
-        // ✨ v5.0: Draw relationship connections - SIMPLIFIED APPROACH
-        // If 2+ nodes share a relationshipId → draw line between them
+        // ✨ v5.0: Draw relationship connections - ELEGANT CURVED LINES
+        // If 2+ nodes share a relationshipId → draw smooth curve between them
         if (window.mindmapRenderer && window.mindmapRenderer.activeRelationships) {
             const activeRels = Array.from(window.mindmapRenderer.activeRelationships);
             const relationships = window.mindmapRenderer.relationships || [];
@@ -427,7 +427,7 @@ class MindmapEngine {
                     }
                 });
 
-                // Draw line between each pair of nodes
+                // Draw smooth curved line between each pair of nodes
                 for (let i = 0; i < nodesWithThisRel.length; i++) {
                     for (let j = i + 1; j < nodesWithThisRel.length; j++) {
                         const nodeId1 = nodesWithThisRel[i];
@@ -437,20 +437,82 @@ class MindmapEngine {
                         const pos2 = this.positions[nodeId2];
 
                         if (pos1 && pos2) {
-                            // Calculate center points
-                            const width1 = this.getNodeWidth(pos1.level);
-                            const width2 = this.getNodeWidth(pos2.level);
+                            // ✨ Find the relationship dots for these nodes
+                            const dot1 = document.querySelector(`.relationship-dot[data-node-id="${nodeId1}"][data-relationship-id="${relationshipId}"]`);
+                            const dot2 = document.querySelector(`.relationship-dot[data-node-id="${nodeId2}"][data-relationship-id="${relationshipId}"]`);
 
-                            const x1 = pos1.x + (width1 / 2);
-                            const y1 = pos1.y;
-                            const x2 = pos2.x + (width2 / 2);
-                            const y2 = pos2.y;
+                            let x1, y1, x2, y2;
+
+                            if (dot1 && dot2) {
+                                // Connect dot-to-dot (preferred)
+                                const dot1Rect = dot1.getBoundingClientRect();
+                                const dot2Rect = dot2.getBoundingClientRect();
+                                const containerRect = document.getElementById('nodesContainer').getBoundingClientRect();
+
+                                x1 = dot1Rect.left - containerRect.left + (dot1Rect.width / 2);
+                                y1 = dot1Rect.top - containerRect.top + (dot1Rect.height / 2);
+                                x2 = dot2Rect.left - containerRect.left + (dot2Rect.width / 2);
+                                y2 = dot2Rect.top - containerRect.top + (dot2Rect.height / 2);
+                            } else {
+                                // Fallback: connect node centers if dots not found
+                                const width1 = this.getNodeWidth(pos1.level);
+                                const width2 = this.getNodeWidth(pos2.level);
+
+                                x1 = pos1.x + (width1 / 2);
+                                y1 = pos1.y;
+                                x2 = pos2.x + (width2 / 2);
+                                y2 = pos2.y;
+                            }
+
+                            // Calculate distance and direction
+                            const dx = x2 - x1;
+                            const dy = y2 - y1;
+                            const distance = Math.sqrt(dx * dx + dy * dy);
+
+                            // ✨ Dynamic control points based on distance and orientation
+                            // For vertical connections (same or similar x), curve sideways
+                            // For horizontal connections, curve upward or downward
+                            const isVertical = Math.abs(dx) < 100;
+                            const isHorizontal = Math.abs(dy) < 100;
+
+                            let cp1x, cp1y, cp2x, cp2y;
+
+                            if (isVertical) {
+                                // Vertical connection - curve sideways (like a gentle 'S')
+                                const curvature = Math.min(distance * 0.3, 150);
+                                cp1x = x1 + curvature;
+                                cp1y = y1 + dy * 0.25;
+                                cp2x = x2 - curvature;
+                                cp2y = y2 - dy * 0.25;
+                            } else if (isHorizontal) {
+                                // Horizontal connection - curve upward/downward
+                                const curvature = Math.min(distance * 0.2, 100);
+                                const curveDirection = dy > 0 ? -1 : 1; // Curve opposite to direction
+                                cp1x = x1 + dx * 0.25;
+                                cp1y = y1 + curvature * curveDirection;
+                                cp2x = x2 - dx * 0.25;
+                                cp2y = y2 + curvature * curveDirection;
+                            } else {
+                                // Diagonal connection - smooth curve following the line
+                                const controlDistance = distance * 0.4;
+                                const angle = Math.atan2(dy, dx);
+                                const perpAngle = angle + Math.PI / 2;
+                                const offset = Math.min(distance * 0.15, 80);
+
+                                cp1x = x1 + Math.cos(angle) * controlDistance + Math.cos(perpAngle) * offset * 0.3;
+                                cp1y = y1 + Math.sin(angle) * controlDistance + Math.sin(perpAngle) * offset * 0.3;
+                                cp2x = x2 - Math.cos(angle) * controlDistance - Math.cos(perpAngle) * offset * 0.3;
+                                cp2y = y2 - Math.sin(angle) * controlDistance - Math.sin(perpAngle) * offset * 0.3;
+                            }
 
                             this.ctx.save();
+
+                            // ✨ Elegant styling
                             this.ctx.strokeStyle = relationship.color || '#999';
-                            this.ctx.globalAlpha = 0.6;
-                            this.ctx.lineWidth = 3;
+                            this.ctx.globalAlpha = 0.7; // Slightly more visible
+                            this.ctx.lineWidth = 3.5; // Thicker for elegance
                             this.ctx.lineCap = 'round';
+                            this.ctx.lineJoin = 'round';
 
                             // Parse dashPattern: "5,5" -> [5,5] or [] for solid
                             const dashPattern = relationship.dashPattern
@@ -461,28 +523,23 @@ class MindmapEngine {
 
                             this.ctx.setLineDash(dashPattern);
 
+                            // ✨ Draw smooth Bezier curve
                             this.ctx.beginPath();
                             this.ctx.moveTo(x1, y1);
-                            this.ctx.lineTo(x2, y2);
+                            this.ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x2, y2);
                             this.ctx.stroke();
 
-                            // Draw arrow at endpoint
-                            const angle = Math.atan2(y2 - y1, x2 - x1);
-                            const arrowSize = 10;
-                            this.ctx.setLineDash([]); // Solid arrow
-                            this.ctx.beginPath();
-                            this.ctx.moveTo(x2, y2);
-                            this.ctx.lineTo(
-                                x2 - arrowSize * Math.cos(angle - Math.PI / 6),
-                                y2 - arrowSize * Math.sin(angle - Math.PI / 6)
-                            );
-                            this.ctx.moveTo(x2, y2);
-                            this.ctx.lineTo(
-                                x2 - arrowSize * Math.cos(angle + Math.PI / 6),
-                                y2 - arrowSize * Math.sin(angle + Math.PI / 6)
-                            );
-                            this.ctx.stroke();
+                            // ✨ Optional: Add subtle glow effect for important relationships
+                            if (distance < 400) { // Only for nearby connections
+                                this.ctx.globalAlpha = 0.2;
+                                this.ctx.lineWidth = 8;
+                                this.ctx.beginPath();
+                                this.ctx.moveTo(x1, y1);
+                                this.ctx.bezierCurveTo(cp1x, cp1y, cp2x, cp2y, x2, y2);
+                                this.ctx.stroke();
+                            }
 
+                            // ✨ No endpoint dots needed - the relationship dots on nodes are the endpoints
                             this.ctx.restore();
                         }
                     }
@@ -642,6 +699,28 @@ class MindmapEngine {
                     nodeContent.appendChild(imageIndicator);
                 }
 
+                // ✨ Add relationship dots if node has relationships
+                if (nodeDataInfo.relationships && nodeDataInfo.relationships.length > 0 && window.mindmapRenderer) {
+                    const relationshipsContainer = document.createElement('div');
+                    relationshipsContainer.className = 'relationship-dots';
+                    relationshipsContainer.setAttribute('data-node-id', node.id);
+
+                    nodeDataInfo.relationships.forEach(relId => {
+                        const relationship = window.mindmapRenderer.relationships.find(r => r.id === relId);
+                        if (relationship) {
+                            const dot = document.createElement('div');
+                            dot.className = 'relationship-dot';
+                            dot.setAttribute('data-relationship-id', relId);
+                            dot.setAttribute('data-node-id', node.id);
+                            dot.style.backgroundColor = relationship.color || '#999';
+                            dot.title = relationship.name;
+                            relationshipsContainer.appendChild(dot);
+                        }
+                    });
+
+                    nodeContent.appendChild(relationshipsContainer);
+                }
+
                 // Add toggle if has children
                 if (hasChildren) {
                     const toggleSpan = document.createElement('span');
@@ -683,6 +762,37 @@ class MindmapEngine {
                 const toggleSpan = nodeContent.querySelector('.toggle-icon');
                 if (hasChildren && toggleSpan) {
                     toggleSpan.textContent = node.expanded ? '−' : '+';
+                }
+
+                // ✨ Update relationship dots for existing nodes
+                const nodeDataInfo = this.nodeData[node.id] || {};
+                let relationshipsContainer = nodeContent.querySelector('.relationship-dots');
+
+                // Remove existing dots container if it exists
+                if (relationshipsContainer) {
+                    relationshipsContainer.remove();
+                }
+
+                // Re-create dots if node has relationships
+                if (nodeDataInfo.relationships && nodeDataInfo.relationships.length > 0 && window.mindmapRenderer) {
+                    relationshipsContainer = document.createElement('div');
+                    relationshipsContainer.className = 'relationship-dots';
+                    relationshipsContainer.setAttribute('data-node-id', node.id);
+
+                    nodeDataInfo.relationships.forEach(relId => {
+                        const relationship = window.mindmapRenderer.relationships.find(r => r.id === relId);
+                        if (relationship) {
+                            const dot = document.createElement('div');
+                            dot.className = 'relationship-dot';
+                            dot.setAttribute('data-relationship-id', relId);
+                            dot.setAttribute('data-node-id', node.id);
+                            dot.style.backgroundColor = relationship.color || '#999';
+                            dot.title = relationship.name;
+                            relationshipsContainer.appendChild(dot);
+                        }
+                    });
+
+                    nodeContent.appendChild(relationshipsContainer);
                 }
             }
 

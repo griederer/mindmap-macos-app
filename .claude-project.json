@@ -1,0 +1,112 @@
+{
+  "name": "PWC Mindmap Pro",
+  "description": "Professional Mindmap Editor for macOS with relationship system v5.0",
+  "repository": "https://github.com/griederer/mindmap-macos-app",
+  "branch": "feature/v5.0-json-standardization",
+  "version": "4.0.0",
+  "type": "desktop",
+  "platform": "macos",
+  "framework": "electron",
+  "language": "javascript",
+  "created_date": "2025-10-11",
+  "project_root": "/Users/gonzaloriederer/Documents/GitHub/mindmap-macos-app",
+  "data_directory": "/Users/gonzaloriederer/Documents/PWC Mindmaps",
+  "context": {
+    "current_focus": "Fixing relationship system bugs in v5.0",
+    "critical_bugs": [
+      "Node counter showing 130 instead of 4 nodes",
+      "Data loading consistency causing crashes"
+    ],
+    "completed_fixes": [
+      "Checkbox double-toggle in edit modal",
+      "Relationship panel auto-refresh"
+    ],
+    "active_prd": "tasks/0001-prd-relationship-system-fixes.md",
+    "test_project": "/Users/gonzaloriederer/Documents/PWC Mindmaps/Test-Relaciones-Vacio.pmap"
+  },
+  "key_files": {
+    "main_process": "main.js",
+    "renderer": "renderer.js",
+    "engine": "mindmap-engine.js",
+    "project_manager": "project-manager.js",
+    "ui": "index.html",
+    "styles": "styles.css"
+  },
+  "documentation": {
+    "architecture": "ARCHITECTURE.md",
+    "handoff_context": "CLAUDE-HANDOFF-CONTEXT.md",
+    "vscode_setup": "VSCODE-SETUP-COMPLETE.md",
+    "development_guide": "README-v5.0-DEVELOPMENT.md",
+    "contributing": "CONTRIBUTING.md",
+    "prds": "tasks/",
+    "bugs": "docs/bugs/",
+    "architecture_docs": "docs/architecture/"
+  },
+  "commands": {
+    "start": "npm start",
+    "dev": "npm run dev",
+    "test": "npm test",
+    "build": "npm run build",
+    "dist": "npm run dist"
+  },
+  "testing": {
+    "framework": "jest",
+    "coverage_target": "80%",
+    "test_files": "__tests__/",
+    "test_project": "Test-Relaciones-Vacio.pmap"
+  },
+  "development_workflow": {
+    "methodology": "TDD with ai-dev-tasks workflow",
+    "task_tracking": "TodoWrite tool + markdown task lists",
+    "commit_style": "conventional commits",
+    "approval_mode": "auto-approve enabled"
+  },
+  "known_issues": {
+    "node_counter_bug": {
+      "location": "renderer.js:2449",
+      "symptom": "Shows 130 nodes instead of 4",
+      "root_cause": "Loading projectData.nodes into nodeData property",
+      "fix_status": "attempted but caused crash - needs investigation"
+    },
+    "data_loading_crash": {
+      "location": "renderer.js:2449",
+      "fix_attempted": "projectData.nodeData instead of projectData.nodes",
+      "result": "app crashes on startup",
+      "needs_investigation": true
+    }
+  },
+  "phases": {
+    "phase_1": {
+      "name": "Critical Bugs",
+      "duration": "Week 1",
+      "status": "in_progress",
+      "tasks": [
+        "FR-002: Data loading consistency",
+        "FR-001: Node counter fix",
+        "FR-004: localStorage management",
+        "Unit tests for fixes"
+      ]
+    },
+    "phase_2": {
+      "name": "Validation",
+      "duration": "Week 2",
+      "status": "pending",
+      "tasks": [
+        "FR-005: Relationship workflow validation",
+        "FR-003: Initialization sequence",
+        "Integration tests",
+        "User testing"
+      ]
+    },
+    "phase_3": {
+      "name": "Polish",
+      "duration": "Week 3",
+      "status": "pending"
+    },
+    "phase_4": {
+      "name": "Testing & Release",
+      "duration": "Week 4",
+      "status": "pending"
+    }
+  }
+}

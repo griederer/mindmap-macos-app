@@ -2612,3 +2612,30 @@ body.presentation-mode .relationship-connection {
     background: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
     color: #2D2926;
 }
+
+/* ✨ Relationship Dots - Visual indicators for node relationships */
+.relationship-dots {
+    position: absolute;
+    right: 38px; /* Right side, before toggle icon */
+    top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    gap: 4px;
+    z-index: 10;
+    flex-direction: row;
+}
+
+.relationship-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    border: 1.5px solid white;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.relationship-dot:hover {
+    transform: scale(1.4);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.25);
+}

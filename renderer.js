@@ -352,23 +352,315 @@ class MindmapRenderer {
         this.setupRelationshipsPanel();
         // Projects will be loaded after ProjectManager is initialized in DOMContentLoaded
         this.loadCategories();
-        this.loadRelationships();
+        // ❌ REMOVED: Don't load relationships from global localStorage
+        // Relationships are loaded from project file in loadProject() (line 2790-2793)
+    }
+
+    /**
+     * FR-003: Clear stale data from memory and localStorage
+     * Called before loading a new project to prevent data corruption
+     */
+    clearStaleData() {
+        console.log('[ClearStaleData] Clearing stale localStorage and memory...');
+
+        // 1. Clear mindmap engine data
+        if (window.mindmapEngine) {
+            window.mindmapEngine.nodes = null;
+            window.mindmapEngine.nodeData = {};
+            window.mindmapEngine.positions = {};
+            window.mindmapEngine.selectedNode = null;
+            window.mindmapEngine.focusedNodeId = null;
+
+            // Clear canvas
+            if (window.mindmapEngine.ctx) {
+                window.mindmapEngine.ctx.clearRect(
+                    0, 0,
+                    window.mindmapEngine.canvas.width,
+                    window.mindmapEngine.canvas.height
+                );
+            }
+        }
+
+        // 2. Clear renderer state
+        this.categories = [];
+        this.relationships = [];
+        this.activeRelationships = new Set();
+
+        // Clear any global localStorage keys for relationships/categories
+        localStorage.removeItem('mindmap-relationships');
+        localStorage.removeItem('mindmap_relationships');
+        localStorage.removeItem('mindmap-categories');
+
+        // 3. Clear localStorage for current project (if exists)
+        if (this.currentProject && window.localStorageManager) {
+            window.localStorageManager.clearProjectData(this.currentProject);
+        }
+
+        // 4. Clear textarea
+        const textarea = document.getElementById('outlineInput');
+        if (textarea) {
+            textarea.value = '';
+        }
+
+        // 5. Clear nodes container
+        const container = document.getElementById('nodesContainer');
+        if (container) {
+            container.innerHTML = '';
+        }
+
+        console.log('[ClearStaleData] Stale data cleared successfully');
+    }
+
+    /**
+     * FR-004: Validate project data structure before loading
+     * @param {object} projectData - Project data to validate
+     * @throws {Error} if validation fails
+     */
+    validateProjectData(projectData) {
+        console.log('[Validation] Validating project data structure...');
+
+        if (!projectData) {
+            throw new Error('Project data is null or undefined');
+        }
+
+        // Check required fields ('content' and 'nodes' are essential)
+        // 'name' is optional - can come from metadata.topic or filename
+        const requiredFields = ['content', 'nodes'];
+        for (const field of requiredFields) {
+            if (!(field in projectData)) {
+                throw new Error(`Missing required field: ${field}`);
+            }
+        }
+
+        // Validate content is string
+        if (typeof projectData.content !== 'string') {
+            throw new Error('Project content must be a string');
+        }
+
+        // Validate nodes structure (after v5.0 migration it should be an object)
+        if (typeof projectData.nodes !== 'object') {
+            throw new Error('Project nodes must be an object (nodeData dictionary)');
+        }
+
+        // Validate categories array if present
+        if (projectData.categories && !Array.isArray(projectData.categories)) {
+            throw new Error('Project categories must be an array');
+        }
+
+        // Validate relationships array if present
+        if (projectData.relationships && !Array.isArray(projectData.relationships)) {
+            throw new Error('Project relationships must be an array');
+        }
+
+        // Validate metadata exists (create default if missing)
+        if (!projectData.metadata || typeof projectData.metadata !== 'object') {
+            console.warn('[Validation] Missing metadata, creating default');
+            projectData.metadata = {
+                created: new Date().toISOString(),
+                modified: new Date().toISOString(),
+                version: '4.0'
+            };
+        }
+
+        console.log('[Validation] Project data structure is valid');
+    }
+
+    /**
+     * FR-005: Handle errors during project loading
+     * @param {Error} error - Error object
+     */
+    handleLoadError(error) {
+        console.error('[LoadError] Failed to load project:', error);
+
+        // Categorize error
+        let userMessage = 'Failed to load project.';
+        let suggestedAction = 'Please try again or contact support.';
+
+        if (error.message.includes('not found')) {
+            userMessage = 'Project file not found.';
+            suggestedAction = 'The file may have been moved or deleted. Check the file location.';
+        } else if (error.message.includes('JSON')) {
+            userMessage = 'Project file is corrupted.';
+            suggestedAction = 'The file format is invalid. Try restoring from a backup.';
+        } else if (error.message.includes('Missing required field')) {
+            userMessage = 'Project file is incomplete.';
+            suggestedAction = 'The file is missing required data. It may be from an older version.';
+        }
+
+        // Show error notification
+        this.showNotification(`${userMessage} ${suggestedAction}`, 'error');
+
+        // Log error for debugging
+        this.logError({
+            type: 'project_load_failure',
+            error: error.message,
+            stack: error.stack,
+            timestamp: new Date().toISOString()
+        });
+
+        // Show welcome screen as fallback
+        this.showWelcomeScreen();
+    }
+
+    /**
+     * Log error to localStorage for debugging
+     * @param {object} errorData - Error data to log
+     */
+    logError(errorData) {
+        try {
+            const errorLog = JSON.parse(localStorage.getItem('error-log') || '[]');
+            errorLog.push(errorData);
+
+            // Keep only last 50 errors
+            if (errorLog.length > 50) {
+                errorLog.shift();
+            }
+
+            localStorage.setItem('error-log', JSON.stringify(errorLog));
+            console.error('[ErrorLog]', errorData);
+        } catch (e) {
+            console.error('[ErrorLog] Failed to log error:', e);
+        }
+    }
+
+    /**
+     * Show welcome screen when no project is loaded
+     */
+    showWelcomeScreen() {
+        console.log('[WelcomeScreen] Showing welcome screen');
+
+        // Clear any existing content
+        document.getElementById('outlineInput').value = '';
+        if (window.mindmapEngine) {
+            window.mindmapEngine.nodeData = {};
+        }
+
+        // Show welcome UI
+        const container = document.getElementById('nodesContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="welcome-screen" style="
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    height: 100%;
+                    text-align: center;
+                    padding: 40px;
+                    color: var(--text-primary, #333);
+                ">
+                    <h1 style="font-size: 32px; margin-bottom: 16px;">Welcome to PWC Mindmap Pro</h1>
+                    <p style="font-size: 16px; margin-bottom: 32px; color: var(--text-secondary, #666);">
+                        Open an existing project or create a new one to get started
+                    </p>
+                    <div style="display: flex; gap: 16px;">
+                        <button onclick="mindmapRenderer.addNewProject()" style="
+                            padding: 12px 24px;
+                            font-size: 14px;
+                            background: var(--primary-color, #d04a02);
+                            color: white;
+                            border: none;
+                            border-radius: 6px;
+                            cursor: pointer;
+                        ">Create New Project</button>
+                        <button onclick="document.getElementById('projectsBtn').click()" style="
+                            padding: 12px 24px;
+                            font-size: 14px;
+                            background: #fff;
+                            color: var(--text-primary, #333);
+                            border: 1px solid #ddd;
+                            border-radius: 6px;
+                            cursor: pointer;
+                        ">Open Project</button>
+                    </div>
+                </div>
+            `;
+        }
     }
 
     init() {
-        // Initialize with sample data
-        this.generateMindmap();
+        console.log('[Init] Initializing application...');
+
+        // Initialize localStorage with version check
+        if (window.localStorageManager) {
+            window.localStorageManager.initialize();
+        }
+
+        // DO NOT call generateMindmap() here - wait for project to load
+
+        // Setup event listeners for file system changes
+        window.electronAPI.onProjectsChanged((event, data) => {
+            console.log('[Init] Projects changed:', data);
+            this.handleProjectsChanged(data);
+        });
+
+        // Auto-load disabled temporarily due to metadata corruption
+        // Show welcome screen instead
+        setTimeout(() => {
+            console.log('[Init] Auto-load disabled, showing welcome screen');
+            this.showWelcomeScreen();
+        }, 100);
 
         // Reset view
         setTimeout(() => {
             this.resetView();
-        }, 100);
+        }, 200);
+    }
 
-        // Listen for file system changes from main process
-        window.electronAPI.onProjectsChanged((event, data) => {
-            console.log('Projects changed:', data);
-            this.handleProjectsChanged(data);
-        });
+    /**
+     * Auto-load the last opened project on app startup
+     */
+    async autoLoadLastProject() {
+        try {
+            console.log('[AutoLoad] Checking for last opened project...');
+
+            if (!window.projectManager) {
+                console.warn('[AutoLoad] ProjectManager not ready, showing welcome screen');
+                this.showWelcomeScreen();
+                return;
+            }
+
+            const lastOpened = window.projectManager.getLastOpenedProject();
+
+            if (lastOpened) {
+                console.log('[AutoLoad] Found last project:', lastOpened, 'Type:', typeof lastOpened);
+
+                // Handle both string path and object formats
+                let projectPath;
+                if (typeof lastOpened === 'string') {
+                    projectPath = lastOpened;
+                } else if (lastOpened && typeof lastOpened === 'object') {
+                    projectPath = lastOpened.path || JSON.stringify(lastOpened);
+                } else {
+                    console.warn('[AutoLoad] Invalid lastOpened format, showing welcome screen');
+                    this.showWelcomeScreen();
+                    return;
+                }
+
+                // Ensure projectPath is a valid string
+                if (!projectPath || typeof projectPath !== 'string') {
+                    console.warn('[AutoLoad] projectPath is not a valid string:', projectPath);
+                    this.showWelcomeScreen();
+                    return;
+                }
+
+                const projectName = projectPath.split('/').pop().replace('.pmap', '');
+                const project = {
+                    id: `project-${Date.now()}`,
+                    name: projectName,
+                    path: projectPath
+                };
+
+                // Load the project
+                await this.loadProject(project.id, project);
+            } else {
+                console.log('[AutoLoad] No last project found, showing welcome screen');
+                this.showWelcomeScreen();
+            }
+        } catch (error) {
+            console.error('[AutoLoad] Failed to auto-load project:', error);
+            this.showWelcomeScreen();
+        }
     }
 
     /**
@@ -1268,7 +1560,8 @@ class MindmapRenderer {
             }
         }
 
-        this.saveRelationships();
+        // ❌ REMOVED: Don't save to global localStorage
+        // Relationships auto-save to project file via autosave mechanism
         this.renderRelationships();
 
         // Redraw connections if relationships panel is active
@@ -1423,22 +1716,26 @@ class MindmapRenderer {
         }
     }
 
-    loadRelationships() {
-        const saved = localStorage.getItem('mindmap_relationships');
-        if (saved) {
-            try {
-                this.relationships = JSON.parse(saved);
-            } catch (e) {
-                console.error('Error loading relationships:', e);
-                this.relationships = [];
-            }
-        }
-        this.renderRelationships();
-    }
+    // ❌ DEPRECATED: Relationships are now loaded from project files, not global localStorage
+    // This method is kept for reference only
+    // loadRelationships() {
+    //     const saved = localStorage.getItem('mindmap_relationships');
+    //     if (saved) {
+    //         try {
+    //             this.relationships = JSON.parse(saved);
+    //         } catch (e) {
+    //             console.error('Error loading relationships:', e);
+    //             this.relationships = [];
+    //         }
+    //     }
+    //     this.renderRelationships();
+    // }
 
-    saveRelationships() {
-        localStorage.setItem('mindmap_relationships', JSON.stringify(this.relationships));
-    }
+    // ❌ DEPRECATED: Relationships are now saved to project files via autosave, not global localStorage
+    // This method is kept for reference only
+    // saveRelationships() {
+    //     localStorage.setItem('mindmap_relationships', JSON.stringify(this.relationships));
+    // }
 
     renderRelationships() {
         const list = document.getElementById('relationshipsList');
@@ -1528,17 +1825,28 @@ class MindmapRenderer {
         return count;
     }
 
+    /**
+     * FR-006: Update relationship statistics panel
+     * Must be called AFTER renderNodes() completes to ensure accurate counts
+     */
     updateRelationshipStats() {
-        // ✨ FIX: Count only nodes in current project tree (not all localStorage)
-        let totalNodes = 0;
+        // Wait for render to complete
+        if (!window.mindmapEngine || !window.mindmapEngine.nodes) {
+            console.warn('[UpdateStats] Mindmap engine not ready, skipping stats update');
+            return;
+        }
 
-        if (window.mindmapEngine && window.mindmapEngine.countProjectNodes) {
+        // Count total nodes from CURRENT tree (not localStorage)
+        let totalNodes = 0;
+        if (window.mindmapEngine.countProjectNodes) {
             totalNodes = window.mindmapEngine.countProjectNodes();
         }
 
+        console.log('[UpdateStats] Total nodes:', totalNodes);
+
+        // Count connected nodes
         let connectedNodes = 0;
-        if (window.mindmapEngine && window.mindmapEngine.nodes) {
-            // Count only nodes in current project that have relationships
+        if (window.mindmapEngine.nodes) {
             const countConnected = (node) => {
                 const data = window.mindmapEngine.nodeData[node.id];
                 if (data && data.relationships && data.relationships.length > 0) {
@@ -1551,13 +1859,30 @@ class MindmapRenderer {
             countConnected(window.mindmapEngine.nodes);
         }
 
-        console.log('[DEBUG] Final stats - totalNodes:', totalNodes, 'connectedNodes:', connectedNodes);
+        console.log('[UpdateStats] Connected nodes:', connectedNodes);
 
+        // Update DOM
         const totalEl = document.getElementById('totalNodesRelCount');
         const connectedEl = document.getElementById('connectedNodesCount');
 
-        if (totalEl) totalEl.textContent = totalNodes;
-        if (connectedEl) connectedEl.textContent = connectedNodes;
+        if (totalEl) {
+            totalEl.textContent = totalNodes;
+            // Add visual feedback for update
+            totalEl.classList.add('updated');
+            setTimeout(() => totalEl.classList.remove('updated'), 500);
+        }
+
+        if (connectedEl) {
+            connectedEl.textContent = connectedNodes;
+            connectedEl.classList.add('updated');
+            setTimeout(() => connectedEl.classList.remove('updated'), 500);
+        }
+
+        // Validate counts (sanity check)
+        if (connectedNodes > totalNodes) {
+            console.error('[UpdateStats] INVALID STATE: connectedNodes > totalNodes');
+            console.error('[UpdateStats] This should never happen. Possible data corruption.');
+        }
     }
 
     populateNodeRelationshipsSelector(nodeId) {
@@ -1601,19 +1926,22 @@ class MindmapRenderer {
             tag.appendChild(dashPreview);
             tag.appendChild(name);
 
-            // ✨ FIX: Handle checkbox changes directly, prevent label interference
+            // ✨ FIX: Handle checkbox changes
             checkbox.addEventListener('change', (e) => {
                 e.stopPropagation();
                 tag.classList.toggle('selected', checkbox.checked);
+                console.log(`[Checkbox] Relationship ${rel.name} ${checkbox.checked ? 'selected' : 'deselected'}`);
             });
 
             // ✨ FIX: Allow clicking label/text to toggle checkbox
             tag.addEventListener('click', (e) => {
-                // Only toggle if clicking the label itself, not the checkbox
-                if (e.target !== checkbox) {
-                    checkbox.checked = !checkbox.checked;
-                    tag.classList.toggle('selected', checkbox.checked);
-                }
+                e.preventDefault(); // Prevent default label behavior
+                e.stopPropagation();
+
+                // Toggle checkbox state
+                checkbox.checked = !checkbox.checked;
+                tag.classList.toggle('selected', checkbox.checked);
+                console.log(`[Label Click] Relationship ${rel.name} ${checkbox.checked ? 'selected' : 'deselected'}`);
             });
 
             selector.appendChild(tag);
@@ -1730,7 +2058,8 @@ class MindmapRenderer {
             }
         }
 
-        this.saveRelationships();
+        // ❌ REMOVED: Don't save to global localStorage
+        // Relationships auto-save to project file via autosave mechanism
         this.renderRelationships();
         this.closeRelationshipModal();
     }
@@ -1751,7 +2080,8 @@ class MindmapRenderer {
             });
         }
 
-        this.saveRelationships();
+        // ❌ REMOVED: Don't save to global localStorage
+        // Relationships auto-save to project file via autosave mechanism
         this.renderRelationships();
 
         // Redraw connections
@@ -1803,7 +2133,8 @@ class MindmapRenderer {
             relationship.nodes = nodeIds;
         }
 
-        this.saveRelationships();
+        // ❌ REMOVED: Don't save to global localStorage
+        // Relationships auto-save to project file via autosave mechanism
         this.renderRelationships();
 
         // Redraw connections if this relationship is active
@@ -2266,6 +2597,9 @@ class MindmapRenderer {
 
     async loadFileContent(data) {
         try {
+            // ✨ FIX: Clear stale data BEFORE loading new file (same as loadProject)
+            this.clearStaleData();
+
             if (data.path.endsWith('.json') || data.path.endsWith('.pmap')) {
                 // Use ProjectManager to load the file (handles v5.0 migration automatically)
                 if (window.projectManager) {
@@ -2431,97 +2765,169 @@ class MindmapRenderer {
         });
     }
 
-    async loadProject(projectId) {
-        const project = this.projects.find(p => p.id === projectId);
-        if (!project) return;
+    /**
+     * Load project with proper data flow and validation
+     * Implements PRD #0002 FR-001: Correct Property Assignment
+     * @param {string} projectId - Project identifier
+     * @param {object} projectInfo - Optional project info (for optimization)
+     */
+    async loadProject(projectId, projectInfo = null) {
+        console.log('[LoadProject] Starting load for:', projectId);
 
-        this.currentProject = projectId;
-
-        // If project has a path, load from .pmap file
-        if (project.path && window.projectManager) {
-            try {
-                const projectData = await window.projectManager.loadProject(project.path);
-                if (projectData) {
-                    // Load content
-                    document.getElementById('outlineInput').value = projectData.content || '';
-
-                    // Load nodeData
-                    window.mindmapEngine.nodeData = projectData.nodes || {};
-
-                    // Load custom orders
-                    if (projectData.customOrders && window.mindmapEngine?.reorderManager) {
-                        window.mindmapEngine.reorderManager.importOrders(projectData.customOrders);
-                    }
-
-                    // Load categories and relationships if available
-                    if (projectData.categories) {
-                        this.categories = projectData.categories;
-                    }
-                    if (projectData.relationships) {
-                        this.relationships = projectData.relationships;
-                    }
-
-                    // Load presentation data if available
-                    if (projectData.presentation && window.presentationManager) {
-                        window.presentationManager.loadPresentation(projectData.presentation);
-
-                        // Update slide counter and Present button
-                        const count = window.presentationManager.getSlideCount();
-                        const slideCounter = document.getElementById('slideCounter');
-                        const presentBtn = document.getElementById('presentBtn');
-
-                        if (slideCounter) {
-                            slideCounter.textContent = `${count} slide${count !== 1 ? 's' : ''}`;
-                            slideCounter.style.display = count > 0 ? 'inline' : 'none';
-                        }
-
-                        if (presentBtn) {
-                            presentBtn.style.display = count > 0 ? 'inline-block' : 'none';
-                        }
-
-                        // Refresh presentation UI
-                        if (window.presentationUI) {
-                            window.presentationUI.refresh();
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error loading project from file:', error);
-                // Fallback to empty project
-                document.getElementById('outlineInput').value = project.content || '';
-                window.mindmapEngine.nodeData = {};
+        try {
+            // 1. Validate project exists
+            const project = projectInfo || this.projects.find(p => p.id === projectId);
+            if (!project) {
+                console.warn('[LoadProject] Project not found:', projectId);
+                return;
             }
-        } else {
-            // Legacy: load from hardcoded content
-            document.getElementById('outlineInput').value = project.content;
 
-            // Load nodeData from localStorage for backward compatibility
-            const savedNodeData = localStorage.getItem(`mindmap-nodedata-${projectId}`);
-            if (savedNodeData) {
-                try {
-                    window.mindmapEngine.nodeData = JSON.parse(savedNodeData);
-                } catch (e) {
-                    console.error('Error loading nodeData:', e);
+            // 2. Clear stale data BEFORE loading (FR-003)
+            this.clearStaleData();
+
+            // 3. Update current project reference
+            this.currentProject = projectId;
+            this.currentProjectPath = project.path;
+
+            // 4. Load project data (handles v5.0 → v4.0 migration in project-manager)
+            if (project.path && window.projectManager) {
+                const projectData = await window.projectManager.loadProject(project.path);
+
+                if (!projectData) {
+                    throw new Error('Project data is null or undefined');
+                }
+
+                // 5. Validate project data structure (FR-004)
+                this.validateProjectData(projectData);
+
+                // 6. Load content into textarea
+                const outlineInput = document.getElementById('outlineInput');
+                if (outlineInput) {
+                    outlineInput.value = projectData.content || '';
+                } else {
+                    console.warn('[LoadProject] Outline input element not found');
+                }
+
+                // 7. Load nodeData (after migration, projectData.nodes IS nodeData dictionary)
+                // This is CORRECT after project-manager migration (see project-manager.js:218-298)
+                window.mindmapEngine.nodeData = projectData.nodes || {};
+                console.log('[LoadProject] Loaded nodeData with', Object.keys(window.mindmapEngine.nodeData).length, 'entries');
+
+                // 8. Load custom orders
+                if (projectData.customOrders && window.mindmapEngine?.reorderManager) {
+                    window.mindmapEngine.reorderManager.importOrders(projectData.customOrders);
+                    console.log('[LoadProject] Loaded custom orders');
+                }
+
+                // 9. Load categories and relationships
+                if (projectData.categories && projectData.categories.length > 0) {
+                    this.categories = projectData.categories;
+                    console.log('[LoadProject] Loaded', this.categories.length, 'categories');
+                } else {
+                    this.categories = [];
+                    console.log('[LoadProject] No categories in project');
+                }
+                if (projectData.relationships && projectData.relationships.length > 0) {
+                    this.relationships = projectData.relationships;
+                    console.log('[LoadProject] Loaded', this.relationships.length, 'relationship types');
+                } else {
+                    this.relationships = [];
+                    console.log('[LoadProject] No relationships in project');
+                }
+
+                // Refresh UI panels to reflect cleared/loaded data
+                this.renderCategoriesPanel();
+                this.updateRelationshipStats();
+
+                // 10. Load presentation data if available
+                if (projectData.presentation && window.presentationManager) {
+                    window.presentationManager.loadPresentation(projectData.presentation);
+
+                    // Update slide counter and Present button
+                    const count = window.presentationManager.getSlideCount();
+                    const slideCounter = document.getElementById('slideCounter');
+                    const presentBtn = document.getElementById('presentBtn');
+
+                    if (slideCounter) {
+                        slideCounter.textContent = `${count} slide${count !== 1 ? 's' : ''}`;
+                        slideCounter.style.display = count > 0 ? 'inline' : 'none';
+                    }
+
+                    if (presentBtn) {
+                        presentBtn.style.display = count > 0 ? 'inline-block' : 'none';
+                    }
+
+                    // Refresh presentation UI
+                    if (window.presentationUI) {
+                        window.presentationUI.refresh();
+                    }
+
+                    console.log('[LoadProject] Loaded presentation with', count, 'slides');
+                }
+
+                // 11. Update project list UI
+                this.renderProjects();
+
+                // 12. Generate mindmap from loaded data
+                console.log('[LoadProject] Generating mindmap...');
+                this.generateMindmap();
+
+                // 13. Update stats AFTER render completes (FR-006)
+                setTimeout(() => {
+                    console.log('[LoadProject] Updating relationship stats...');
+                    this.updateRelationshipStats();
+                }, 100);
+
+                console.log('[LoadProject] ✅ Project loaded successfully');
+
+            } else if (!project.path) {
+                // Legacy fallback: load from hardcoded content (for backward compatibility)
+                console.warn('[LoadProject] Using legacy load (no .pmap file)');
+
+                const outlineInput = document.getElementById('outlineInput');
+                if (outlineInput) {
+                    outlineInput.value = project.content || '';
+                }
+
+                // Load nodeData from localStorage for backward compatibility
+                const savedNodeData = localStorage.getItem(`mindmap-nodedata-${projectId}`);
+                if (savedNodeData) {
+                    try {
+                        window.mindmapEngine.nodeData = JSON.parse(savedNodeData);
+                    } catch (e) {
+                        console.error('[LoadProject] Error parsing saved nodeData:', e);
+                        window.mindmapEngine.nodeData = {};
+                    }
+                } else {
                     window.mindmapEngine.nodeData = {};
                 }
-            } else {
-                window.mindmapEngine.nodeData = {};
-            }
 
-            // Load custom orders from localStorage
-            const savedOrders = localStorage.getItem(`mindmap-orders-${projectId}`);
-            if (savedOrders && window.mindmapEngine?.reorderManager) {
-                try {
-                    const orders = JSON.parse(savedOrders);
-                    window.mindmapEngine.reorderManager.importOrders(orders);
-                } catch (e) {
-                    console.error('Error loading custom orders:', e);
+                // Load custom orders from localStorage
+                const savedOrders = localStorage.getItem(`mindmap-orders-${projectId}`);
+                if (savedOrders && window.mindmapEngine?.reorderManager) {
+                    try {
+                        const orders = JSON.parse(savedOrders);
+                        window.mindmapEngine.reorderManager.importOrders(orders);
+                    } catch (e) {
+                        console.error('[LoadProject] Error loading custom orders:', e);
+                    }
                 }
-            }
-        }
 
-        this.renderProjects();
-        this.generateMindmap();
+                this.renderProjects();
+                this.generateMindmap();
+
+                setTimeout(() => {
+                    this.updateRelationshipStats();
+                }, 100);
+            } else {
+                throw new Error('ProjectManager not available');
+            }
+
+        } catch (error) {
+            // Handle load errors with user-friendly messages (FR-005)
+            console.error('[LoadProject] ❌ Load failed:', error);
+            this.handleLoadError(error);
+        }
     }
 
     addNewProject() {
