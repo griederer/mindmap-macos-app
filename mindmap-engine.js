@@ -1001,9 +1001,9 @@ class MindmapEngine {
             if (hasImages) {
                 infoHTML += '<div class="info-images">';
                 data.images.forEach((img, idx) => {
-                    // ✨ v5.0: Support both old format (string) and new format (object)
-                    if (typeof img === 'string' && img.startsWith('data:image')) {
-                        // Old v4.0 format: base64 data URI
+                    // ✨ v5.0: Support all image formats
+                    if (typeof img === 'string') {
+                        // String format: base64 data URI or regular URL
                         infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
                     } else if (typeof img === 'object' && img.url) {
                         // New v5.0 format: structured image object
