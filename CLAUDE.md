@@ -108,6 +108,129 @@ When correcting the property from `projectData.nodes` to `projectData.nodeData`,
 
 ## Development Workflow
 
+### Git Flow Strategy (MANDATORY)
+
+**Repository:** https://github.com/griederer/mindmap-macos-app
+
+This project follows **Git Flow** for version control. Always use this workflow:
+
+#### Branch Structure
+
+| Branch | Purpose | Status |
+|--------|---------|--------|
+| `main` | Production releases (v5.0.0) | ✅ **STABLE** - Never commit directly |
+| `develop` | Integration & testing | 🔄 **ACTIVE** - Merge features here first |
+| `feature/*` | New features | 🚀 Create from develop |
+| `bugfix/*` | Non-critical fixes | 🐛 Create from develop |
+| `hotfix/*` | Critical production fixes | 🚨 Create from main |
+| `release/*` | Release preparation | 📦 Create from develop |
+
+#### Standard Workflow
+
+```bash
+# ALWAYS start new work from develop
+git checkout develop
+git pull origin develop
+git checkout -b feature/your-feature-name
+
+# Work and commit (use conventional commits)
+git add .
+git commit -m "feat: add feature description"
+
+# Push and create PR to develop (NOT main)
+git push origin feature/your-feature-name
+# → Create PR: feature/your-feature-name → develop
+```
+
+#### Commit Message Format (Conventional Commits)
+
+```
+<type>(<scope>): <subject>
+
+Types:
+- feat: New feature
+- fix: Bug fix
+- docs: Documentation
+- test: Tests
+- refactor: Code refactoring
+- chore: Build/tooling
+
+Examples:
+git commit -m "feat(export): add PDF export functionality"
+git commit -m "fix(counter): correct node count in relationship panel"
+git commit -m "docs(workflow): add Git Flow documentation"
+```
+
+#### Release Process
+
+```bash
+# When develop is ready for production
+git checkout develop
+git checkout -b release/v5.1.0
+npm version 5.1.0  # Updates package.json
+
+# Final testing
+npm test && npm run build
+
+# Merge to main (production)
+git checkout main
+git merge --no-ff release/v5.1.0
+git tag -a v5.1.0 -m "Release v5.1.0 - Description"
+git push origin main --tags
+
+# Merge back to develop
+git checkout develop
+git merge --no-ff release/v5.1.0
+git push origin develop
+```
+
+#### CI/CD Pipeline
+
+**GitHub Actions runs automatically on:**
+- Push to `develop` or `main`
+- Pull requests to `develop` or `main`
+
+**What it does:**
+1. ✅ Run all tests (`npm test`)
+2. ✅ Build app (`npm run build`)
+3. ✅ Create macOS DMG (on main)
+4. ✅ Upload artifacts
+5. ✅ Create GitHub release (on main with tag)
+
+**View status:** GitHub → Actions tab
+
+#### Critical Rules
+
+1. **NEVER commit directly to `main`** - Always go through develop
+2. **ALWAYS create PRs to `develop`** - Not main
+3. **Test before merging** - CI must pass
+4. **One feature per branch** - Keep it focused
+5. **Use conventional commits** - For changelog generation
+
+#### Quick Reference
+
+```bash
+# Check current branch
+git branch --show-current
+
+# List all branches
+git branch -a
+
+# View workflow docs
+cat DEVELOPMENT-WORKFLOW.md
+
+# Create feature
+git checkout develop && git checkout -b feature/name
+
+# Push and create PR
+git push origin feature/name
+# Then: GitHub → Compare & Pull Request → target: develop
+```
+
+**Full Documentation:** See [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md)
+
+---
+
 ### AI Dev Tasks Integration
 
 This project uses the [ai-dev-tasks workflow](https://github.com/snarktank/ai-dev-tasks) for structured feature development.
