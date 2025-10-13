@@ -1,8 +1,10 @@
-# PWC Mindmap Pro v4.0 - Professional Mindmap Editor for macOS
+# PWC Mindmap Pro v5.0 - Professional Mindmap Editor for macOS
 
-**Version**: 4.0.0
-**Release Date**: October 7, 2025
+**Version**: 5.0.0 ✨ **STABLE**
+**Release Date**: October 12, 2025
 **Author**: Gonzalo Riederer
+
+> **🎉 v5.0 is the stable production version** - See [DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md) for contribution guidelines
 
 A sophisticated, native-feeling mindmap application for macOS built with Electron, featuring smooth animations, Canvas-based connections, MCP integration, and extensive customization options.
 
@@ -441,6 +443,44 @@ tail -f ~/Documents/"PWC Mindmaps"/.mcp-server.log
 
 ---
 
+## 🔄 Development Workflow
+
+### Git Flow Strategy
+
+This project follows **Git Flow** with three main branches:
+
+| Branch | Purpose | Status |
+|--------|---------|--------|
+| `main` | Production releases (v5.0.0) | ✅ **STABLE** |
+| `develop` | Integration & testing | 🔄 Active |
+| `feature/*` | New features | 🚀 Development |
+
+### Quick Workflow
+
+```bash
+# Start new feature
+git checkout develop
+git pull origin develop
+git checkout -b feature/your-feature-name
+
+# Make changes and commit
+git add .
+git commit -m "feat: add new feature description"
+
+# Push and create PR
+git push origin feature/your-feature-name
+# Create PR: feature/your-feature-name → develop
+```
+
+### Complete Guide
+
+See **[DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md)** for:
+- 📋 Complete Git Flow process
+- 🔄 Branch management
+- ✅ Testing requirements
+- 🚀 Release process
+- 🤖 CI/CD pipeline
+
 ## Contributing
 
 We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for detailed guidelines on:
@@ -460,20 +500,24 @@ We welcome contributions! Please see **[CONTRIBUTING.md](CONTRIBUTING.md)** for 
 git clone https://github.com/YOUR_USERNAME/mindmap-macos-app.git
 cd mindmap-macos-app
 
-# 2. Install dependencies
+# 2. Checkout develop branch
+git checkout develop
+git pull origin develop
+
+# 3. Install dependencies
 npm install && cd mcp-server && npm install && cd ..
 
-# 3. Create feature branch
+# 4. Create feature branch from develop
 git checkout -b feature/your-feature-name
 
-# 4. Start development
+# 5. Start development
 npm start
 
-# 5. Run tests
+# 6. Run tests before committing
 npm test
 ```
 
-For full details, see **[CONTRIBUTING.md](CONTRIBUTING.md)**.
+For full details, see **[CONTRIBUTING.md](CONTRIBUTING.md)** and **[DEVELOPMENT-WORKFLOW.md](DEVELOPMENT-WORKFLOW.md)**.
 
 ---
 
