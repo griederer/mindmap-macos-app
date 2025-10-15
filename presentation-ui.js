@@ -1,464 +1,726 @@
 /**
- * PresentationUI - Manages the presentation slides panel and UI interactions
+ * PresentationUI - User interface for presentation mode and capture mode
  *
- * Features:
- * - Slide panel rendering with thumbnails
- * - Drag-and-drop reordering
- * - Slide preview and deletion
- * - Real-time updates
+ * Responsibilities:
+ * - Capture mode controls (start/stop buttons, status indicator)
+ * - Action log viewer (scrollable list, create slide buttons)
+ * - Timeline component (horizontal scrollable, slide icons)
+ * - Presentation selector (dropdown, new/rename/delete)
+ * - Keyboard navigation (arrow keys for prev/next)
+ *
+ * UI Structure:
+ * - Capture Panel: Start/Stop recording user actions
+ * - Action Log: Chronological list of captured actions
+ * - Timeline: Visual slide sequence with icons
+ * - Presentation Selector: Manage multiple presentations
+ * - Navigation Controls: Prev/Next/Jump controls
  */
 
 class PresentationUI {
-    constructor(presentationManager, mindmapEngine) {
-        this.presentationManager = presentationManager;
-        this.mindmapEngine = mindmapEngine;
-        this.slidePanel = null;
-        this.slidesList = null;
-        this.isPanelOpen = this.loadPanelState();
-        this.sortable = null;
+  constructor(captureManager, presentationManager) {
+    this.captureManager = captureManager;
+    this.presentationManager = presentationManager;
 
-        this.init();
+    // MindmapEngine reference (for navigation)
+    this.mindmapEngine = null;
+
+    // UI element references (will be set when attached to DOM)
+    this.elements = {
+      // Capture mode
+      capturePanel: null,
+      captureStartBtn: null,
+      captureStopBtn: null,
+      captureStatus: null,
+
+      // Action log
+      actionLogPanel: null,
+      actionLogList: null,
+
+      // Timeline
+      timelinePanel: null,
+      timelineContainer: null,
+
+      // Presentation selector
+      presentationSelector: null,
+      presentationDropdown: null,
+      newPresentationBtn: null,
+      renamePresentationBtn: null,
+      deletePresentationBtn: null,
+
+      // Navigation controls
+      prevSlideBtn: null,
+      nextSlideBtn: null,
+      slideCounter: null
+    };
+
+    // Event listeners (for cleanup)
+    this.boundHandlers = {};
+  }
+
+  /**
+   * Initializes the UI and attaches to DOM
+   * @param {Object} elementIds - Object mapping element purposes to DOM IDs
+   */
+  initialize(elementIds) {
+    // Get DOM element references
+    this._getElementReferences(elementIds);
+
+    // Attach event listeners
+    this._attachEventListeners();
+
+    // Initialize UI state
+    this._updateUIState();
+  }
+
+  /**
+   * Gets references to DOM elements
+   * @private
+   * @param {Object} elementIds - Element ID mappings
+   */
+  _getElementReferences(elementIds) {
+    // Capture mode elements
+    this.elements.capturePanel = document.getElementById(elementIds.capturePanel || 'capture-panel');
+    this.elements.captureStartBtn = document.getElementById(elementIds.captureStartBtn || 'capture-start-btn');
+    this.elements.captureStopBtn = document.getElementById(elementIds.captureStopBtn || 'capture-stop-btn');
+    this.elements.captureStatus = document.getElementById(elementIds.captureStatus || 'capture-status');
+
+    // Action log elements
+    this.elements.actionLogPanel = document.getElementById(elementIds.actionLogPanel || 'action-log-panel');
+    this.elements.actionLogList = document.getElementById(elementIds.actionLogList || 'action-log-list');
+
+    // Timeline elements
+    this.elements.timelinePanel = document.getElementById(elementIds.timelinePanel || 'timeline-panel');
+    this.elements.timelineContainer = document.getElementById(elementIds.timelineContainer || 'timeline-container');
+
+    // Presentation selector elements
+    this.elements.presentationSelector = document.getElementById(elementIds.presentationSelector || 'presentation-selector');
+    this.elements.presentationDropdown = document.getElementById(elementIds.presentationDropdown || 'presentation-dropdown');
+    this.elements.newPresentationBtn = document.getElementById(elementIds.newPresentationBtn || 'new-presentation-btn');
+    this.elements.renamePresentationBtn = document.getElementById(elementIds.renamePresentationBtn || 'rename-presentation-btn');
+    this.elements.deletePresentationBtn = document.getElementById(elementIds.deletePresentationBtn || 'delete-presentation-btn');
+
+    // Navigation elements
+    this.elements.prevSlideBtn = document.getElementById(elementIds.prevSlideBtn || 'prev-slide-btn');
+    this.elements.nextSlideBtn = document.getElementById(elementIds.nextSlideBtn || 'next-slide-btn');
+    this.elements.slideCounter = document.getElementById(elementIds.slideCounter || 'slide-counter');
+  }
+
+  /**
+   * Attaches event listeners to UI elements
+   * @private
+   */
+  _attachEventListeners() {
+    // Capture mode handlers
+    if (this.elements.captureStartBtn) {
+      this.boundHandlers.startCapture = this._handleStartCapture.bind(this);
+      this.elements.captureStartBtn.addEventListener('click', this.boundHandlers.startCapture);
     }
 
-    /**
-     * Initialize the presentation UI
-     */
-    init() {
-        this.slidePanel = document.getElementById('slidesPanel');
-        this.slidesList = document.getElementById('slidesList');
+    if (this.elements.captureStopBtn) {
+      this.boundHandlers.stopCapture = this._handleStopCapture.bind(this);
+      this.elements.captureStopBtn.addEventListener('click', this.boundHandlers.stopCapture);
+    }
 
-        if (!this.slidePanel || !this.slidesList) {
-            console.warn('Slide panel elements not found');
-            return;
+    // Navigation handlers
+    if (this.elements.prevSlideBtn) {
+      this.boundHandlers.prevSlide = this._handlePrevSlide.bind(this);
+      this.elements.prevSlideBtn.addEventListener('click', this.boundHandlers.prevSlide);
+    }
+
+    if (this.elements.nextSlideBtn) {
+      this.boundHandlers.nextSlide = this._handleNextSlide.bind(this);
+      this.elements.nextSlideBtn.addEventListener('click', this.boundHandlers.nextSlide);
+    }
+
+    // Keyboard navigation
+    this.boundHandlers.keydown = this._handleKeyboardNavigation.bind(this);
+    document.addEventListener('keydown', this.boundHandlers.keydown);
+
+    // Presentation selector handlers
+    if (this.elements.newPresentationBtn) {
+      this.boundHandlers.newPresentation = this._handleNewPresentation.bind(this);
+      this.elements.newPresentationBtn.addEventListener('click', this.boundHandlers.newPresentation);
+    }
+
+    // Timeline drag-and-drop handler
+    if (this.elements.timelineContainer) {
+      this.boundHandlers.timelineDragOver = (e) => {
+        e.preventDefault(); // Allow drop
+      };
+      this.elements.timelineContainer.addEventListener('dragover', this.boundHandlers.timelineDragOver);
+    }
+  }
+
+  /**
+   * Handles start capture button click
+   * @private
+   */
+  _handleStartCapture() {
+    // Start capturing user actions
+    this.captureManager.startCapture();
+
+    // Update UI to reflect capture mode is active
+    this._updateCaptureUI();
+
+    // Update action log (will show empty state initially)
+    this._updateActionLog();
+  }
+
+  /**
+   * Handles stop capture button click
+   * @private
+   */
+  _handleStopCapture() {
+    // Stop capturing user actions
+    this.captureManager.stopCapture();
+
+    // Update UI to reflect capture mode is inactive
+    this._updateCaptureUI();
+
+    // Update action log (will show all captured actions)
+    this._updateActionLog();
+  }
+
+  /**
+   * Handles previous slide navigation
+   * @private
+   */
+  async _handlePrevSlide() {
+    // Will be implemented in Task 6.23
+    console.log('Previous slide clicked');
+  }
+
+  /**
+   * Handles next slide navigation
+   * @private
+   */
+  async _handleNextSlide() {
+    // Will be implemented in Task 6.23
+    console.log('Next slide clicked');
+  }
+
+  /**
+   * Handles keyboard navigation (arrow keys)
+   * @private
+   * @param {KeyboardEvent} event - Keyboard event
+   */
+  async _handleKeyboardNavigation(event) {
+    // Check if presentation is loaded
+    const presentation = this.presentationManager.getCurrentPresentation();
+    if (!presentation) {
+      return;
+    }
+
+    // Handle arrow keys for navigation
+    if (event.key === 'ArrowLeft') {
+      // Previous slide
+      try {
+        const success = await this.presentationManager.previousSlide(this.mindmapEngine);
+        if (success) {
+          // Update UI after navigation
+          this._updateTimeline();
+          this._updateNavigationUI();
         }
-
-        this.setupEventListeners();
-        this.renderSlidePanel();
-
-        // Set initial panel state
-        if (this.isPanelOpen) {
-            this.openPanel();
+      } catch (error) {
+        console.error('Failed to navigate to previous slide:', error);
+      }
+    } else if (event.key === 'ArrowRight') {
+      // Next slide
+      try {
+        const success = await this.presentationManager.nextSlide(this.mindmapEngine);
+        if (success) {
+          // Update UI after navigation
+          this._updateTimeline();
+          this._updateNavigationUI();
         }
+      } catch (error) {
+        console.error('Failed to navigate to next slide:', error);
+      }
+    }
+  }
+
+  /**
+   * Handles new presentation creation
+   * @private
+   */
+  _handleNewPresentation() {
+    // Will be implemented in Task 6.21
+    console.log('New presentation clicked');
+  }
+
+  /**
+   * Updates the UI state based on current presentation and capture status
+   * @private
+   */
+  _updateUIState() {
+    // Update capture mode UI
+    this._updateCaptureUI();
+
+    // Update action log
+    this._updateActionLog();
+
+    // Update navigation UI
+    this._updateNavigationUI();
+
+    // Update timeline
+    this._updateTimeline();
+  }
+
+  /**
+   * Updates capture mode UI elements
+   * @private
+   */
+  _updateCaptureUI() {
+    const isCapturing = this.captureManager.isCaptureActive();
+
+    if (this.elements.captureStartBtn) {
+      this.elements.captureStartBtn.disabled = isCapturing;
     }
 
-    /**
-     * Setup event listeners for panel controls
-     */
-    setupEventListeners() {
-        // Toggle panel button
-        const toggleBtn = document.getElementById('toggleSlidesPanel');
-        if (toggleBtn) {
-            toggleBtn.addEventListener('click', () => this.togglePanel());
-        }
-
-        // Close panel button
-        const closeBtn = document.getElementById('closeSlidesPanel');
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.closePanel());
-        }
-
-        // Collapse panel button
-        const collapseBtn = document.getElementById('collapseSlidesPanel');
-        if (collapseBtn) {
-            collapseBtn.addEventListener('click', () => this.closePanel());
-        }
+    if (this.elements.captureStopBtn) {
+      this.elements.captureStopBtn.disabled = !isCapturing;
     }
 
-    /**
-     * Render the slide panel with all slides
-     */
-    renderSlidePanel() {
-        if (!this.slidesList) return;
+    if (this.elements.captureStatus) {
+      this.elements.captureStatus.textContent = isCapturing ? 'Recording...' : 'Idle';
+      this.elements.captureStatus.className = isCapturing ? 'status-active' : 'status-idle';
+    }
+  }
 
-        const slides = this.presentationManager.presentation.slides;
-
-        if (slides.length === 0) {
-            this.slidesList.innerHTML = '<div class="no-slides-message">No hay slides aún. Haz clic en 📸 para capturar el estado actual.</div>';
-            this.destroySortable();
-            return;
-        }
-
-        this.slidesList.innerHTML = '';
-
-        slides.forEach((slide, index) => {
-            const slideItem = this.createSlideItem(slide, index);
-            this.slidesList.appendChild(slideItem);
-        });
-
-        // Initialize drag-and-drop
-        this.initSortable();
+  /**
+   * Updates the action log display
+   * @private
+   */
+  _updateActionLog() {
+    if (!this.elements.actionLogList) {
+      return;
     }
 
-    /**
-     * Create a slide item element
-     * @param {object} slide - Slide data
-     * @param {number} index - Slide index
-     * @returns {HTMLElement} - Slide item element
-     */
-    createSlideItem(slide, index) {
-        const slideItem = document.createElement('div');
-        slideItem.className = 'slide-item';
-        slideItem.dataset.slideId = slide.id;
+    // Clear existing action log
+    this.elements.actionLogList.innerHTML = '';
 
-        // Slide number badge
-        const slideNumber = document.createElement('div');
-        slideNumber.className = 'slide-number';
-        slideNumber.textContent = index + 1;
+    // Get captured actions from CaptureManager
+    const actions = this.captureManager.getCapturedActions();
 
-        // Slide thumbnail
-        const thumbnail = document.createElement('div');
-        thumbnail.className = 'slide-thumbnail';
-
-        // Generate thumbnail
-        this.generateSlideThumbnail(slide).then(thumbnailUrl => {
-            if (thumbnailUrl) {
-                thumbnail.style.backgroundImage = `url(${thumbnailUrl})`;
-            }
-        });
-
-        // Slide description
-        const description = document.createElement('div');
-        description.className = 'slide-description';
-        description.textContent = slide.description;
-
-        // Slide actions
-        const actions = document.createElement('div');
-        actions.className = 'slide-actions';
-
-        const previewBtn = document.createElement('button');
-        previewBtn.className = 'slide-action-btn';
-        previewBtn.innerHTML = '👁️';
-        previewBtn.title = 'Vista Previa';
-        previewBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.previewSlide(slide.id);
-        });
-
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'slide-action-btn delete';
-        deleteBtn.innerHTML = '🗑️';
-        deleteBtn.title = 'Eliminar';
-        deleteBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.deleteSlide(slide.id, index + 1);
-        });
-
-        actions.appendChild(previewBtn);
-        actions.appendChild(deleteBtn);
-
-        slideItem.appendChild(slideNumber);
-        slideItem.appendChild(thumbnail);
-        slideItem.appendChild(description);
-        slideItem.appendChild(actions);
-
-        return slideItem;
+    if (actions.length === 0) {
+      // Show empty state
+      const emptyState = document.createElement('div');
+      emptyState.className = 'action-log-empty';
+      emptyState.textContent = 'No actions captured yet. Start recording to log user interactions.';
+      this.elements.actionLogList.appendChild(emptyState);
+      return;
     }
 
-    /**
-     * Generate a thumbnail image for a slide using Canvas API
-     * @param {object} slide - Slide data
-     * @returns {Promise<string>} - Data URL of thumbnail
-     */
-    async generateSlideThumbnail(slide) {
-        return new Promise((resolve) => {
-            try {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
+    // Render each action
+    actions.forEach((action, index) => {
+      const actionItem = this._createActionLogItem(action, index);
+      this.elements.actionLogList.appendChild(actionItem);
+    });
 
-                // Thumbnail dimensions (120x80px as per requirements)
-                canvas.width = 120;
-                canvas.height = 80;
+    // Update action count
+    this._updateActionCount(actions.length);
+  }
 
-                // Fill background
-                ctx.fillStyle = '#f5f5f5';
-                ctx.fillRect(0, 0, canvas.width, canvas.height);
+  /**
+   * Creates an action log item element
+   * @private
+   * @param {Object} action - Action data
+   * @param {number} index - Action index
+   * @returns {HTMLElement} Action log item element
+   */
+  _createActionLogItem(action, index) {
+    const item = document.createElement('div');
+    item.className = 'action-log-item';
+    item.dataset.actionIndex = index;
 
-                // Draw simplified representation
-                ctx.fillStyle = '#333';
-                ctx.font = '10px Inter, sans-serif';
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
+    // Action icon
+    const icon = document.createElement('span');
+    icon.className = 'action-icon';
+    icon.textContent = this._getIconForActionType(action.actionType);
 
-                // Draw slide info
-                const text = slide.description || 'Slide';
-                const maxWidth = 100;
+    // Action description
+    const description = document.createElement('span');
+    description.className = 'action-description';
+    description.textContent = this._getActionDescription(action);
 
-                // Wrap text if too long
-                const words = text.split(' ');
-                let line = '';
-                let y = 30;
-                const lineHeight = 12;
+    // Timestamp
+    const timestamp = document.createElement('span');
+    timestamp.className = 'action-timestamp';
+    timestamp.textContent = this._formatTimestamp(action.timestamp);
 
-                for (let i = 0; i < words.length; i++) {
-                    const testLine = line + words[i] + ' ';
-                    const metrics = ctx.measureText(testLine);
+    // Create slide button
+    const createSlideBtn = document.createElement('button');
+    createSlideBtn.className = 'btn create-slide-btn';
+    createSlideBtn.textContent = '+ Slide';
+    createSlideBtn.title = 'Create slide from this action';
+    createSlideBtn.addEventListener('click', () => {
+      this._handleCreateSlideFromAction(index);
+    });
 
-                    if (metrics.width > maxWidth && i > 0) {
-                        ctx.fillText(line, canvas.width / 2, y);
-                        line = words[i] + ' ';
-                        y += lineHeight;
+    // Assemble item
+    item.appendChild(icon);
+    item.appendChild(description);
+    item.appendChild(timestamp);
+    item.appendChild(createSlideBtn);
 
-                        if (y > 70) break; // Max 4 lines
-                    } else {
-                        line = testLine;
-                    }
-                }
-                ctx.fillText(line, canvas.width / 2, y);
+    return item;
+  }
 
-                // Draw zoom indicator
-                ctx.font = '8px Inter, sans-serif';
-                ctx.fillStyle = '#666';
-                ctx.textAlign = 'right';
-                ctx.fillText(`${Math.round(slide.zoom * 100)}%`, canvas.width - 5, canvas.height - 5);
+  /**
+   * Gets human-readable description for an action
+   * @private
+   * @param {Object} action - Action data
+   * @returns {string} Action description
+   */
+  _getActionDescription(action) {
+    const actionDescriptions = {
+      'node-expand': `Expand node: ${action.nodeId}`,
+      'node-collapse': `Collapse node: ${action.nodeId}`,
+      'info-open': `Open info panel: ${action.nodeId}`,
+      'info-close': `Close info panel`,
+      'image-open': `Open image: ${action.nodeId} (${action.imageIndex})`,
+      'image-close': `Close image modal`,
+      'relationship-show': `Show relationship: ${action.relationshipId}`,
+      'relationship-hide': `Hide relationship: ${action.relationshipId}`,
+      'camera-move': `Move camera to (${action.x}, ${action.y})`,
+      'focus-activate': `Focus on node: ${action.nodeId}`,
+      'focus-deactivate': `Exit focus mode`
+    };
 
-                // Draw expanded nodes indicator
-                if (slide.expandedNodes && slide.expandedNodes.length > 0) {
-                    ctx.fillStyle = '#4CAF50';
-                    ctx.beginPath();
-                    ctx.arc(10, 10, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+    return actionDescriptions[action.actionType] || `Unknown action: ${action.actionType}`;
+  }
 
-                // Draw info panel indicator
-                if (slide.openInfoPanels && slide.openInfoPanels.length > 0) {
-                    ctx.fillStyle = '#2196F3';
-                    ctx.beginPath();
-                    ctx.arc(20, 10, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+  /**
+   * Formats timestamp for display
+   * @private
+   * @param {Date} timestamp - Timestamp to format
+   * @returns {string} Formatted timestamp
+   */
+  _formatTimestamp(timestamp) {
+    const date = new Date(timestamp);
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  }
 
-                // Draw focus mode indicator
-                if (slide.focusedNode) {
-                    ctx.fillStyle = '#FF9800';
-                    ctx.beginPath();
-                    ctx.arc(30, 10, 4, 0, Math.PI * 2);
-                    ctx.fill();
-                }
+  /**
+   * Updates the action count display
+   * @private
+   * @param {number} count - Number of actions
+   */
+  _updateActionCount(count) {
+    const actionCountElement = document.getElementById('action-count');
+    if (actionCountElement) {
+      actionCountElement.textContent = `Actions: ${count}`;
+    }
+  }
 
-                resolve(canvas.toDataURL('image/png'));
-            } catch (error) {
-                console.error('Error generating thumbnail:', error);
-                resolve(null);
-            }
-        });
+  /**
+   * Handles creating a slide from a logged action
+   * @private
+   * @param {number} actionIndex - Index of action to create slide from
+   */
+  _handleCreateSlideFromAction(actionIndex) {
+    // Check if presentation is loaded
+    if (!this.presentationManager.getCurrentPresentation()) {
+      console.error('Cannot create slide: No presentation loaded');
+      // TODO: Show user-friendly error message in UI
+      return;
     }
 
-    /**
-     * Initialize SortableJS for drag-and-drop reordering
-     */
-    initSortable() {
-        if (!this.slidesList || typeof Sortable === 'undefined') {
-            console.warn('Sortable not available');
-            return;
-        }
+    try {
+      // Create slide from action using CaptureManager
+      const slideData = this.captureManager.createSlideFromAction(actionIndex);
 
-        this.destroySortable();
+      // Add slide to presentation using PresentationManager
+      this.presentationManager.addSlide(slideData);
 
-        this.sortable = Sortable.create(this.slidesList, {
-            animation: 150,
-            handle: '.slide-item',
-            ghostClass: 'slide-item-ghost',
-            chosenClass: 'slide-item-chosen',
-            dragClass: 'slide-item-drag',
-            onEnd: (evt) => {
-                const slideIds = Array.from(this.slidesList.children).map(el =>
-                    parseInt(el.dataset.slideId)
-                );
+      // Update timeline to show new slide
+      this._updateTimeline();
 
-                const success = this.presentationManager.reorderSlides(slideIds);
+      // Update navigation UI
+      this._updateNavigationUI();
 
-                if (success) {
-                    // Mark project as dirty
-                    if (window.projectManager) {
-                        window.projectManager.markDirty();
-                    }
+      console.log(`Slide created from action ${actionIndex}`);
+    } catch (error) {
+      console.error(`Failed to create slide from action ${actionIndex}:`, error);
+      // TODO: Show user-friendly error message in UI
+    }
+  }
 
-                    // Re-render to update slide numbers
-                    this.renderSlidePanel();
-                } else {
-                    console.error('Failed to reorder slides');
-                    this.renderSlidePanel(); // Revert to original order
-                }
-            }
-        });
+  /**
+   * Updates navigation UI elements
+   * @private
+   */
+  _updateNavigationUI() {
+    const presentation = this.presentationManager.getCurrentPresentation();
+
+    if (!presentation) {
+      // No presentation loaded - disable navigation
+      if (this.elements.prevSlideBtn) this.elements.prevSlideBtn.disabled = true;
+      if (this.elements.nextSlideBtn) this.elements.nextSlideBtn.disabled = true;
+      if (this.elements.slideCounter) this.elements.slideCounter.textContent = '0 / 0';
+      return;
     }
 
-    /**
-     * Destroy sortable instance
-     */
-    destroySortable() {
-        if (this.sortable) {
-            this.sortable.destroy();
-            this.sortable = null;
-        }
+    // Update navigation buttons
+    if (this.elements.prevSlideBtn) {
+      this.elements.prevSlideBtn.disabled = !this.presentationManager.hasPreviousSlide();
     }
 
-    /**
-     * Delete a slide with confirmation
-     * @param {number} slideId - Slide ID to delete
-     * @param {number} slideNumber - Slide number for display
-     */
-    deleteSlide(slideId, slideNumber) {
-        const confirmDelete = confirm(`¿Eliminar slide ${slideNumber}?`);
-
-        if (confirmDelete) {
-            const success = this.presentationManager.deleteSlide(slideId);
-
-            if (success) {
-                // Mark project as dirty
-                if (window.projectManager) {
-                    window.projectManager.markDirty();
-                }
-
-                // Update UI
-                this.renderSlidePanel();
-                this.updateSlideCounter();
-
-                console.log(`Slide ${slideNumber} deleted`);
-            } else {
-                alert('Error al eliminar el slide');
-            }
-        }
+    if (this.elements.nextSlideBtn) {
+      this.elements.nextSlideBtn.disabled = !this.presentationManager.hasNextSlide();
     }
 
-    /**
-     * Preview a slide without entering presentation mode
-     * @param {number} slideId - Slide ID to preview
-     */
-    previewSlide(slideId) {
-        const slide = this.presentationManager.getSlide(slideId);
-        if (!slide) {
-            console.error('Slide not found:', slideId);
-            return;
-        }
+    // Update slide counter
+    if (this.elements.slideCounter) {
+      const current = this.presentationManager.getCurrentSlideIndex() + 1;
+      const total = this.presentationManager.getSlideCount();
+      this.elements.slideCounter.textContent = `${current} / ${total}`;
+    }
+  }
 
-        // Store current state for restoration
-        const currentState = this.presentationManager.captureCurrentState();
-
-        // Apply slide state
-        this.restoreSlideState(slide);
-
-        // Show notification
-        this.showPreviewNotification(slide);
+  /**
+   * Updates the timeline visualization
+   * @private
+   */
+  _updateTimeline() {
+    if (!this.elements.timelineContainer) {
+      return;
     }
 
-    /**
-     * Restore mindmap to slide state
-     * @param {object} slide - Slide data
-     */
-    restoreSlideState(slide) {
-        // Set zoom and pan
-        if (this.mindmapEngine.zoom !== slide.zoom ||
-            this.mindmapEngine.pan.x !== slide.pan.x ||
-            this.mindmapEngine.pan.y !== slide.pan.y) {
+    // Clear existing timeline
+    this.elements.timelineContainer.innerHTML = '';
 
-            this.mindmapEngine.zoom = slide.zoom;
-            this.mindmapEngine.pan = { ...slide.pan };
-            this.mindmapEngine.updateTransform();
-        }
-
-        // Expand/collapse nodes
-        this.mindmapEngine.nodes.forEach(node => {
-            const shouldBeExpanded = slide.expandedNodes.includes(node.id);
-            const isExpanded = node.element?.classList.contains('expanded');
-
-            if (shouldBeExpanded !== isExpanded && node.element) {
-                this.mindmapEngine.toggleChildren(node.id);
-            }
-        });
-
-        // TODO: Handle info panels, images, focus mode when implemented
+    const presentation = this.presentationManager.getCurrentPresentation();
+    if (!presentation || presentation.slides.length === 0) {
+      return;
     }
 
-    /**
-     * Show preview notification
-     * @param {object} slide - Slide data
-     */
-    showPreviewNotification(slide) {
-        const notification = document.createElement('div');
-        notification.className = 'slide-preview-notification';
-        notification.textContent = `Vista Previa: ${slide.description}`;
+    // Create slide icons for timeline
+    presentation.slides.forEach((slide, index) => {
+      const slideIcon = this._createSlideIcon(slide, index);
+      this.elements.timelineContainer.appendChild(slideIcon);
+    });
+  }
 
-        document.body.appendChild(notification);
+  /**
+   * Creates a slide icon element for the timeline
+   * @private
+   * @param {Object} slide - Slide data
+   * @param {number} index - Slide index
+   * @returns {HTMLElement} Slide icon element
+   */
+  _createSlideIcon(slide, index) {
+    const icon = document.createElement('div');
+    icon.className = 'timeline-slide-icon';
+    icon.dataset.slideIndex = index;
 
-        setTimeout(() => {
-            notification.classList.add('fade-out');
-            setTimeout(() => notification.remove(), 300);
-        }, 2000);
+    // Add icon based on action type
+    const iconSymbol = this._getIconForActionType(slide.actionType);
+    icon.textContent = iconSymbol;
+
+    // Highlight current slide
+    if (index === this.presentationManager.getCurrentSlideIndex()) {
+      icon.classList.add('active');
     }
 
-    /**
-     * Update slide counter in toolbar
-     */
-    updateSlideCounter() {
-        const count = this.presentationManager.getSlideCount();
-        const slideCounter = document.getElementById('slideCounter');
+    // Make draggable
+    icon.draggable = true;
 
-        if (slideCounter) {
-            slideCounter.textContent = `${count} slide${count !== 1 ? 's' : ''}`;
-            slideCounter.style.display = count > 0 ? 'inline' : 'none';
-        }
+    // Drag start - set data transfer
+    icon.addEventListener('dragstart', (e) => {
+      e.dataTransfer.setData('text/plain', index.toString());
+      e.dataTransfer.effectAllowed = 'move';
+    });
+
+    // Drag over - allow drop
+    icon.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      icon.classList.add('drag-over');
+    });
+
+    // Drag leave - remove visual feedback
+    icon.addEventListener('dragleave', (e) => {
+      icon.classList.remove('drag-over');
+    });
+
+    // Drop - reorder slides
+    icon.addEventListener('drop', (e) => {
+      e.preventDefault();
+      icon.classList.remove('drag-over');
+
+      const fromIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
+      const toIndex = index;
+
+      // Reorder slides using PresentationManager
+      this.presentationManager.reorderSlides(fromIndex, toIndex);
+
+      // Refresh timeline to show new order
+      this._updateTimeline();
+    });
+
+    // Click to jump to slide
+    icon.addEventListener('click', async () => {
+      console.log(`Jump to slide ${index}`);
+
+      try {
+        // Jump to the clicked slide using PresentationManager
+        await this.presentationManager.jumpToSlide(index, this.mindmapEngine);
+
+        // Update timeline to reflect new current slide highlighting
+        this._updateTimeline();
+
+        // Update navigation UI
+        this._updateNavigationUI();
+      } catch (error) {
+        console.error(`Failed to jump to slide ${index}:`, error);
+        // TODO: Show user-friendly error message in UI
+      }
+    });
+
+    return icon;
+  }
+
+  /**
+   * Gets icon symbol for action type
+   * @private
+   * @param {string} actionType - Action type
+   * @returns {string} Icon symbol
+   */
+  _getIconForActionType(actionType) {
+    const iconMap = {
+      'node-expand': '📂',
+      'node-collapse': '📁',
+      'info-open': 'ℹ️',
+      'info-close': 'ℹ️',
+      'image-open': '🖼️',
+      'image-close': '🖼️',
+      'relationship-show': '🔗',
+      'relationship-hide': '🔗',
+      'camera-move': '📷',
+      'focus-activate': '🎯',
+      'focus-deactivate': '🎯'
+    };
+
+    return iconMap[actionType] || '•';
+  }
+
+  /**
+   * Refreshes the action log display
+   * Call this method after logging new actions during capture mode
+   */
+  refreshActionLog() {
+    this._updateActionLog();
+  }
+
+  /**
+   * Refreshes the timeline display
+   * Call this method after slide changes (add/delete/reorder) or navigation
+   */
+  refreshTimeline() {
+    this._updateTimeline();
+  }
+
+  /**
+   * Refreshes the full UI state (timeline + navigation)
+   * Call this method after any presentation state change
+   */
+  refreshUI() {
+    this._updateTimeline();
+    this._updateNavigationUI();
+  }
+
+  /**
+   * Updates presentation selector UI elements
+   * @private
+   */
+  _updatePresentationSelector() {
+    if (!this.elements.presentationDropdown) {
+      return;
     }
 
-    /**
-     * Toggle panel open/closed
-     */
-    togglePanel() {
-        if (this.isPanelOpen) {
-            this.closePanel();
-        } else {
-            this.openPanel();
-        }
+    // Clear existing options
+    this.elements.presentationDropdown.innerHTML = '';
+
+    // Get current presentation
+    const presentation = this.presentationManager.getCurrentPresentation();
+
+    if (!presentation) {
+      // Show placeholder option when no presentation is loaded
+      const placeholderOption = document.createElement('option');
+      placeholderOption.value = '';
+      placeholderOption.textContent = '-- Select Presentation --';
+      this.elements.presentationDropdown.appendChild(placeholderOption);
+
+      // Disable rename and delete buttons
+      if (this.elements.renamePresentationBtn) {
+        this.elements.renamePresentationBtn.disabled = true;
+      }
+      if (this.elements.deletePresentationBtn) {
+        this.elements.deletePresentationBtn.disabled = true;
+      }
+
+      return;
     }
 
-    /**
-     * Open panel
-     */
-    openPanel() {
-        if (this.slidePanel) {
-            this.slidePanel.classList.remove('hidden');
-            this.isPanelOpen = true;
-            this.savePanelState();
-        }
+    // Add current presentation as option
+    const option = document.createElement('option');
+    option.value = presentation.id;
+    option.textContent = presentation.name;
+    option.selected = true;
+    this.elements.presentationDropdown.appendChild(option);
+
+    // Enable rename and delete buttons
+    if (this.elements.renamePresentationBtn) {
+      this.elements.renamePresentationBtn.disabled = false;
+    }
+    if (this.elements.deletePresentationBtn) {
+      this.elements.deletePresentationBtn.disabled = false;
+    }
+  }
+
+  /**
+   * Cleans up event listeners
+   */
+  destroy() {
+    // Remove all event listeners
+    if (this.elements.captureStartBtn && this.boundHandlers.startCapture) {
+      this.elements.captureStartBtn.removeEventListener('click', this.boundHandlers.startCapture);
     }
 
-    /**
-     * Close panel
-     */
-    closePanel() {
-        if (this.slidePanel) {
-            this.slidePanel.classList.add('hidden');
-            this.isPanelOpen = false;
-            this.savePanelState();
-        }
+    if (this.elements.captureStopBtn && this.boundHandlers.stopCapture) {
+      this.elements.captureStopBtn.removeEventListener('click', this.boundHandlers.stopCapture);
     }
 
-    /**
-     * Save panel state to localStorage
-     */
-    savePanelState() {
-        localStorage.setItem('presentation-panel-open', JSON.stringify(this.isPanelOpen));
+    if (this.elements.prevSlideBtn && this.boundHandlers.prevSlide) {
+      this.elements.prevSlideBtn.removeEventListener('click', this.boundHandlers.prevSlide);
     }
 
-    /**
-     * Load panel state from localStorage
-     * @returns {boolean} - Panel open state
-     */
-    loadPanelState() {
-        const saved = localStorage.getItem('presentation-panel-open');
-        return saved ? JSON.parse(saved) : false;
+    if (this.elements.nextSlideBtn && this.boundHandlers.nextSlide) {
+      this.elements.nextSlideBtn.removeEventListener('click', this.boundHandlers.nextSlide);
     }
 
-    /**
-     * Refresh panel (re-render slides)
-     */
-    refresh() {
-        this.renderSlidePanel();
-        this.updateSlideCounter();
+    if (this.boundHandlers.keydown) {
+      document.removeEventListener('keydown', this.boundHandlers.keydown);
     }
+
+    if (this.elements.newPresentationBtn && this.boundHandlers.newPresentation) {
+      this.elements.newPresentationBtn.removeEventListener('click', this.boundHandlers.newPresentation);
+    }
+
+    if (this.elements.timelineContainer && this.boundHandlers.timelineDragOver) {
+      this.elements.timelineContainer.removeEventListener('dragover', this.boundHandlers.timelineDragOver);
+    }
+
+    // Clear element references
+    this.elements = {};
+    this.boundHandlers = {};
+  }
 }
 
-// Export for Node.js (testing) and browser
+// Export for use in other modules and tests
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = PresentationUI;
+  module.exports = PresentationUI;
 }

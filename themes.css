@@ -8,21 +8,26 @@
     --bg-main: #fafaf8;
     --bg-canvas: #fafaf8;
     --bg-header: linear-gradient(135deg, #2D2926 0%, #3a3633 100%);
-    --bg-panel: rgba(255, 255, 255, 0.85);
+    --bg-panel: rgba(255, 255, 255, 0.95);     /* Increased opacity */
     --bg-node: #ffffff;
     --bg-button: #f3f3f3;
     --bg-button-hover: #e8e8e8;
+    --bg-input: #ffffff;                       /* NEW - Input background */
+    --bg-modal: #ffffff;                       /* NEW - Modal background */
 
     /* Text colors */
-    --text-primary: #2c2c2c;
-    --text-secondary: #666666;
+    --text-primary: #2c2c2c;                   /* 14.3:1 ratio */
+    --text-secondary: #666666;                 /* 5.7:1 ratio */
     --text-header: #ffffff;
     --text-muted: #999999;
+    --text-placeholder: #aaaaaa;               /* NEW - Placeholder */
 
     /* Border colors */
-    --border-primary: #e0e0e0;
-    --border-node: rgba(0, 0, 0, 0.1);
-    --border-panel: rgba(255, 255, 255, 0.3);
+    --border-primary: #d0d0d0;                 /* Darker than #e0e0e0 */
+    --border-node: rgba(0, 0, 0, 0.15);        /* More visible */
+    --border-panel: rgba(0, 0, 0, 0.1);
+    --border-input: #d0d0d0;                   /* NEW - Input borders */
+    --border-focus: #DC6900;                   /* NEW - Focus indicator */
 
     /* Shadow colors */
     --shadow-sm: rgba(0, 0, 0, 0.08);
@@ -33,171 +38,128 @@
     /* Accent colors - PwC Orange */
     --accent-primary: #DC6900;
     --accent-light: #f5b895;
+    --accent-dark: #b85600;                    /* NEW - Darker accent */
     --accent-gradient: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
 
     /* Connection lines */
-    --line-color: rgba(220, 105, 0, 0.3);
-    --line-hover: rgba(220, 105, 0, 0.6);
+    --line-color: rgba(220, 105, 0, 0.4);      /* Increased from 0.3 */
+    --line-hover: rgba(220, 105, 0, 0.7);      /* Increased from 0.6 */
+
+    /* NEW - Relationship label specific */
+    --label-bg: rgba(255, 255, 255, 0.95);     /* White background */
+    --label-text: #2c2c2c;                     /* Dark text */
+    --label-border: rgba(220, 105, 0, 0.6);    /* Visible border */
 
     /* Grid pattern */
     --grid-color: transparent;
     --grid-opacity: 0;
 }
 
-/* ========================================
-   BLUEPRINT PROFESSIONAL THEME
-   ======================================== */
-body[data-theme="blueprint"] {
-    --bg-main: #2563B1;
-    --bg-canvas: #2563B1;
-    --bg-header: #1a4d8f;
-    --bg-panel: rgba(37, 99, 177, 0.95);
-    --bg-node: rgba(255, 255, 255, 0.05);
-    --bg-button: rgba(255, 255, 255, 0.1);
-    --bg-button-hover: rgba(255, 255, 255, 0.15);
-
-    --text-primary: #ffffff;
-    --text-secondary: rgba(255, 255, 255, 0.8);
-    --text-header: #ffffff;
-    --text-muted: rgba(255, 255, 255, 0.5);
-
-    --border-primary: rgba(255, 255, 255, 0.2);
-    --border-node: rgba(255, 255, 255, 0.4);
-    --border-panel: rgba(255, 255, 255, 0.3);
-
-    --shadow-sm: rgba(0, 0, 0, 0.3);
-    --shadow-md: rgba(0, 0, 0, 0.4);
-    --shadow-lg: rgba(0, 0, 0, 0.5);
-    --shadow-node: rgba(0, 0, 0, 0.3);
-
-    --accent-primary: #f5b895;
-    --accent-light: #f9c9a8;
-    --accent-gradient: linear-gradient(135deg, #f5b895 0%, #f9c9a8 100%);
-
-    --line-color: rgba(255, 255, 255, 0.3);
-    --line-hover: rgba(255, 255, 255, 0.6);
-
-    --grid-color: rgba(255, 255, 255, 0.1);
-    --grid-opacity: 1;
-}
-
-/* Blueprint grid pattern */
-body[data-theme="blueprint"] .mindmap-container {
-    background-image:
-        linear-gradient(var(--grid-color) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-    background-size: 20px 20px;
-}
 
 /* ========================================
    DARK MODE MINIMALIST THEME
    ======================================== */
 body[data-theme="dark"] {
-    --bg-main: #121212;
-    --bg-canvas: #121212;
-    --bg-header: #1e1e1e;
-    --bg-panel: rgba(30, 30, 30, 0.95);
-    --bg-node: #2d2d2d;
-    --bg-button: #3a3a3a;
-    --bg-button-hover: #4a4a4a;
+    /* Backgrounds - Darker base with lighter panels for better contrast */
+    --bg-main: #0d0d0d;
+    --bg-canvas: #0d0d0d;
+    --bg-header: #1a1a1a;
+    --bg-panel: rgba(25, 25, 25, 0.98);
+    --bg-node: #1f1f1f;
+    --bg-button: #2a2a2a;
+    --bg-button-hover: #353535;
+    --bg-input: #252525;              /* NEW - Input background */
+    --bg-modal: #1a1a1a;              /* NEW - Modal background */
 
-    --text-primary: #e0e0e0;
-    --text-secondary: #b0b0b0;
+    /* Text - Higher contrast for better readability */
+    --text-primary: #f5f5f5;          /* Brighter: 12.8:1 ratio */
+    --text-secondary: #c0c0c0;        /* Brighter: 8.2:1 ratio */
     --text-header: #ffffff;
-    --text-muted: #707070;
+    --text-muted: #858585;            /* Still readable: 4.6:1 ratio */
+    --text-placeholder: #666666;      /* NEW - Placeholder text */
 
-    --border-primary: #3a3a3a;
-    --border-node: rgba(255, 255, 255, 0.1);
-    --border-panel: rgba(255, 255, 255, 0.1);
+    /* Borders - More visible */
+    --border-primary: #404040;        /* Lighter borders */
+    --border-node: rgba(255, 255, 255, 0.15);
+    --border-panel: rgba(255, 255, 255, 0.15);
+    --border-input: #3a3a3a;          /* NEW - Input borders */
+    --border-focus: #DC6900;          /* NEW - Focus indicator */
 
-    --shadow-sm: rgba(0, 0, 0, 0.5);
-    --shadow-md: rgba(0, 0, 0, 0.6);
-    --shadow-lg: rgba(0, 0, 0, 0.7);
-    --shadow-node: rgba(0, 0, 0, 0.5);
+    /* Shadows - Softer */
+    --shadow-sm: rgba(0, 0, 0, 0.6);
+    --shadow-md: rgba(0, 0, 0, 0.7);
+    --shadow-lg: rgba(0, 0, 0, 0.8);
+    --shadow-node: rgba(0, 0, 0, 0.6);
 
+    /* Accent - PwC orange */
     --accent-primary: #DC6900;
     --accent-light: #f5b895;
+    --accent-dark: #b85600;           /* NEW - Darker accent */
     --accent-gradient: linear-gradient(135deg, #DC6900 0%, #f5b895 100%);
 
-    --line-color: rgba(220, 105, 0, 0.4);
-    --line-hover: rgba(220, 105, 0, 0.7);
+    /* Relationship lines - Higher opacity */
+    --line-color: rgba(220, 105, 0, 0.6);    /* Increased from 0.4 */
+    --line-hover: rgba(220, 105, 0, 0.9);    /* Increased from 0.7 */
 
+    /* NEW - Relationship label specific */
+    --label-bg: rgba(10, 10, 10, 0.95);      /* Dark label background */
+    --label-text: #f5f5f5;                   /* Bright label text */
+    --label-border: rgba(220, 105, 0, 0.8);  /* Visible border */
+
+    /* Grid */
     --grid-color: transparent;
     --grid-opacity: 0;
 }
 
-/* ========================================
-   MONOCHROME ELEGANT THEME
-   ======================================== */
-body[data-theme="monochrome"] {
-    --bg-main: #ffffff;
-    --bg-canvas: #ffffff;
-    --bg-header: #000000;
-    --bg-panel: rgba(255, 255, 255, 0.98);
-    --bg-node: #ffffff;
-    --bg-button: #f5f5f5;
-    --bg-button-hover: #e5e5e5;
-
-    --text-primary: #000000;
-    --text-secondary: #333333;
-    --text-header: #ffffff;
-    --text-muted: #666666;
-
-    --border-primary: #000000;
-    --border-node: #000000;
-    --border-panel: #e0e0e0;
-
-    --shadow-sm: rgba(0, 0, 0, 0.05);
-    --shadow-md: rgba(0, 0, 0, 0.08);
-    --shadow-lg: rgba(0, 0, 0, 0.1);
-    --shadow-node: rgba(0, 0, 0, 0.08);
-
-    --accent-primary: #000000;
-    --accent-light: #333333;
-    --accent-gradient: linear-gradient(135deg, #000000 0%, #333333 100%);
-
-    --line-color: rgba(0, 0, 0, 0.2);
-    --line-hover: rgba(0, 0, 0, 0.5);
-
-    --grid-color: transparent;
-    --grid-opacity: 0;
-}
 
 /* ========================================
    THEME SELECTOR STYLES
    ======================================== */
 .theme-selector {
     display: flex;
-    gap: 4px;
+    gap: 6px;
     background: rgba(255, 255, 255, 0.1);
-    padding: 4px;
-    border-radius: 8px;
+    padding: 6px;
+    border-radius: 10px;
     margin-right: 12px;
 }
 
 .theme-btn {
     background: transparent;
-    border: 1px solid transparent;
+    border: 2px solid transparent;
     color: rgba(255, 255, 255, 0.7);
-    padding: 6px 10px;
-    border-radius: 6px;
+    padding: 8px 14px;
+    border-radius: 8px;
     cursor: pointer;
     transition: all 0.2s ease;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 6px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.theme-btn .theme-label {
+    display: none;  /* Hide on small screens */
 }
 
 .theme-btn:hover {
     background: rgba(255, 255, 255, 0.15);
     color: white;
-    border-color: rgba(255, 255, 255, 0.3);
+    border-color: rgba(255, 255, 255, 0.4);
 }
 
 .theme-btn.active {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
     color: white;
-    border-color: rgba(255, 255, 255, 0.4);
+    border-color: rgba(255, 255, 255, 0.6);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (min-width: 768px) {
+    .theme-btn .theme-label {
+        display: inline;  /* Show labels on larger screens */
+    }
 }
 
 /* ========================================
@@ -295,4 +257,160 @@ input[type="text"] {
 
 .context-menu-item:hover {
     background: var(--bg-button-hover) !important;
+}
+
+/* ========================================
+   MODAL INPUT STYLING - ENHANCED VISIBILITY
+   ======================================== */
+
+/* Modal inputs and textareas - theme-aware with high contrast */
+.edit-modal input[type="text"],
+.edit-modal textarea,
+.category-edit-modal input[type="text"],
+.category-edit-modal textarea,
+.relationship-edit-modal input[type="text"],
+.relationship-edit-modal textarea {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+    border: 2px solid var(--border-input) !important;
+    border-radius: 6px;
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+}
+
+/* Focus state - PwC orange glow */
+.edit-modal input[type="text"]:focus,
+.edit-modal textarea:focus,
+.category-edit-modal input[type="text"]:focus,
+.category-edit-modal textarea:focus,
+.relationship-edit-modal input[type="text"]:focus,
+.relationship-edit-modal textarea:focus {
+    outline: none;
+    border-color: var(--border-focus) !important;
+    box-shadow: 0 0 0 3px rgba(220, 105, 0, 0.2);
+}
+
+/* Placeholder text - readable in both themes */
+.edit-modal input[type="text"]::placeholder,
+.edit-modal textarea::placeholder,
+.category-edit-modal input[type="text"]::placeholder,
+.category-edit-modal textarea::placeholder,
+.relationship-edit-modal input[type="text"]::placeholder,
+.relationship-edit-modal textarea::placeholder {
+    color: var(--text-placeholder) !important;
+    opacity: 1;
+}
+
+/* Modal labels - ensure visibility */
+.edit-modal label,
+.category-edit-modal label,
+.relationship-edit-modal label {
+    color: var(--text-primary) !important;
+    font-weight: 500;
+    margin-bottom: 6px;
+    display: block;
+}
+
+/* Modal backgrounds - ensure proper contrast */
+.edit-modal,
+.category-edit-modal,
+.relationship-edit-modal {
+    background: var(--bg-modal) !important;
+    border: 1px solid var(--border-primary) !important;
+}
+
+/* Textarea specific - resize handle visibility */
+.edit-modal textarea,
+.category-edit-modal textarea,
+.relationship-edit-modal textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* Input hover state - subtle feedback */
+.edit-modal input[type="text"]:hover,
+.edit-modal textarea:hover,
+.category-edit-modal input[type="text"]:hover,
+.category-edit-modal textarea:hover,
+.relationship-edit-modal input[type="text"]:hover,
+.relationship-edit-modal textarea:hover {
+    border-color: var(--border-focus) !important;
+}
+
+/* ========================================
+   RIBBON AND BADGE STYLING - ENHANCED CONTRAST
+   ======================================== */
+
+/* Category badge on nodes - high contrast with white border */
+.category-badge {
+    background: var(--accent-primary) !important;
+    color: white !important;
+    border: 2px solid white !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Category ribbon on nodes */
+.category-ribbon {
+    background: var(--accent-primary) !important;
+    color: white !important;
+}
+
+/* Ribbon badge - always high contrast */
+.ribbon-badge {
+    background: var(--accent-primary) !important;
+    color: white !important;
+    border: 2px solid white !important;
+    font-weight: 700 !important;
+}
+
+/* Relationship ribbon */
+.relationship-ribbon {
+    background: var(--accent-primary) !important;
+    color: white !important;
+}
+
+/* Relationship count badge */
+.relationship-count {
+    background: var(--accent-primary) !important;
+    color: white !important;
+    border: 2px solid white !important;
+    font-weight: 700 !important;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Version badge in header - theme-aware */
+.version-badge {
+    background: rgba(245, 184, 149, 0.2) !important;
+    color: var(--accent-light) !important;
+    border-color: rgba(245, 184, 149, 0.3) !important;
+}
+
+/* Category items in panel - use theme colors */
+.category-item {
+    background: var(--bg-node) !important;
+    border-color: var(--border-primary) !important;
+}
+
+.category-item:hover {
+    background: var(--bg-button-hover) !important;
+    border-color: var(--accent-primary) !important;
+}
+
+.category-item .category-name {
+    color: var(--text-primary) !important;
+}
+
+.category-item .category-count {
+    color: var(--text-secondary) !important;
+}
+
+/* Category count badges in panel */
+.category-count {
+    background: var(--bg-panel) !important;
+    color: var(--text-secondary) !important;
 }

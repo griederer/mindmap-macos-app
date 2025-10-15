@@ -125,3 +125,6 @@ logs
 
 # User data
 Library/
+
+# Presentation files
+presentations/*.presentation

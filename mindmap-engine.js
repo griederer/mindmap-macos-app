@@ -472,15 +472,21 @@ class MindmapEngine {
                                 const midX = (x1 + x2) / 2;
                                 const midY = (y1 + y2) / 2;
 
+                                // Get theme-aware colors from CSS variables
+                                const computedStyle = getComputedStyle(document.body);
+                                const labelBg = computedStyle.getPropertyValue('--label-bg').trim();
+                                const labelText = computedStyle.getPropertyValue('--label-text').trim();
+                                const labelBorder = computedStyle.getPropertyValue('--label-border').trim();
+
                                 // Measure text dimensions
                                 this.ctx.font = '11px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
                                 const textMetrics = this.ctx.measureText(relationship.name);
                                 const textWidth = textMetrics.width;
                                 const textHeight = 11;
 
-                                // Draw semi-transparent background
+                                // Draw theme-aware background
                                 const padding = 4;
-                                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                                this.ctx.fillStyle = labelBg || 'rgba(255, 255, 255, 0.95)';
                                 this.ctx.fillRect(
                                     midX - textWidth / 2 - padding,
                                     midY - textHeight / 2 - padding,
@@ -489,7 +495,7 @@ class MindmapEngine {
                                 );
 
                                 // Draw border around label
-                                this.ctx.strokeStyle = enhancedColor;
+                                this.ctx.strokeStyle = labelBorder || enhancedColor;
                                 this.ctx.lineWidth = 1;
                                 this.ctx.setLineDash([]);
                                 this.ctx.strokeRect(
@@ -500,7 +506,7 @@ class MindmapEngine {
                                 );
 
                                 // Draw text
-                                this.ctx.fillStyle = enhancedColor;
+                                this.ctx.fillStyle = labelText || enhancedColor;
                                 this.ctx.textAlign = 'center';
                                 this.ctx.textBaseline = 'middle';
                                 this.ctx.fillText(relationship.name, midX, midY);
@@ -925,7 +931,7 @@ class MindmapEngine {
             if (hasImages) {
                 infoHTML += '<div class="info-images">';
                 data.images.forEach((img, idx) => {
-                    if (img && img.startsWith('data:image')) {
+                    if (img) {
                         infoHTML += `<img src="${img}" alt="Image ${idx + 1}" />`;
                     }
                 });

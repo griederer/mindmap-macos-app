@@ -1,412 +1,698 @@
 /**
  * Unit tests for PresentationManager
+ * Task 5.2 - Write tests for createPresentation(name) creating new empty presentation
  */
 
-const PresentationManager = require('./presentation-manager.js');
-
-// Mock MindmapEngine
-class MockMindmapEngine {
-    constructor() {
-        this.nodes = [
-            { id: 'node-0', text: 'Root Node', level: 0, element: this.createMockElement(false) },
-            { id: 'node-1', text: 'Child 1', level: 1, element: this.createMockElement(true) },
-            { id: 'node-2', text: 'Child 2', level: 1, element: this.createMockElement(false) }
-        ];
-        this.zoom = 1.0;
-        this.pan = { x: 0, y: 0 };
-        this.focusedNodeId = null;
-        this.categoriesVisible = true;
-        this.relationshipsVisible = true;
-    }
-
-    createMockElement(expanded = false) {
-        return {
-            classList: {
-                contains: (className) => className === 'expanded' && expanded
-            }
-        };
-    }
-}
-
-// Mock DOM
-global.document = {
-    querySelectorAll: (selector) => {
-        if (selector === '.info-panel.active') {
-            return [
-                { dataset: { nodeId: 'node-1' } }
-            ];
-        }
-        return [];
-    },
-    querySelector: (selector) => {
-        if (selector === '.image-overlay.active') {
-            return {
-                querySelector: () => ({
-                    dataset: { nodeId: 'node-0' },
-                    src: 'data:image/jpeg;base64,/9j/4AAQ...'
-                })
-            };
-        }
-        return null;
-    }
-};
+const PresentationManager = require('./presentation-manager');
+const StateEngine = require('./state-engine');
+const AnimationEngine = require('./animation-engine');
 
 describe('PresentationManager', () => {
-    let presentationManager;
-    let mockEngine;
+  let presentationManager;
+  let stateEngine;
+  let animationEngine;
+  let mockMindmap;
 
+  beforeEach(() => {
+    // Create mock mindmap engine
+    mockMindmap = {
+      camera: { x: 0, y: 0, zoom: 1 },
+      expandedNodes: new Set(),
+      focusedNode: null,
+      infoPanel: { open: false, nodeId: null },
+      imageModal: { open: false, nodeId: null, imageIndex: null },
+      visibleRelationships: new Set(),
+      focusMode: false,
+      updateTransform: jest.fn(),
+      render: jest.fn()
+    };
+
+    // Create dependencies
+    stateEngine = new StateEngine();
+    animationEngine = new AnimationEngine(mockMindmap);
+
+    // Create presentation manager
+    presentationManager = new PresentationManager(stateEngine, animationEngine);
+  });
+
+  describe('createPresentation()', () => {
+    test('should create a new empty presentation with valid name', () => {
+      const presentation = presentationManager.createPresentation('My Presentation');
+
+      expect(presentation).toBeDefined();
+      expect(presentation.name).toBe('My Presentation');
+      expect(presentation.id).toBeDefined();
+      expect(typeof presentation.id).toBe('string');
+      expect(presentation.slides).toEqual([]);
+      expect(presentation.currentSlideIndex).toBe(0);
+    });
+
+    test('should generate unique presentation ID', () => {
+      const presentation1 = presentationManager.createPresentation('Presentation 1');
+      const presentation2 = presentationManager.createPresentation('Presentation 2');
+
+      expect(presentation1.id).not.toBe(presentation2.id);
+    });
+
+    test('should include created and modified timestamps', () => {
+      const beforeTime = Date.now();
+      const presentation = presentationManager.createPresentation('Test');
+      const afterTime = Date.now();
+
+      expect(presentation.created).toBeDefined();
+      expect(presentation.created).toBeInstanceOf(Date);
+      expect(presentation.created.getTime()).toBeGreaterThanOrEqual(beforeTime);
+      expect(presentation.created.getTime()).toBeLessThanOrEqual(afterTime);
+
+      expect(presentation.modified).toBeDefined();
+      expect(presentation.modified).toBeInstanceOf(Date);
+    });
+
+    test('should set presentation as current presentation', () => {
+      const presentation = presentationManager.createPresentation('Current');
+
+      expect(presentationManager.getCurrentPresentation()).toBe(presentation);
+    });
+
+    test('should reset current slide index to 0', () => {
+      presentationManager.createPresentation('Test');
+
+      expect(presentationManager.getCurrentSlideIndex()).toBe(0);
+    });
+
+    test('should throw error if name is empty string', () => {
+      expect(() => {
+        presentationManager.createPresentation('');
+      }).toThrow('Presentation name is required');
+    });
+
+    test('should throw error if name is null', () => {
+      expect(() => {
+        presentationManager.createPresentation(null);
+      }).toThrow('Presentation name is required');
+    });
+
+    test('should throw error if name is undefined', () => {
+      expect(() => {
+        presentationManager.createPresentation(undefined);
+      }).toThrow('Presentation name is required');
+    });
+
+    test('should throw error if name is not a string', () => {
+      expect(() => {
+        presentationManager.createPresentation(123);
+      }).toThrow('Presentation name is required');
+    });
+
+    test('should trim whitespace from presentation name', () => {
+      const presentation = presentationManager.createPresentation('  Spaced Name  ');
+
+      expect(presentation.name).toBe('Spaced Name');
+    });
+
+    test('should throw error if name is only whitespace', () => {
+      expect(() => {
+        presentationManager.createPresentation('   ');
+      }).toThrow('Presentation name is required');
+    });
+  });
+
+  describe('getCurrentPresentation()', () => {
+    test('should return null when no presentation is loaded', () => {
+      expect(presentationManager.getCurrentPresentation()).toBeNull();
+    });
+
+    test('should return current presentation after creation', () => {
+      const presentation = presentationManager.createPresentation('Test');
+
+      expect(presentationManager.getCurrentPresentation()).toBe(presentation);
+    });
+  });
+
+  describe('getCurrentSlideIndex()', () => {
+    test('should return 0 initially', () => {
+      expect(presentationManager.getCurrentSlideIndex()).toBe(0);
+    });
+
+    test('should return 0 after creating new presentation', () => {
+      presentationManager.createPresentation('Test');
+
+      expect(presentationManager.getCurrentSlideIndex()).toBe(0);
+    });
+  });
+
+  describe('getSlideCount()', () => {
+    test('should return 0 when no presentation is loaded', () => {
+      expect(presentationManager.getSlideCount()).toBe(0);
+    });
+
+    test('should return 0 for newly created empty presentation', () => {
+      presentationManager.createPresentation('Empty');
+
+      expect(presentationManager.getSlideCount()).toBe(0);
+    });
+  });
+
+  describe('hasNextSlide()', () => {
+    test('should return false when no presentation is loaded', () => {
+      expect(presentationManager.hasNextSlide()).toBe(false);
+    });
+
+    test('should return false for empty presentation', () => {
+      presentationManager.createPresentation('Empty');
+
+      expect(presentationManager.hasNextSlide()).toBe(false);
+    });
+  });
+
+  describe('hasPreviousSlide()', () => {
+    test('should return false when no presentation is loaded', () => {
+      expect(presentationManager.hasPreviousSlide()).toBe(false);
+    });
+
+    test('should return false for empty presentation', () => {
+      presentationManager.createPresentation('Empty');
+
+      expect(presentationManager.hasPreviousSlide()).toBe(false);
+    });
+
+    test('should return false when at first slide', () => {
+      presentationManager.createPresentation('Test');
+      // currentSlideIndex is 0
+
+      expect(presentationManager.hasPreviousSlide()).toBe(false);
+    });
+  });
+
+  describe('addSlide()', () => {
     beforeEach(() => {
-        mockEngine = new MockMindmapEngine();
-        presentationManager = new PresentationManager(mockEngine);
+      presentationManager.createPresentation('Test Presentation');
     });
 
-    describe('initialization', () => {
-        test('should initialize with empty presentation', () => {
-            expect(presentationManager.presentation.slides).toEqual([]);
-            expect(presentationManager.presentation.created).toBeDefined();
-            expect(presentationManager.presentation.modified).toBeDefined();
-            expect(presentationManager.nextSlideId).toBe(1);
-        });
+    test('should add slide to empty presentation', () => {
+      const slideData = {
+        id: 'slide-1',
+        actionType: 'node-expand',
+        actionData: { nodeId: 'node-1' },
+        timestamp: new Date(),
+        state: {
+          camera: { x: 0, y: 0, zoom: 1 },
+          expandedNodes: ['node-1'],
+          focusedNode: null,
+          infoPanel: { open: false, nodeId: null },
+          imageModal: { open: false, nodeId: null, imageIndex: null },
+          visibleRelationships: [],
+          focusMode: false
+        }
+      };
+
+      const result = presentationManager.addSlide(slideData);
+
+      expect(result).toBe(slideData);
+      expect(presentationManager.getSlideCount()).toBe(1);
+      expect(presentationManager.getCurrentPresentation().slides).toContain(slideData);
     });
 
-    describe('captureCurrentState()', () => {
-        test('should capture expanded nodes', () => {
-            const state = presentationManager.captureCurrentState();
+    test('should append slide to presentation with existing slides', () => {
+      const slide1 = {
+        id: 'slide-1',
+        actionType: 'node-expand',
+        actionData: { nodeId: 'node-1' },
+        timestamp: new Date(),
+        state: {}
+      };
+      const slide2 = {
+        id: 'slide-2',
+        actionType: 'info-open',
+        actionData: { nodeId: 'node-1' },
+        timestamp: new Date(),
+        state: {}
+      };
 
-            expect(state.expandedNodes).toEqual(['node-1']);
-            expect(state.zoom).toBe(1.0);
-            expect(state.pan).toEqual({ x: 0, y: 0 });
-        });
+      presentationManager.addSlide(slide1);
+      presentationManager.addSlide(slide2);
 
-        test('should capture open info panels', () => {
-            const state = presentationManager.captureCurrentState();
-
-            expect(state.openInfoPanels).toEqual(['node-1']);
-        });
-
-        test('should capture active image when present', () => {
-            const state = presentationManager.captureCurrentState();
-
-            expect(state.activeImage).toEqual({
-                nodeId: 'node-0',
-                imageUrl: 'data:image/jpeg;base64,/9j/4AAQ...'
-            });
-        });
-
-        test('should capture focused node when in focus mode', () => {
-            mockEngine.focusedNodeId = 'node-2';
-            const state = presentationManager.captureCurrentState();
-
-            expect(state.focusedNode).toBe('node-2');
-        });
-
-        test('should capture categories and relationships visibility', () => {
-            const state = presentationManager.captureCurrentState();
-
-            expect(state.categoriesVisible).toBe(true);
-            expect(state.relationshipsVisible).toBe(true);
-        });
+      expect(presentationManager.getSlideCount()).toBe(2);
+      const slides = presentationManager.getCurrentPresentation().slides;
+      expect(slides[0]).toBe(slide1);
+      expect(slides[1]).toBe(slide2);
     });
 
-    describe('generateSlideDescription()', () => {
-        test('should generate description for focus mode', () => {
-            const state = {
-                focusedNode: 'node-1',
-                expandedNodes: [],
-                openInfoPanels: [],
-                activeImage: null
-            };
+    test('should update presentation modified timestamp', () => {
+      const beforeTime = Date.now();
 
-            const description = presentationManager.generateSlideDescription(state);
+      const slideData = {
+        id: 'slide-1',
+        actionType: 'node-expand',
+        actionData: { nodeId: 'node-1' },
+        timestamp: new Date(),
+        state: {}
+      };
 
-            expect(description).toBe('Focus: Child 1');
-        });
+      presentationManager.addSlide(slideData);
+      const afterTime = Date.now();
 
-        test('should generate description for active image', () => {
-            const state = {
-                focusedNode: null,
-                expandedNodes: [],
-                openInfoPanels: [],
-                activeImage: { nodeId: 'node-0', imageUrl: 'data:...' }
-            };
-
-            const description = presentationManager.generateSlideDescription(state);
-
-            expect(description).toBe('Root Node (image)');
-        });
-
-        test('should generate description for expanded nodes', () => {
-            const state = {
-                focusedNode: null,
-                expandedNodes: ['node-1'],
-                openInfoPanels: [],
-                activeImage: null
-            };
-
-            const description = presentationManager.generateSlideDescription(state);
-
-            expect(description).toBe('Child 1 expanded');
-        });
-
-        test('should generate description for open info panels', () => {
-            const state = {
-                focusedNode: null,
-                expandedNodes: [],
-                openInfoPanels: ['node-2'],
-                activeImage: null
-            };
-
-            const description = presentationManager.generateSlideDescription(state);
-
-            expect(description).toBe('Child 2 details');
-        });
-
-        test('should default to root overview', () => {
-            const state = {
-                focusedNode: null,
-                expandedNodes: [],
-                openInfoPanels: [],
-                activeImage: null
-            };
-
-            const description = presentationManager.generateSlideDescription(state);
-
-            expect(description).toBe('Root Node overview');
-        });
+      const modified = presentationManager.getCurrentPresentation().modified;
+      expect(modified.getTime()).toBeGreaterThanOrEqual(beforeTime);
+      expect(modified.getTime()).toBeLessThanOrEqual(afterTime);
     });
 
-    describe('addSlide()', () => {
-        test('should add slide with auto-generated description', () => {
-            // Mock no active image for simpler test
-            global.document.querySelector = () => null;
+    test('should throw error if no presentation is loaded', () => {
+      const pm = new PresentationManager(stateEngine, animationEngine);
 
-            const slide = presentationManager.addSlide();
-
-            expect(slide.id).toBe(1);
-            expect(slide.description).toBeDefined();
-            expect(slide.expandedNodes).toEqual(['node-1']);
-            expect(presentationManager.presentation.slides).toHaveLength(1);
-        });
-
-        test('should add slide with custom description', () => {
-            global.document.querySelector = () => null;
-
-            const slide = presentationManager.addSlide('Custom Slide Title');
-
-            expect(slide.description).toBe('Custom Slide Title');
-        });
-
-        test('should increment slide ID', () => {
-            global.document.querySelector = () => null;
-
-            const slide1 = presentationManager.addSlide();
-            const slide2 = presentationManager.addSlide();
-
-            expect(slide1.id).toBe(1);
-            expect(slide2.id).toBe(2);
-            expect(presentationManager.nextSlideId).toBe(3);
-        });
-
-        test('should update modified timestamp', () => {
-            global.document.querySelector = () => null;
-
-            const before = new Date().toISOString();
-            presentationManager.addSlide();
-            const after = new Date().toISOString();
-
-            expect(presentationManager.presentation.modified >= before).toBe(true);
-            expect(presentationManager.presentation.modified <= after).toBe(true);
-        });
+      expect(() => {
+        pm.addSlide({ id: 'slide-1', actionType: 'node-expand', state: {} });
+      }).toThrow('No presentation loaded');
     });
 
-    describe('deleteSlide()', () => {
-        test('should delete slide by ID', () => {
-            global.document.querySelector = () => null;
-
-            presentationManager.addSlide();
-            presentationManager.addSlide();
-
-            const result = presentationManager.deleteSlide(1);
-
-            expect(result).toBe(true);
-            expect(presentationManager.presentation.slides).toHaveLength(1);
-            expect(presentationManager.presentation.slides[0].id).toBe(2);
-        });
-
-        test('should return false for non-existent slide', () => {
-            const result = presentationManager.deleteSlide(999);
-
-            expect(result).toBe(false);
-        });
-
-        test('should update modified timestamp', () => {
-            global.document.querySelector = () => null;
-
-            presentationManager.addSlide();
-            const before = new Date().toISOString();
-            presentationManager.deleteSlide(1);
-            const after = new Date().toISOString();
-
-            expect(presentationManager.presentation.modified >= before).toBe(true);
-            expect(presentationManager.presentation.modified <= after).toBe(true);
-        });
+    test('should throw error if slideData is null', () => {
+      expect(() => {
+        presentationManager.addSlide(null);
+      }).toThrow('Invalid slide data');
     });
 
-    describe('reorderSlides()', () => {
-        test('should reorder slides correctly', () => {
-            global.document.querySelector = () => null;
-
-            presentationManager.addSlide('Slide 1');
-            presentationManager.addSlide('Slide 2');
-            presentationManager.addSlide('Slide 3');
-
-            const result = presentationManager.reorderSlides([3, 1, 2]);
-
-            expect(result).toBe(true);
-            expect(presentationManager.presentation.slides[0].description).toBe('Slide 3');
-            expect(presentationManager.presentation.slides[1].description).toBe('Slide 1');
-            expect(presentationManager.presentation.slides[2].description).toBe('Slide 2');
-        });
-
-        test('should reject invalid order length', () => {
-            global.document.querySelector = () => null;
-
-            presentationManager.addSlide();
-            presentationManager.addSlide();
-
-            const result = presentationManager.reorderSlides([1]);
-
-            expect(result).toBe(false);
-        });
-
-        test('should reject invalid slide IDs', () => {
-            global.document.querySelector = () => null;
-
-            presentationManager.addSlide();
-            presentationManager.addSlide();
-
-            const result = presentationManager.reorderSlides([1, 999]);
-
-            expect(result).toBe(false);
-        });
+    test('should throw error if slideData is undefined', () => {
+      expect(() => {
+        presentationManager.addSlide(undefined);
+      }).toThrow('Invalid slide data');
     });
 
-    describe('getSlideCount()', () => {
-        test('should return correct count', () => {
-            global.document.querySelector = () => null;
-
-            expect(presentationManager.getSlideCount()).toBe(0);
-
-            presentationManager.addSlide();
-            expect(presentationManager.getSlideCount()).toBe(1);
-
-            presentationManager.addSlide();
-            expect(presentationManager.getSlideCount()).toBe(2);
-        });
+    test('should throw error if slideData is missing id', () => {
+      expect(() => {
+        presentationManager.addSlide({ actionType: 'node-expand', state: {} });
+      }).toThrow('Invalid slide data');
     });
 
-    describe('getSlide()', () => {
-        test('should return slide by ID', () => {
-            global.document.querySelector = () => null;
-
-            presentationManager.addSlide('Test Slide');
-            const slide = presentationManager.getSlide(1);
-
-            expect(slide).toBeDefined();
-            expect(slide.id).toBe(1);
-            expect(slide.description).toBe('Test Slide');
-        });
-
-        test('should return null for non-existent ID', () => {
-            const slide = presentationManager.getSlide(999);
-
-            expect(slide).toBeNull();
-        });
+    test('should throw error if slideData is missing actionType', () => {
+      expect(() => {
+        presentationManager.addSlide({ id: 'slide-1', state: {} });
+      }).toThrow('Invalid slide data');
     });
 
-    describe('getSlideByIndex()', () => {
-        test('should return slide by index', () => {
-            global.document.querySelector = () => null;
-
-            presentationManager.addSlide('First');
-            presentationManager.addSlide('Second');
-
-            const slide = presentationManager.getSlideByIndex(1);
-
-            expect(slide).toBeDefined();
-            expect(slide.description).toBe('Second');
-        });
-
-        test('should return null for out-of-range index', () => {
-            const slide = presentationManager.getSlideByIndex(999);
-
-            expect(slide).toBeNull();
-        });
+    test('should throw error if slideData is missing state', () => {
+      expect(() => {
+        presentationManager.addSlide({ id: 'slide-1', actionType: 'node-expand' });
+      }).toThrow('Invalid slide data');
     });
 
-    describe('loadPresentation()', () => {
-        test('should load presentation data', () => {
-            const presentationData = {
-                slides: [
-                    {
-                        id: 5,
-                        description: 'Loaded Slide',
-                        expandedNodes: ['node-0'],
-                        openInfoPanels: [],
-                        activeImage: null,
-                        focusedNode: null,
-                        zoom: 1.5,
-                        pan: { x: 100, y: 50 },
-                        categoriesVisible: false,
-                        relationshipsVisible: true
-                    }
-                ],
-                created: '2025-10-07T10:00:00.000Z',
-                modified: '2025-10-07T12:00:00.000Z'
-            };
+    test('should update hasNextSlide after adding slides', () => {
+      // Initially at slide 0 with no slides
+      expect(presentationManager.hasNextSlide()).toBe(false);
 
-            presentationManager.loadPresentation(presentationData);
+      presentationManager.addSlide({ id: 'slide-1', actionType: 'node-expand', state: {} });
 
-            expect(presentationManager.presentation.slides).toHaveLength(1);
-            expect(presentationManager.presentation.slides[0].description).toBe('Loaded Slide');
-            expect(presentationManager.nextSlideId).toBe(6);
-        });
+      // Now at slide 0 with 1 slide (still no next)
+      expect(presentationManager.hasNextSlide()).toBe(false);
 
-        test('should handle null presentation data', () => {
-            presentationManager.loadPresentation(null);
+      presentationManager.addSlide({ id: 'slide-2', actionType: 'info-open', state: {} });
 
-            expect(presentationManager.presentation.slides).toEqual([]);
-            expect(presentationManager.nextSlideId).toBe(1);
-        });
+      // Now at slide 0 with 2 slides (has next)
+      expect(presentationManager.hasNextSlide()).toBe(true);
+    });
+  });
 
-        test('should calculate next slide ID from max ID', () => {
-            const presentationData = {
-                slides: [
-                    { id: 1, description: 'Slide 1' },
-                    { id: 5, description: 'Slide 5' },
-                    { id: 3, description: 'Slide 3' }
-                ],
-                created: new Date().toISOString(),
-                modified: new Date().toISOString()
-            };
-
-            presentationManager.loadPresentation(presentationData);
-
-            expect(presentationManager.nextSlideId).toBe(6);
-        });
+  describe('deleteSlide()', () => {
+    beforeEach(() => {
+      presentationManager.createPresentation('Test Presentation');
+      presentationManager.addSlide({ id: 'slide-1', actionType: 'node-expand', state: {} });
+      presentationManager.addSlide({ id: 'slide-2', actionType: 'info-open', state: {} });
+      presentationManager.addSlide({ id: 'slide-3', actionType: 'image-open', state: {} });
     });
 
-    describe('exportPresentation()', () => {
-        test('should export presentation data', () => {
-            global.document.querySelector = () => null;
+    test('should delete slide by ID', () => {
+      const result = presentationManager.deleteSlide('slide-2');
 
-            presentationManager.addSlide('Test Export');
-
-            const exported = presentationManager.exportPresentation();
-
-            expect(exported.slides).toHaveLength(1);
-            expect(exported.created).toBeDefined();
-            expect(exported.modified).toBeDefined();
-        });
+      expect(result).toBe(true);
+      expect(presentationManager.getSlideCount()).toBe(2);
+      const slides = presentationManager.getCurrentPresentation().slides;
+      expect(slides.find(s => s.id === 'slide-2')).toBeUndefined();
     });
+
+    test('should update presentation modified timestamp', () => {
+      const beforeTime = Date.now();
+      presentationManager.deleteSlide('slide-1');
+      const afterTime = Date.now();
+
+      const modified = presentationManager.getCurrentPresentation().modified;
+      expect(modified.getTime()).toBeGreaterThanOrEqual(beforeTime);
+      expect(modified.getTime()).toBeLessThanOrEqual(afterTime);
+    });
+
+    test('should adjust currentSlideIndex if deleting current or earlier slide', () => {
+      // Set current slide to index 2
+      presentationManager.currentSlideIndex = 2;
+
+      // Delete slide at index 1 (should shift current index down)
+      presentationManager.deleteSlide('slide-2');
+
+      expect(presentationManager.getCurrentSlideIndex()).toBe(1);
+    });
+
+    test('should not change currentSlideIndex if deleting later slide', () => {
+      // Set current slide to index 0
+      presentationManager.currentSlideIndex = 0;
+
+      // Delete slide at index 2 (should not affect current index)
+      presentationManager.deleteSlide('slide-3');
+
+      expect(presentationManager.getCurrentSlideIndex()).toBe(0);
+    });
+
+    test('should throw error if no presentation is loaded', () => {
+      const pm = new PresentationManager(stateEngine, animationEngine);
+
+      expect(() => {
+        pm.deleteSlide('slide-1');
+      }).toThrow('No presentation loaded');
+    });
+
+    test('should throw error if slideId is null', () => {
+      expect(() => {
+        presentationManager.deleteSlide(null);
+      }).toThrow('Invalid slide ID');
+    });
+
+    test('should throw error if slideId is undefined', () => {
+      expect(() => {
+        presentationManager.deleteSlide(undefined);
+      }).toThrow('Invalid slide ID');
+    });
+
+    test('should throw error if slide not found', () => {
+      expect(() => {
+        presentationManager.deleteSlide('nonexistent-slide');
+      }).toThrow('Slide not found');
+    });
+
+    test('should handle deleting the only slide', () => {
+      presentationManager.createPresentation('Single Slide');
+      presentationManager.addSlide({ id: 'only-slide', actionType: 'node-expand', state: {} });
+
+      presentationManager.deleteSlide('only-slide');
+
+      expect(presentationManager.getSlideCount()).toBe(0);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(0);
+    });
+  });
+
+  describe('reorderSlides()', () => {
+    beforeEach(() => {
+      presentationManager.createPresentation('Test Presentation');
+      presentationManager.addSlide({ id: 'slide-1', actionType: 'node-expand', state: {} });
+      presentationManager.addSlide({ id: 'slide-2', actionType: 'info-open', state: {} });
+      presentationManager.addSlide({ id: 'slide-3', actionType: 'image-open', state: {} });
+      presentationManager.addSlide({ id: 'slide-4', actionType: 'relationship-show', state: {} });
+    });
+
+    test('should move slide forward in array', () => {
+      // Move slide from index 1 to index 3
+      presentationManager.reorderSlides(1, 3);
+
+      const slides = presentationManager.getCurrentPresentation().slides;
+      expect(slides[0].id).toBe('slide-1');
+      expect(slides[1].id).toBe('slide-3');
+      expect(slides[2].id).toBe('slide-4');
+      expect(slides[3].id).toBe('slide-2');
+    });
+
+    test('should move slide backward in array', () => {
+      // Move slide from index 3 to index 1
+      presentationManager.reorderSlides(3, 1);
+
+      const slides = presentationManager.getCurrentPresentation().slides;
+      expect(slides[0].id).toBe('slide-1');
+      expect(slides[1].id).toBe('slide-4');
+      expect(slides[2].id).toBe('slide-2');
+      expect(slides[3].id).toBe('slide-3');
+    });
+
+    test('should handle moving to same position', () => {
+      presentationManager.reorderSlides(1, 1);
+
+      const slides = presentationManager.getCurrentPresentation().slides;
+      expect(slides[0].id).toBe('slide-1');
+      expect(slides[1].id).toBe('slide-2');
+      expect(slides[2].id).toBe('slide-3');
+      expect(slides[3].id).toBe('slide-4');
+    });
+
+    test('should update presentation modified timestamp', () => {
+      const beforeTime = Date.now();
+      presentationManager.reorderSlides(1, 2);
+      const afterTime = Date.now();
+
+      const modified = presentationManager.getCurrentPresentation().modified;
+      expect(modified.getTime()).toBeGreaterThanOrEqual(beforeTime);
+      expect(modified.getTime()).toBeLessThanOrEqual(afterTime);
+    });
+
+    test('should throw error if no presentation is loaded', () => {
+      const pm = new PresentationManager(stateEngine, animationEngine);
+
+      expect(() => {
+        pm.reorderSlides(0, 1);
+      }).toThrow('No presentation loaded');
+    });
+
+    test('should throw error if fromIndex is out of bounds', () => {
+      expect(() => {
+        presentationManager.reorderSlides(10, 1);
+      }).toThrow('Invalid slide index');
+    });
+
+    test('should throw error if toIndex is out of bounds', () => {
+      expect(() => {
+        presentationManager.reorderSlides(1, 10);
+      }).toThrow('Invalid slide index');
+    });
+
+    test('should throw error if fromIndex is negative', () => {
+      expect(() => {
+        presentationManager.reorderSlides(-1, 1);
+      }).toThrow('Invalid slide index');
+    });
+
+    test('should throw error if toIndex is negative', () => {
+      expect(() => {
+        presentationManager.reorderSlides(1, -1);
+      }).toThrow('Invalid slide index');
+    });
+
+    test('should adjust currentSlideIndex when moving current slide', () => {
+      presentationManager.currentSlideIndex = 1;
+
+      // Move current slide from index 1 to index 2
+      presentationManager.reorderSlides(1, 2);
+
+      expect(presentationManager.getCurrentSlideIndex()).toBe(2);
+    });
+
+    test('should adjust currentSlideIndex when moving slide before current', () => {
+      presentationManager.currentSlideIndex = 2;
+
+      // Move slide from index 0 to index 3 (shifts current left)
+      presentationManager.reorderSlides(0, 3);
+
+      expect(presentationManager.getCurrentSlideIndex()).toBe(1);
+    });
+
+    test('should adjust currentSlideIndex when moving slide after current', () => {
+      presentationManager.currentSlideIndex = 1;
+
+      // Move slide from index 3 to index 0 (shifts current right)
+      presentationManager.reorderSlides(3, 0);
+
+      expect(presentationManager.getCurrentSlideIndex()).toBe(2);
+    });
+  });
+
+  describe('nextSlide()', () => {
+    beforeEach(() => {
+      presentationManager.createPresentation('Test Presentation');
+      presentationManager.addSlide({
+        id: 'slide-1',
+        actionType: 'node-expand',
+        actionData: { nodeId: 'node-1' },
+        state: { camera: { x: 0, y: 0, zoom: 1 }, expandedNodes: ['node-1'] }
+      });
+      presentationManager.addSlide({
+        id: 'slide-2',
+        actionType: 'info-open',
+        actionData: { nodeId: 'node-1' },
+        state: { camera: { x: 0, y: 0, zoom: 1 }, infoPanel: { open: true, nodeId: 'node-1' } }
+      });
+      presentationManager.addSlide({
+        id: 'slide-3',
+        actionType: 'image-open',
+        actionData: { nodeId: 'node-1', imageIndex: 0 },
+        state: { camera: { x: 0, y: 0, zoom: 1 }, imageModal: { open: true, nodeId: 'node-1', imageIndex: 0 } }
+      });
+    });
+
+    test('should navigate to next slide and update index', async () => {
+      expect(presentationManager.getCurrentSlideIndex()).toBe(0);
+
+      const result = await presentationManager.nextSlide(mockMindmap);
+
+      expect(result).toBe(true);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(1);
+    });
+
+    test('should return false when at last slide', async () => {
+      presentationManager.currentSlideIndex = 2; // Last slide
+
+      const result = await presentationManager.nextSlide(mockMindmap);
+
+      expect(result).toBe(false);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(2); // Unchanged
+    });
+
+    test('should throw error if no presentation is loaded', async () => {
+      const pm = new PresentationManager(stateEngine, animationEngine);
+
+      await expect(pm.nextSlide(mockMindmap)).rejects.toThrow('No presentation loaded');
+    });
+
+    test('should throw error if mindmapEngine is not provided', async () => {
+      await expect(presentationManager.nextSlide(null)).rejects.toThrow('MindmapEngine is required');
+    });
+  });
+
+  describe('previousSlide()', () => {
+    beforeEach(() => {
+      presentationManager.createPresentation('Test Presentation');
+      presentationManager.addSlide({
+        id: 'slide-1',
+        actionType: 'node-expand',
+        actionData: { nodeId: 'node-1' },
+        state: { camera: { x: 0, y: 0, zoom: 1 } }
+      });
+      presentationManager.addSlide({
+        id: 'slide-2',
+        actionType: 'info-open',
+        actionData: { nodeId: 'node-1' },
+        state: { camera: { x: 0, y: 0, zoom: 1 } }
+      });
+      presentationManager.addSlide({
+        id: 'slide-3',
+        actionType: 'image-open',
+        actionData: { nodeId: 'node-1', imageIndex: 0 },
+        state: { camera: { x: 0, y: 0, zoom: 1 } }
+      });
+      presentationManager.currentSlideIndex = 2; // Start at slide 3
+    });
+
+    test('should navigate to previous slide and update index', async () => {
+      expect(presentationManager.getCurrentSlideIndex()).toBe(2);
+
+      const result = await presentationManager.previousSlide(mockMindmap);
+
+      expect(result).toBe(true);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(1);
+    });
+
+    test('should return false when at first slide', async () => {
+      presentationManager.currentSlideIndex = 0;
+
+      const result = await presentationManager.previousSlide(mockMindmap);
+
+      expect(result).toBe(false);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(0); // Unchanged
+    });
+
+    test('should throw error if no presentation is loaded', async () => {
+      const pm = new PresentationManager(stateEngine, animationEngine);
+
+      await expect(pm.previousSlide(mockMindmap)).rejects.toThrow('No presentation loaded');
+    });
+
+    test('should throw error if mindmapEngine is not provided', async () => {
+      await expect(presentationManager.previousSlide(null)).rejects.toThrow('MindmapEngine is required');
+    });
+  });
+
+  describe('jumpToSlide()', () => {
+    beforeEach(() => {
+      presentationManager.createPresentation('Test Presentation');
+      for (let i = 1; i <= 5; i++) {
+        presentationManager.addSlide({
+          id: `slide-${i}`,
+          actionType: 'node-expand',
+          actionData: { nodeId: `node-${i}` },
+          state: { camera: { x: i * 100, y: i * 100, zoom: 1 } }
+        });
+      }
+      presentationManager.currentSlideIndex = 0; // Start at slide 1
+    });
+
+    test('should jump to specified slide index', async () => {
+      expect(presentationManager.getCurrentSlideIndex()).toBe(0);
+
+      const result = await presentationManager.jumpToSlide(3, mockMindmap);
+
+      expect(result).toBe(true);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(3);
+    });
+
+    test('should jump forward multiple slides', async () => {
+      const result = await presentationManager.jumpToSlide(4, mockMindmap);
+
+      expect(result).toBe(true);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(4);
+    });
+
+    test('should jump backward multiple slides', async () => {
+      presentationManager.currentSlideIndex = 4;
+
+      const result = await presentationManager.jumpToSlide(1, mockMindmap);
+
+      expect(result).toBe(true);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(1);
+    });
+
+    test('should handle jumping to same slide', async () => {
+      presentationManager.currentSlideIndex = 2;
+
+      const result = await presentationManager.jumpToSlide(2, mockMindmap);
+
+      expect(result).toBe(true);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(2);
+    });
+
+    test('should throw error if no presentation is loaded', async () => {
+      const pm = new PresentationManager(stateEngine, animationEngine);
+
+      await expect(pm.jumpToSlide(0, mockMindmap)).rejects.toThrow('No presentation loaded');
+    });
+
+    test('should throw error if mindmapEngine is not provided', async () => {
+      await expect(presentationManager.jumpToSlide(1, null)).rejects.toThrow('MindmapEngine is required');
+    });
+
+    test('should throw error if slideIndex is out of bounds', async () => {
+      await expect(presentationManager.jumpToSlide(10, mockMindmap)).rejects.toThrow('Invalid slide index');
+    });
+
+    test('should throw error if slideIndex is negative', async () => {
+      await expect(presentationManager.jumpToSlide(-1, mockMindmap)).rejects.toThrow('Invalid slide index');
+    });
+
+    test('should jump to first slide (index 0)', async () => {
+      presentationManager.currentSlideIndex = 3;
+
+      const result = await presentationManager.jumpToSlide(0, mockMindmap);
+
+      expect(result).toBe(true);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(0);
+    });
+
+    test('should jump to last slide', async () => {
+      const lastIndex = presentationManager.getSlideCount() - 1;
+
+      const result = await presentationManager.jumpToSlide(lastIndex, mockMindmap);
+
+      expect(result).toBe(true);
+      expect(presentationManager.getCurrentSlideIndex()).toBe(lastIndex);
+    });
+  });
 });

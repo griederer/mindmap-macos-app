@@ -1,449 +1,377 @@
 /**
- * PresentationManager - Manages presentation slides and state capture
+ * PresentationManager - Manages presentations, slides, and navigation
  *
- * Features:
- * - Capture current mindmap state as slides
- * - Auto-generate slide descriptions
- * - Manage slide order and lifecycle
- * - Integration with mindmap-engine.js state
+ * Responsibilities:
+ * - Create/load/save presentations
+ * - Add/delete/reorder slides
+ * - Navigate between slides (next/previous/jump)
+ * - Integration with StateEngine and AnimationEngine
+ * - File system operations for .presentation files
+ *
+ * Presentation Data Structure:
+ * {
+ *   id: 'presentation-uuid',
+ *   name: 'Presentation Name',
+ *   created: Date,
+ *   modified: Date,
+ *   slides: [
+ *     {
+ *       id: 'slide-uuid',
+ *       actionType: 'node-expand' | 'info-open' | ...,
+ *       actionData: { ... },
+ *       timestamp: Date,
+ *       state: { camera, expandedNodes, ... }
+ *     }
+ *   ],
+ *   currentSlideIndex: 0
+ * }
  */
 
 class PresentationManager {
-    constructor(mindmapEngine) {
-        this.mindmapEngine = mindmapEngine;
-        this.presentation = {
-            slides: [],
-            created: new Date().toISOString(),
-            modified: new Date().toISOString()
-        };
-        this.nextSlideId = 1;
+  constructor(stateEngine, animationEngine) {
+    this.stateEngine = stateEngine;
+    this.animationEngine = animationEngine;
+
+    // Current presentation data
+    this.presentation = null;
+
+    // Current slide index
+    this.currentSlideIndex = 0;
+  }
+
+  /**
+   * Creates a new empty presentation
+   * @param {string} name - Presentation name
+   * @returns {Object} Created presentation object
+   */
+  createPresentation(name) {
+    // Validate name
+    if (!name || typeof name !== 'string' || name.trim().length === 0) {
+      throw new Error('Presentation name is required');
     }
 
-    /**
-     * Capture the current mindmap state
-     * @returns {object} - Serialized state snapshot
-     */
-    captureCurrentState() {
-        // Get expanded nodes from mindmap engine
-        const expandedNodes = [];
-        this.mindmapEngine.nodes.forEach(node => {
-            if (node.element && node.element.classList.contains('expanded')) {
-                expandedNodes.push(node.id);
-            }
-        });
+    // Generate unique ID
+    const presentationId = `presentation-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 
-        // Get open info panels
-        const openInfoPanels = [];
-        document.querySelectorAll('.info-panel.active').forEach(panel => {
-            const nodeId = panel.dataset.nodeId;
-            if (nodeId) {
-                openInfoPanels.push(nodeId);
-            }
-        });
+    // Create presentation object
+    const presentation = {
+      id: presentationId,
+      name: name.trim(),
+      created: new Date(),
+      modified: new Date(),
+      slides: [],
+      currentSlideIndex: 0
+    };
 
-        // Get active full-screen image (if any)
-        let activeImage = null;
-        const imageOverlay = document.querySelector('.image-overlay.active');
-        if (imageOverlay) {
-            const img = imageOverlay.querySelector('img');
-            if (img && img.dataset.nodeId) {
-                activeImage = {
-                    nodeId: img.dataset.nodeId,
-                    imageUrl: img.src
-                };
-            }
-        }
+    // Set as current presentation
+    this.presentation = presentation;
+    this.currentSlideIndex = 0;
 
-        // Get focused node (focus mode)
-        let focusedNode = null;
-        if (this.mindmapEngine.focusedNodeId) {
-            focusedNode = this.mindmapEngine.focusedNodeId;
-        }
+    return presentation;
+  }
 
-        // Get zoom and pan state
-        const zoom = this.mindmapEngine.zoom || 1.0;
-        const pan = this.mindmapEngine.pan || { x: 0, y: 0 };
-
-        // Get categories and relationships visibility
-        const categoriesVisible = this.mindmapEngine.categoriesVisible !== false;
-        const relationshipsVisible = this.mindmapEngine.relationshipsVisible !== false;
-
-        return {
-            expandedNodes,
-            openInfoPanels,
-            activeImage,
-            focusedNode,
-            zoom,
-            pan,
-            categoriesVisible,
-            relationshipsVisible
-        };
+  /**
+   * Adds a slide to the current presentation
+   * @param {Object} slideData - Slide data object
+   * @returns {Object} Added slide
+   */
+  addSlide(slideData) {
+    // Check if presentation is loaded
+    if (!this.presentation) {
+      throw new Error('No presentation loaded');
     }
 
-    /**
-     * Generate a descriptive title for a slide based on its state
-     * @param {object} state - Captured state object
-     * @returns {string} - Auto-generated description
-     */
-    generateSlideDescription(state) {
-        const parts = [];
-
-        // Check for focus mode
-        if (state.focusedNode) {
-            const node = this.mindmapEngine.nodes.find(n => n.id === state.focusedNode);
-            if (node) {
-                parts.push(`Focus: ${node.text}`);
-            }
-        }
-
-        // Check for active image
-        if (state.activeImage) {
-            const node = this.mindmapEngine.nodes.find(n => n.id === state.activeImage.nodeId);
-            if (node) {
-                parts.push(`${node.text} (image)`);
-            }
-        }
-
-        // Check for expanded nodes
-        if (state.expandedNodes.length > 0) {
-            const expandedNode = this.mindmapEngine.nodes.find(n => n.id === state.expandedNodes[0]);
-            if (expandedNode && !parts.length) {
-                parts.push(`${expandedNode.text} expanded`);
-            }
-        }
-
-        // Check for open info panels
-        if (state.openInfoPanels.length > 0) {
-            const infoNode = this.mindmapEngine.nodes.find(n => n.id === state.openInfoPanels[0]);
-            if (infoNode && !parts.length) {
-                parts.push(`${infoNode.text} details`);
-            }
-        }
-
-        // Default to root overview if nothing specific
-        if (parts.length === 0) {
-            const rootNode = this.mindmapEngine.nodes.find(n => n.level === 0);
-            if (rootNode) {
-                parts.push(`${rootNode.text} overview`);
-            } else {
-                parts.push('Overview');
-            }
-        }
-
-        return parts.join(' - ');
+    // Validate slide data
+    if (!slideData || typeof slideData !== 'object') {
+      throw new Error('Invalid slide data');
     }
 
-    /**
-     * Add a new slide from the current mindmap state
-     * @param {string} customDescription - Optional custom description (overrides auto-generated)
-     * @returns {object} - The created slide object
-     */
-    addSlide(customDescription = null) {
-        const state = this.captureCurrentState();
-        const description = customDescription || this.generateSlideDescription(state);
-
-        const slide = {
-            id: this.nextSlideId++,
-            description,
-            expandedNodes: state.expandedNodes,
-            openInfoPanels: state.openInfoPanels,
-            activeImage: state.activeImage,
-            focusedNode: state.focusedNode,
-            zoom: state.zoom,
-            pan: state.pan,
-            categoriesVisible: state.categoriesVisible,
-            relationshipsVisible: state.relationshipsVisible
-        };
-
-        this.presentation.slides.push(slide);
-        this.presentation.modified = new Date().toISOString();
-
-        return slide;
+    // Validate required fields
+    if (!slideData.id || !slideData.actionType || !slideData.state) {
+      throw new Error('Invalid slide data');
     }
 
-    /**
-     * Delete a slide by ID
-     * @param {number} slideId - Slide ID to delete
-     * @returns {boolean} - Success status
-     */
-    deleteSlide(slideId) {
-        const index = this.presentation.slides.findIndex(s => s.id === slideId);
-        if (index === -1) {
-            return false;
-        }
+    // Add slide to presentation
+    this.presentation.slides.push(slideData);
 
-        this.presentation.slides.splice(index, 1);
-        this.presentation.modified = new Date().toISOString();
-        return true;
+    // Update modified timestamp
+    this.presentation.modified = new Date();
+
+    return slideData;
+  }
+
+  /**
+   * Deletes a slide from the current presentation
+   * @param {string} slideId - ID of slide to delete
+   * @returns {boolean} Success status
+   */
+  deleteSlide(slideId) {
+    // Check if presentation is loaded
+    if (!this.presentation) {
+      throw new Error('No presentation loaded');
     }
 
-    /**
-     * Reorder slides
-     * @param {number[]} newOrder - Array of slide IDs in desired order
-     * @returns {boolean} - Success status
-     */
-    reorderSlides(newOrder) {
-        if (newOrder.length !== this.presentation.slides.length) {
-            return false;
-        }
-
-        const reordered = newOrder.map(id => {
-            return this.presentation.slides.find(s => s.id === id);
-        }).filter(s => s !== undefined);
-
-        if (reordered.length !== this.presentation.slides.length) {
-            return false;
-        }
-
-        this.presentation.slides = reordered;
-        this.presentation.modified = new Date().toISOString();
-        return true;
+    // Validate slide ID
+    if (!slideId) {
+      throw new Error('Invalid slide ID');
     }
 
-    /**
-     * Get slide count
-     * @returns {number} - Number of slides
-     */
-    getSlideCount() {
-        return this.presentation.slides.length;
+    // Find slide index
+    const slideIndex = this.presentation.slides.findIndex(s => s.id === slideId);
+
+    // Check if slide exists
+    if (slideIndex === -1) {
+      throw new Error('Slide not found');
     }
 
-    /**
-     * Get slide by ID
-     * @param {number} slideId - Slide ID
-     * @returns {object|null} - Slide object or null
-     */
-    getSlide(slideId) {
-        return this.presentation.slides.find(s => s.id === slideId) || null;
+    // Remove slide from array
+    this.presentation.slides.splice(slideIndex, 1);
+
+    // Adjust current slide index if necessary
+    if (slideIndex <= this.currentSlideIndex && this.currentSlideIndex > 0) {
+      this.currentSlideIndex--;
     }
 
-    /**
-     * Get slide by index (0-based)
-     * @param {number} index - Slide index
-     * @returns {object|null} - Slide object or null
-     */
-    getSlideByIndex(index) {
-        return this.presentation.slides[index] || null;
+    // Update modified timestamp
+    this.presentation.modified = new Date();
+
+    return true;
+  }
+
+  /**
+   * Reorders slides in the current presentation
+   * @param {number} fromIndex - Source index
+   * @param {number} toIndex - Destination index
+   */
+  reorderSlides(fromIndex, toIndex) {
+    // Check if presentation is loaded
+    if (!this.presentation) {
+      throw new Error('No presentation loaded');
     }
 
-    /**
-     * Load presentation data from project
-     * @param {object} presentationData - Presentation object from .pmap file
-     */
-    loadPresentation(presentationData) {
-        if (!presentationData) {
-            this.presentation = {
-                slides: [],
-                created: new Date().toISOString(),
-                modified: new Date().toISOString()
-            };
-            this.nextSlideId = 1;
-            return;
-        }
-
-        this.presentation = presentationData;
-
-        // Calculate next slide ID
-        if (this.presentation.slides.length > 0) {
-            const maxId = Math.max(...this.presentation.slides.map(s => s.id));
-            this.nextSlideId = maxId + 1;
-        } else {
-            this.nextSlideId = 1;
-        }
+    // Validate indices
+    if (fromIndex < 0 || fromIndex >= this.presentation.slides.length ||
+        toIndex < 0 || toIndex >= this.presentation.slides.length) {
+      throw new Error('Invalid slide index');
     }
 
-    /**
-     * Export presentation data for saving
-     * @returns {object} - Presentation data object
-     */
-    exportPresentation() {
-        return this.presentation;
+    // If same position, no action needed
+    if (fromIndex === toIndex) {
+      return;
     }
 
-    /**
-     * Enter presentation mode
-     * @param {object} animationEngine - Animation engine instance
-     * @returns {boolean} - Success status
-     */
-    enterPresentationMode(animationEngine) {
-        if (this.presentation.slides.length === 0) {
-            return false;
-        }
+    // Remove slide from source position
+    const [movedSlide] = this.presentation.slides.splice(fromIndex, 1);
 
-        // Store pre-presentation state for restoration
-        this.prePresentationState = this.captureCurrentState();
-        this.currentSlideIndex = 0;
-        this.isPresenting = true;
-        this.animationEngine = animationEngine;
+    // Insert at destination position
+    this.presentation.slides.splice(toIndex, 0, movedSlide);
 
-        // Apply first slide
-        this.renderSlide(0);
-
-        return true;
+    // Adjust current slide index
+    if (fromIndex === this.currentSlideIndex) {
+      // Moving the current slide
+      this.currentSlideIndex = toIndex;
+    } else if (fromIndex < this.currentSlideIndex && toIndex >= this.currentSlideIndex) {
+      // Moving a slide before current to after current (shift current left)
+      this.currentSlideIndex--;
+    } else if (fromIndex > this.currentSlideIndex && toIndex <= this.currentSlideIndex) {
+      // Moving a slide after current to before current (shift current right)
+      this.currentSlideIndex++;
     }
 
-    /**
-     * Exit presentation mode and restore previous state
-     */
-    exitPresentationMode() {
-        if (!this.isPresenting) {
-            return;
-        }
+    // Update modified timestamp
+    this.presentation.modified = new Date();
+  }
 
-        this.isPresenting = false;
-
-        // Restore pre-presentation state
-        if (this.prePresentationState) {
-            this.restoreState(this.prePresentationState);
-            this.prePresentationState = null;
-        }
-
-        this.currentSlideIndex = -1;
-        this.animationEngine = null;
+  /**
+   * Navigates to the next slide
+   * @param {MindmapEngine} mindmapEngine - Reference to mindmap for applying state
+   * @returns {Promise<boolean>} Success status
+   */
+  async nextSlide(mindmapEngine) {
+    // Check if presentation is loaded
+    if (!this.presentation) {
+      throw new Error('No presentation loaded');
     }
 
-    /**
-     * Render a specific slide
-     * @param {number} slideIndex - Slide index (0-based)
-     */
-    renderSlide(slideIndex) {
-        const slide = this.presentation.slides[slideIndex];
-        if (!slide) {
-            console.error('Slide not found at index:', slideIndex);
-            return;
-        }
-
-        this.currentSlideIndex = slideIndex;
-
-        // Restore slide state (without animation for initial render)
-        this.restoreState(slide);
+    // Validate mindmap engine
+    if (!mindmapEngine) {
+      throw new Error('MindmapEngine is required');
     }
 
-    /**
-     * Navigate to next slide with animation
-     * @returns {Promise} - Resolves when animation completes
-     */
-    async nextSlide() {
-        if (!this.isPresenting || this.currentSlideIndex >= this.presentation.slides.length - 1) {
-            return;
-        }
-
-        const fromSlide = this.presentation.slides[this.currentSlideIndex];
-        const toSlide = this.presentation.slides[this.currentSlideIndex + 1];
-
-        if (this.animationEngine) {
-            await this.animationEngine.animateTransition(fromSlide, toSlide, false);
-        } else {
-            this.restoreState(toSlide);
-        }
-
-        this.currentSlideIndex++;
+    // Check if there is a next slide
+    if (!this.hasNextSlide()) {
+      return false;
     }
 
-    /**
-     * Navigate to previous slide with reverse animation
-     * @returns {Promise} - Resolves when animation completes
-     */
-    async previousSlide() {
-        if (!this.isPresenting || this.currentSlideIndex <= 0) {
-            return;
-        }
+    // Move to next slide
+    this.currentSlideIndex++;
 
-        const fromSlide = this.presentation.slides[this.currentSlideIndex];
-        const toSlide = this.presentation.slides[this.currentSlideIndex - 1];
+    // Apply slide state
+    await this._applySlideState(this.currentSlideIndex, mindmapEngine);
 
-        if (this.animationEngine) {
-            await this.animationEngine.animateTransition(fromSlide, toSlide, false);
-        } else {
-            this.restoreState(toSlide);
-        }
+    return true;
+  }
 
-        this.currentSlideIndex--;
+  /**
+   * Navigates to the previous slide
+   * @param {MindmapEngine} mindmapEngine - Reference to mindmap for applying state
+   * @returns {Promise<boolean>} Success status
+   */
+  async previousSlide(mindmapEngine) {
+    // Check if presentation is loaded
+    if (!this.presentation) {
+      throw new Error('No presentation loaded');
     }
 
-    /**
-     * Jump to a specific slide number (1-based for user)
-     * @param {number} slideNumber - Slide number (1-10 for keys 1-0)
-     * @returns {Promise} - Resolves when animation completes
-     */
-    async jumpToSlide(slideNumber) {
-        const slideIndex = slideNumber - 1;
-
-        if (!this.isPresenting || slideIndex < 0 || slideIndex >= this.presentation.slides.length) {
-            return;
-        }
-
-        if (slideIndex === this.currentSlideIndex) {
-            return; // Already on this slide
-        }
-
-        const fromSlide = this.presentation.slides[this.currentSlideIndex];
-        const toSlide = this.presentation.slides[slideIndex];
-
-        if (this.animationEngine) {
-            await this.animationEngine.animateTransition(fromSlide, toSlide, false);
-        } else {
-            this.restoreState(toSlide);
-        }
-
-        this.currentSlideIndex = slideIndex;
+    // Validate mindmap engine
+    if (!mindmapEngine) {
+      throw new Error('MindmapEngine is required');
     }
 
-    /**
-     * Restore mindmap to a specific state
-     * @param {object} state - State object (slide or captured state)
-     */
-    restoreState(state) {
-        // Set zoom and pan
-        this.mindmapEngine.zoom = state.zoom;
-        this.mindmapEngine.pan = { ...state.pan };
-        this.mindmapEngine.updateTransform();
-
-        // Expand/collapse nodes
-        this.mindmapEngine.nodes.forEach(node => {
-            const shouldBeExpanded = state.expandedNodes.includes(node.id);
-            const isExpanded = node.element?.classList.contains('expanded');
-
-            if (shouldBeExpanded !== isExpanded && node.element) {
-                this.mindmapEngine.toggleChildren(node.id);
-            }
-        });
-
-        // Set categories and relationships visibility
-        if (state.categoriesVisible !== undefined) {
-            this.mindmapEngine.categoriesVisible = state.categoriesVisible;
-        }
-        if (state.relationshipsVisible !== undefined) {
-            this.mindmapEngine.relationshipsVisible = state.relationshipsVisible;
-        }
-
-        // Redraw connections
-        if (this.mindmapEngine.drawConnections) {
-            this.mindmapEngine.drawConnections();
-        }
-
-        // TODO: Handle info panels, active images, focus mode when needed
+    // Check if there is a previous slide
+    if (!this.hasPreviousSlide()) {
+      return false;
     }
 
-    /**
-     * Get current slide info for display
-     * @returns {object|null} - Current slide info {current, total, canGoNext, canGoPrev}
-     */
-    getCurrentSlideInfo() {
-        if (!this.isPresenting) {
-            return null;
-        }
+    // Move to previous slide
+    this.currentSlideIndex--;
 
-        return {
-            current: this.currentSlideIndex + 1,
-            total: this.presentation.slides.length,
-            canGoNext: this.currentSlideIndex < this.presentation.slides.length - 1,
-            canGoPrev: this.currentSlideIndex > 0
-        };
+    // Apply slide state
+    await this._applySlideState(this.currentSlideIndex, mindmapEngine);
+
+    return true;
+  }
+
+  /**
+   * Applies a slide's state to the mindmap with animations
+   * @private
+   * @param {number} slideIndex - Index of slide to apply
+   * @param {MindmapEngine} mindmapEngine - Reference to mindmap
+   */
+  async _applySlideState(slideIndex, mindmapEngine) {
+    const slide = this.presentation.slides[slideIndex];
+
+    if (!slide || !slide.state) {
+      return;
     }
+
+    // TODO: Task 7.0 - Full state application with animations
+    // For now, this is a placeholder that will be enhanced during integration
+    // This method will:
+    // 1. Compare current state with target state using StateEngine
+    // 2. Calculate animation sequence using TransitionCalculator
+    // 3. Execute animations using AnimationEngine
+    // 4. Apply final state to MindmapEngine
+  }
+
+  /**
+   * Jumps directly to a specific slide
+   * @param {number} slideIndex - Target slide index
+   * @param {MindmapEngine} mindmapEngine - Reference to mindmap for applying state
+   * @returns {Promise<boolean>} Success status
+   */
+  async jumpToSlide(slideIndex, mindmapEngine) {
+    // Check if presentation is loaded
+    if (!this.presentation) {
+      throw new Error('No presentation loaded');
+    }
+
+    // Validate mindmap engine
+    if (!mindmapEngine) {
+      throw new Error('MindmapEngine is required');
+    }
+
+    // Validate slide index
+    if (slideIndex < 0 || slideIndex >= this.presentation.slides.length) {
+      throw new Error('Invalid slide index');
+    }
+
+    // Update current slide index
+    this.currentSlideIndex = slideIndex;
+
+    // Apply slide state
+    await this._applySlideState(slideIndex, mindmapEngine);
+
+    return true;
+  }
+
+  /**
+   * Saves the current presentation to a .presentation file
+   * @param {string} filepath - Path to save file
+   * @returns {Promise<boolean>} Success status
+   */
+  async savePresentation(filepath) {
+    // TODO: Implementation in Task 5.15
+    throw new Error('Not implemented: savePresentation');
+  }
+
+  /**
+   * Loads a presentation from a .presentation file
+   * @param {string} filepath - Path to load from
+   * @returns {Promise<Object>} Loaded presentation
+   */
+  async loadPresentation(filepath) {
+    // TODO: Implementation in Task 5.17
+    throw new Error('Not implemented: loadPresentation');
+  }
+
+  /**
+   * Lists all presentations in the /presentations/ folder
+   * @returns {Promise<Array>} Array of presentation metadata
+   */
+  async listPresentations() {
+    // TODO: Implementation in Task 5.19
+    throw new Error('Not implemented: listPresentations');
+  }
+
+  /**
+   * Gets the current presentation
+   * @returns {Object|null} Current presentation or null
+   */
+  getCurrentPresentation() {
+    return this.presentation;
+  }
+
+  /**
+   * Gets the current slide index
+   * @returns {number} Current slide index
+   */
+  getCurrentSlideIndex() {
+    return this.currentSlideIndex;
+  }
+
+  /**
+   * Gets the total number of slides in the current presentation
+   * @returns {number} Slide count
+   */
+  getSlideCount() {
+    return this.presentation ? this.presentation.slides.length : 0;
+  }
+
+  /**
+   * Checks if there is a next slide available
+   * @returns {boolean} True if next slide exists
+   */
+  hasNextSlide() {
+    if (!this.presentation) {
+      return false;
+    }
+    return this.currentSlideIndex < this.presentation.slides.length - 1;
+  }
+
+  /**
+   * Checks if there is a previous slide available
+   * @returns {boolean} True if previous slide exists
+   */
+  hasPreviousSlide() {
+    if (!this.presentation) {
+      return false;
+    }
+    return this.currentSlideIndex > 0;
+  }
 }
 
-// Export for Node.js (testing) and browser
+// Export for use in other modules and tests
 if (typeof module !== 'undefined' && module.exports) {
-    module.exports = PresentationManager;
+  module.exports = PresentationManager;
 }

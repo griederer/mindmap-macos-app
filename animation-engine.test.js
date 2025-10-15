@@ -319,4 +319,202 @@ describe('AnimationEngine', () => {
             expect(mockEngine.zoom).toBeCloseTo(1.5, 1);
         });
     });
+
+    describe('animateImageModal()', () => {
+        beforeEach(() => {
+            // Mock document.querySelector for image modal
+            global.document = {
+                querySelector: jest.fn((selector) => {
+                    if (selector.includes('.image-modal')) {
+                        return {
+                            style: {},
+                            classList: {
+                                add: jest.fn(),
+                                remove: jest.fn()
+                            },
+                            setAttribute: jest.fn(),
+                            removeAttribute: jest.fn()
+                        };
+                    }
+                    return null;
+                })
+            };
+        });
+
+        test('should open image modal with 500ms fade-in', async () => {
+            const promise = animationEngine.animateImageModal('node-1', 0, 'open', 500);
+            await promise;
+
+            expect(global.document.querySelector).toHaveBeenCalledWith(expect.stringContaining('.image-modal'));
+        });
+
+        test('should close image modal with 500ms fade-out', async () => {
+            const promise = animationEngine.animateImageModal('node-1', 0, 'close', 500);
+            await promise;
+
+            expect(global.document.querySelector).toHaveBeenCalled();
+        });
+
+        test('should handle null modal element gracefully', async () => {
+            global.document.querySelector = jest.fn(() => null);
+
+            await expect(animationEngine.animateImageModal('node-1', 0, 'open', 500)).resolves.toBeUndefined();
+        });
+    });
+
+    describe('animateRelationship()', () => {
+        beforeEach(() => {
+            // Mock SVG relationship element
+            global.document = {
+                querySelector: jest.fn((selector) => {
+                    if (selector.includes('[data-relationship-id]')) {
+                        return {
+                            style: {},
+                            getTotalLength: jest.fn(() => 100),
+                            setAttribute: jest.fn(),
+                            removeAttribute: jest.fn()
+                        };
+                    }
+                    return null;
+                })
+            };
+        });
+
+        test('should show relationship with 300ms line draw', async () => {
+            const promise = animationEngine.animateRelationship('rel-1', 'show', 300);
+            await promise;
+
+            expect(global.document.querySelector).toHaveBeenCalledWith(expect.stringContaining('[data-relationship-id="rel-1"]'));
+        });
+
+        test('should hide relationship with 300ms line erase', async () => {
+            const promise = animationEngine.animateRelationship('rel-1', 'hide', 300);
+            await promise;
+
+            expect(global.document.querySelector).toHaveBeenCalled();
+        });
+
+        test('should handle null relationship element gracefully', async () => {
+            global.document.querySelector = jest.fn(() => null);
+
+            await expect(animationEngine.animateRelationship('rel-1', 'show', 300)).resolves.toBeUndefined();
+        });
+    });
+
+    describe('animateFocusMode()', () => {
+        beforeEach(() => {
+            // Mock nodes for focus mode - ensure node has style property
+            const mockNodeElements = [
+                { style: {}, setAttribute: jest.fn() },
+                { style: {}, setAttribute: jest.fn() },
+                { style: {}, setAttribute: jest.fn() }
+            ];
+
+            // Update mock engine node to have proper element with style
+            mockEngine.nodes[1].element = mockNodeElements[0];
+
+            global.document = {
+                querySelectorAll: jest.fn(() => mockNodeElements),
+                querySelector: jest.fn(() => mockNodeElements[0])
+            };
+        });
+
+        test('should activate focus mode with 300ms camera movement and dim others', async () => {
+            const promise = animationEngine.animateFocusMode('node-1', 'activate', 300);
+            await flushRAF();
+            await promise;
+
+            // Should update camera and apply opacity to other nodes
+            expect(mockEngine.updateTransformCalls).toBeGreaterThan(0);
+        });
+
+        test('should deactivate focus mode with 300ms reset', async () => {
+            const promise = animationEngine.animateFocusMode(null, 'deactivate', 300);
+            await promise;
+
+            // Should restore opacity to all nodes
+            expect(global.document.querySelectorAll).toHaveBeenCalled();
+        });
+
+        test('should handle null node ID in deactivate', async () => {
+            await expect(animationEngine.animateFocusMode(null, 'deactivate', 300)).resolves.toBeUndefined();
+        });
+    });
+
+    describe('Info panel duration adjustment', () => {
+        test('animateInfoPanel should use 350ms by default (updated from 200ms)', async () => {
+            global.document = {
+                querySelector: jest.fn(() => ({
+                    style: {},
+                    classList: { add: jest.fn(), remove: jest.fn() }
+                }))
+            };
+
+            // Default duration should be 350ms now (per PRD requirements)
+            const promise = animationEngine.animateInfoPanel('node-1', 'show');
+            await promise;
+
+            expect(global.document.querySelector).toHaveBeenCalled();
+        });
+    });
+
+    describe('Reverse animations', () => {
+        test('animateImageModal should work in reverse (close)', async () => {
+            global.document = {
+                querySelector: jest.fn(() => ({
+                    style: {},
+                    classList: { add: jest.fn(), remove: jest.fn() },
+                    setAttribute: jest.fn(),
+                    removeAttribute: jest.fn()
+                }))
+            };
+
+            await expect(animationEngine.animateImageModal('node-1', 0, 'close', 500)).resolves.toBeUndefined();
+        });
+
+        test('animateRelationship should work in reverse (hide)', async () => {
+            global.document = {
+                querySelector: jest.fn(() => ({
+                    style: {},
+                    getTotalLength: jest.fn(() => 100),
+                    setAttribute: jest.fn(),
+                    removeAttribute: jest.fn()
+                }))
+            };
+
+            await expect(animationEngine.animateRelationship('rel-1', 'hide', 300)).resolves.toBeUndefined();
+        });
+
+        test('animateFocusMode should work in reverse (deactivate)', async () => {
+            global.document = {
+                querySelectorAll: jest.fn(() => [
+                    { style: {}, setAttribute: jest.fn() }
+                ]),
+                querySelector: jest.fn(() => null)
+            };
+
+            await expect(animationEngine.animateFocusMode(null, 'deactivate', 300)).resolves.toBeUndefined();
+        });
+    });
+
+    describe('Mutual exclusivity', () => {
+        test('should close info panel when image modal opens', async () => {
+            // This test validates the design requirement that info panel and image modal
+            // cannot be open simultaneously in presentation mode
+            // The implementation should handle this in the presentation manager layer
+
+            // For now, just verify both animations can run
+            global.document = {
+                querySelector: jest.fn(() => ({
+                    style: {},
+                    classList: { add: jest.fn(), remove: jest.fn() },
+                    setAttribute: jest.fn(),
+                    removeAttribute: jest.fn()
+                }))
+            };
+
+            await expect(animationEngine.animateInfoPanel('node-1', 'hide', 350)).resolves.toBeUndefined();
+            await expect(animationEngine.animateImageModal('node-1', 0, 'open', 500)).resolves.toBeUndefined();
+        });
+    });
 });

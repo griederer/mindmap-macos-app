@@ -224,13 +224,64 @@ class AnimationEngine {
     }
 
     /**
+     * Animate image modal fade in/out
+     * @param {string} nodeId - Node ID
+     * @param {number} imageIndex - Image index
+     * @param {string} action - 'open' or 'close'
+     * @param {number} duration - Animation duration in ms (default 500ms)
+     * @returns {Promise} - Resolves when animation completes
+     */
+    animateImageModal(nodeId, imageIndex, action, duration = 500) {
+        return new Promise((resolve) => {
+            const modal = document.querySelector('.image-modal');
+
+            if (!modal) {
+                resolve();
+                return;
+            }
+
+            if (action === 'open') {
+                modal.style.opacity = '0';
+                modal.style.transition = `opacity ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+                modal.classList.add('active');
+                modal.setAttribute('data-node-id', nodeId);
+                modal.setAttribute('data-image-index', imageIndex);
+
+                requestAnimationFrame(() => {
+                    modal.style.opacity = '1';
+
+                    setTimeout(() => {
+                        modal.style.opacity = '';
+                        modal.style.transition = '';
+                        resolve();
+                    }, duration);
+                });
+            } else if (action === 'close') {
+                modal.style.transition = `opacity ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+                modal.style.opacity = '0';
+
+                setTimeout(() => {
+                    modal.classList.remove('active');
+                    modal.removeAttribute('data-node-id');
+                    modal.removeAttribute('data-image-index');
+                    modal.style.opacity = '';
+                    modal.style.transition = '';
+                    resolve();
+                }, duration);
+            } else {
+                resolve();
+            }
+        });
+    }
+
+    /**
      * Animate info panel fade in/out
      * @param {string} nodeId - Node ID
      * @param {string} action - 'show' or 'hide'
-     * @param {number} duration - Animation duration in ms
+     * @param {number} duration - Animation duration in ms (updated to 350ms per PRD)
      * @returns {Promise} - Resolves when animation completes
      */
-    animateInfoPanel(nodeId, action, duration = 200) {
+    animateInfoPanel(nodeId, action, duration = 350) {
         return new Promise((resolve) => {
             const panel = document.querySelector(`.info-panel[data-node-id="${nodeId}"]`);
 
@@ -266,6 +317,135 @@ class AnimationEngine {
                     panel.style.opacity = '';
                     panel.style.transform = '';
                     panel.style.transition = '';
+                    resolve();
+                }, duration);
+            } else {
+                resolve();
+            }
+        });
+    }
+
+    /**
+     * Animate relationship line show/hide
+     * @param {string} relationshipId - Relationship ID
+     * @param {string} action - 'show' or 'hide'
+     * @param {number} duration - Animation duration in ms (default 300ms)
+     * @returns {Promise} - Resolves when animation completes
+     */
+    animateRelationship(relationshipId, action, duration = 300) {
+        return new Promise((resolve) => {
+            const line = document.querySelector(`[data-relationship-id="${relationshipId}"]`);
+
+            if (!line) {
+                resolve();
+                return;
+            }
+
+            // Get line total length for stroke-dasharray animation
+            const length = line.getTotalLength ? line.getTotalLength() : 0;
+
+            if (action === 'show') {
+                // Start with line hidden
+                line.setAttribute('stroke-dasharray', length);
+                line.setAttribute('stroke-dashoffset', length);
+                line.style.transition = `stroke-dashoffset ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+                line.style.opacity = '1';
+
+                requestAnimationFrame(() => {
+                    // Animate line drawing
+                    line.setAttribute('stroke-dashoffset', '0');
+
+                    setTimeout(() => {
+                        line.removeAttribute('stroke-dasharray');
+                        line.removeAttribute('stroke-dashoffset');
+                        line.style.transition = '';
+                        resolve();
+                    }, duration);
+                });
+            } else if (action === 'hide') {
+                // Animate line erasing (reverse)
+                line.setAttribute('stroke-dasharray', length);
+                line.setAttribute('stroke-dashoffset', '0');
+                line.style.transition = `stroke-dashoffset ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+
+                requestAnimationFrame(() => {
+                    line.setAttribute('stroke-dashoffset', length);
+
+                    setTimeout(() => {
+                        line.style.opacity = '0';
+                        line.removeAttribute('stroke-dasharray');
+                        line.removeAttribute('stroke-dashoffset');
+                        line.style.transition = '';
+                        resolve();
+                    }, duration);
+                });
+            } else {
+                resolve();
+            }
+        });
+    }
+
+    /**
+     * Animate focus mode activation/deactivation
+     * @param {string} nodeId - Node ID to focus on (null for deactivate)
+     * @param {string} action - 'activate' or 'deactivate'
+     * @param {number} duration - Animation duration in ms (default 300ms)
+     * @returns {Promise} - Resolves when animation completes
+     */
+    animateFocusMode(nodeId, action, duration = 300) {
+        return new Promise((resolve) => {
+            if (action === 'activate' && nodeId) {
+                // Find target node
+                const targetNode = this.mindmapEngine.nodes.find(n => n.id === nodeId);
+
+                if (!targetNode || !targetNode.element) {
+                    resolve();
+                    return;
+                }
+
+                // Get all nodes
+                const allNodes = document.querySelectorAll('.node');
+
+                // Dim all other nodes
+                allNodes.forEach(node => {
+                    if (node !== targetNode.element) {
+                        node.style.transition = `opacity ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+                        node.style.opacity = '0.3';
+                    }
+                });
+
+                // Highlight focused node
+                targetNode.element.style.transition = `opacity ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+                targetNode.element.style.opacity = '1';
+
+                // Calculate camera position to center focused node
+                // This is a simplified implementation - actual logic will depend on node positioning
+                const targetZoom = this.mindmapEngine.zoom || 1.0;
+                const targetPan = this.mindmapEngine.pan || { x: 0, y: 0 };
+
+                // Animate camera movement
+                this.animateZoomPan(targetZoom, targetPan, duration).then(() => {
+                    setTimeout(() => {
+                        allNodes.forEach(node => {
+                            node.style.transition = '';
+                        });
+                        resolve();
+                    }, 50);
+                });
+            } else if (action === 'deactivate') {
+                // Restore opacity to all nodes
+                const allNodes = document.querySelectorAll('.node');
+
+                allNodes.forEach(node => {
+                    node.style.transition = `opacity ${duration}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+                    node.style.opacity = '1';
+                });
+
+                setTimeout(() => {
+                    allNodes.forEach(node => {
+                        node.style.transition = '';
+                        node.style.opacity = '';
+                    });
                     resolve();
                 }, duration);
             } else {
