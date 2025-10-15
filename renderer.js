@@ -2577,86 +2577,43 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('AnimationEngine initialized');
     }
 
-    // Initialize PresentationManager
-    if (typeof PresentationManager !== 'undefined' && window.mindmapEngine) {
-        window.presentationManager = new PresentationManager(window.mindmapEngine);
-        console.log('PresentationManager initialized');
+    // Initialize StateEngine
+    if (typeof StateEngine !== 'undefined' && window.mindmapEngine) {
+        window.stateEngine = new StateEngine(window.mindmapEngine);
+        console.log('StateEngine initialized');
+    }
 
-        // Initialize PresentationUI
-        if (typeof PresentationUI !== 'undefined') {
-            window.presentationUI = new PresentationUI(window.presentationManager, window.mindmapEngine);
-            console.log('PresentationUI initialized');
-        }
+    // Initialize CaptureManager
+    if (typeof CaptureManager !== 'undefined' && window.stateEngine && window.mindmapEngine) {
+        window.captureManager = new CaptureManager(window.stateEngine, window.mindmapEngine);
+        console.log('CaptureManager initialized');
 
-        // Wire up Add Slide button
-        const addSlideBtn = document.getElementById('addSlideBtn');
-        const slideCounter = document.getElementById('slideCounter');
-        const presentBtn = document.getElementById('presentBtn');
+        // Wire up capture mode buttons
+        const startCaptureBtn = document.getElementById('startCaptureBtn');
+        const stopCaptureBtn = document.getElementById('stopCaptureBtn');
+        const captureStatus = document.getElementById('captureStatus');
 
-        if (addSlideBtn) {
-            addSlideBtn.addEventListener('click', () => {
-                const slide = window.presentationManager.addSlide();
-                console.log('Slide added:', slide);
+        if (startCaptureBtn) {
+            startCaptureBtn.addEventListener('click', () => {
+                window.captureManager.startCapture();
+                console.log('Capture mode started');
 
-                // Update slide counter
-                const count = window.presentationManager.getSlideCount();
-                if (slideCounter) {
-                    slideCounter.textContent = `${count} slide${count !== 1 ? 's' : ''}`;
-                    slideCounter.style.display = count > 0 ? 'inline' : 'none';
-                }
-
-                // Show/hide Present button
-                if (presentBtn) {
-                    presentBtn.style.display = count > 0 ? 'inline-block' : 'none';
-                }
-
-                // Update UI in real-time
-                if (window.presentationUI) {
-                    window.presentationUI.refresh();
-
-                    // Auto-open panel on first slide capture
-                    if (count === 1) {
-                        window.presentationUI.openPanel();
-                    }
-                }
-
-                // Show visual notification
-                showSlideNotification(slide.description, count);
-
-                // Mark project as dirty for auto-save
-                if (window.projectManager) {
-                    window.projectManager.markDirty();
-                }
+                // Update UI
+                startCaptureBtn.style.display = 'none';
+                if (stopCaptureBtn) stopCaptureBtn.style.display = 'inline-block';
+                if (captureStatus) captureStatus.style.display = 'inline-block';
             });
         }
 
-        // Update counter and Present button on initialization
-        const initialCount = window.presentationManager.getSlideCount();
-        if (slideCounter) {
-            slideCounter.textContent = `${initialCount} slide${initialCount !== 1 ? 's' : ''}`;
-            slideCounter.style.display = initialCount > 0 ? 'inline' : 'none';
-        }
-        if (presentBtn) {
-            presentBtn.style.display = initialCount > 0 ? 'inline-block' : 'none';
-        }
+        if (stopCaptureBtn) {
+            stopCaptureBtn.addEventListener('click', () => {
+                const actions = window.captureManager.stopCapture();
+                console.log('Capture mode stopped. Actions:', actions);
 
-        // Wire up Present button
-        if (presentBtn) {
-            presentBtn.addEventListener('click', () => {
-                if (window.presentationManager && window.animationEngine) {
-                    const success = window.presentationManager.enterPresentationMode(window.animationEngine);
-                    if (success) {
-                        // Show presentation overlay
-                        const overlay = document.getElementById('presentationOverlay');
-                        if (overlay) {
-                            overlay.classList.add('active');
-                            document.body.classList.add('presentation-mode');
-                        }
-
-                        // Update slide counter
-                        updatePresentationCounter();
-                    }
-                }
+                // Update UI
+                startCaptureBtn.style.display = 'inline-block';
+                stopCaptureBtn.style.display = 'none';
+                if (captureStatus) captureStatus.style.display = 'none';
             });
         }
     }
