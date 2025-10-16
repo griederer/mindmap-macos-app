@@ -103,6 +103,10 @@ class PresentationUI {
     this.elements.prevSlideBtn = document.getElementById(elementIds.prevSlideBtn || 'prev-slide-btn');
     this.elements.nextSlideBtn = document.getElementById(elementIds.nextSlideBtn || 'next-slide-btn');
     this.elements.slideCounter = document.getElementById(elementIds.slideCounter || 'slide-counter');
+
+    // Slides panel elements
+    this.elements.slidesPanel = document.getElementById(elementIds.slidesPanel || 'slidesPanel');
+    this.elements.slidesList = document.getElementById(elementIds.slidesList || 'slidesList');
   }
 
   /**
@@ -186,8 +190,23 @@ class PresentationUI {
    * @private
    */
   async _handlePrevSlide() {
-    // Will be implemented in Task 6.23
-    console.log('Previous slide clicked');
+    const presentation = this.presentationManager.getCurrentPresentation();
+    if (!presentation) {
+      console.warn('Cannot navigate: No presentation loaded');
+      return;
+    }
+
+    try {
+      const success = await this.presentationManager.previousSlide(this.mindmapEngine);
+      if (success) {
+        // Update UI after navigation
+        this._updateTimeline();
+        this._updateNavigationUI();
+        console.log('Navigated to previous slide');
+      }
+    } catch (error) {
+      console.error('Failed to navigate to previous slide:', error);
+    }
   }
 
   /**
@@ -195,8 +214,23 @@ class PresentationUI {
    * @private
    */
   async _handleNextSlide() {
-    // Will be implemented in Task 6.23
-    console.log('Next slide clicked');
+    const presentation = this.presentationManager.getCurrentPresentation();
+    if (!presentation) {
+      console.warn('Cannot navigate: No presentation loaded');
+      return;
+    }
+
+    try {
+      const success = await this.presentationManager.nextSlide(this.mindmapEngine);
+      if (success) {
+        // Update UI after navigation
+        this._updateTimeline();
+        this._updateNavigationUI();
+        console.log('Navigated to next slide');
+      }
+    } catch (error) {
+      console.error('Failed to navigate to next slide:', error);
+    }
   }
 
   /**
@@ -264,6 +298,9 @@ class PresentationUI {
 
     // Update timeline
     this._updateTimeline();
+
+    // Update slides list
+    this._renderSlidesList();
   }
 
   /**
@@ -506,6 +543,297 @@ class PresentationUI {
   }
 
   /**
+   * Renders the slides list panel
+   * @private
+   */
+  _renderSlidesList() {
+    if (!this.elements.slidesList) {
+      return;
+    }
+
+    // Clear existing list
+    this.elements.slidesList.innerHTML = '';
+
+    const presentation = this.presentationManager.getCurrentPresentation();
+
+    if (!presentation || presentation.slides.length === 0) {
+      // Show empty state
+      const emptyState = document.createElement('div');
+      emptyState.className = 'slides-list-empty';
+      emptyState.textContent = 'No slides yet. Create slides from captured actions.';
+      emptyState.style.padding = '20px';
+      emptyState.style.textAlign = 'center';
+      emptyState.style.color = '#999';
+      this.elements.slidesList.appendChild(emptyState);
+      return;
+    }
+
+    // Add "Add Current State" button at top
+    const addSlideBtn = document.createElement('button');
+    addSlideBtn.className = 'btn add-slide-btn';
+    addSlideBtn.textContent = '+ Agregar Estado Actual';
+    addSlideBtn.title = 'Capturar el estado actual del mindmap como un nuevo slide';
+    addSlideBtn.style.width = '100%';
+    addSlideBtn.style.marginBottom = '10px';
+    addSlideBtn.addEventListener('click', () => {
+      this._handleAddCurrentStateSlide();
+    });
+    this.elements.slidesList.appendChild(addSlideBtn);
+
+    // Create slide items
+    presentation.slides.forEach((slide, index) => {
+      const slideItem = this._createSlideListItem(slide, index);
+      this.elements.slidesList.appendChild(slideItem);
+    });
+  }
+
+  /**
+   * Creates a slide list item element
+   * @private
+   * @param {Object} slide - Slide data
+   * @param {number} index - Slide index
+   * @returns {HTMLElement} Slide list item element
+   */
+  _createSlideListItem(slide, index) {
+    const item = document.createElement('div');
+    item.className = 'slide-list-item';
+    item.dataset.slideIndex = index;
+    item.style.display = 'flex';
+    item.style.alignItems = 'center';
+    item.style.padding = '8px';
+    item.style.borderBottom = '1px solid #eee';
+    item.style.cursor = 'pointer';
+
+    // Highlight current slide
+    if (index === this.presentationManager.getCurrentSlideIndex()) {
+      item.style.backgroundColor = '#e3f2fd';
+    }
+
+    // Slide number
+    const slideNumber = document.createElement('span');
+    slideNumber.className = 'slide-number';
+    slideNumber.textContent = `${index + 1}.`;
+    slideNumber.style.marginRight = '10px';
+    slideNumber.style.fontWeight = 'bold';
+    slideNumber.style.minWidth = '30px';
+
+    // Action icon
+    const icon = document.createElement('span');
+    icon.className = 'slide-icon';
+    icon.textContent = this._getIconForActionType(slide.actionType);
+    icon.style.marginRight = '10px';
+    icon.style.fontSize = '18px';
+
+    // Slide info (action type + timestamp)
+    const info = document.createElement('div');
+    info.className = 'slide-info';
+    info.style.flex = '1';
+
+    const actionType = document.createElement('div');
+    actionType.textContent = this._formatActionType(slide.actionType);
+    actionType.style.fontSize = '13px';
+    actionType.style.fontWeight = '500';
+
+    const timestamp = document.createElement('div');
+    timestamp.textContent = this._formatTimestamp(slide.timestamp);
+    timestamp.style.fontSize = '11px';
+    timestamp.style.color = '#666';
+
+    info.appendChild(actionType);
+    info.appendChild(timestamp);
+
+    // Delete button
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'btn delete-slide-btn';
+    deleteBtn.textContent = '🗑️';
+    deleteBtn.title = 'Eliminar slide';
+    deleteBtn.style.padding = '4px 8px';
+    deleteBtn.style.marginLeft = '10px';
+    deleteBtn.style.backgroundColor = '#ffebee';
+    deleteBtn.style.border = '1px solid #ef5350';
+    deleteBtn.style.borderRadius = '4px';
+    deleteBtn.style.cursor = 'pointer';
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation(); // Prevent triggering the item click
+      this._handleDeleteSlide(slide.id);
+    });
+
+    // Click to jump to slide
+    item.addEventListener('click', async () => {
+      try {
+        await this.presentationManager.jumpToSlide(index, this.mindmapEngine);
+        this._renderSlidesList(); // Refresh to update highlighting
+        this._updateTimeline();
+        this._updateNavigationUI();
+      } catch (error) {
+        console.error(`Failed to jump to slide ${index}:`, error);
+      }
+    });
+
+    // Assemble item
+    item.appendChild(slideNumber);
+    item.appendChild(icon);
+    item.appendChild(info);
+    item.appendChild(deleteBtn);
+
+    return item;
+  }
+
+  /**
+   * Handles adding current mindmap state as a new slide
+   * @private
+   */
+  _handleAddCurrentStateSlide() {
+    // Check if presentation is loaded
+    if (!this.presentationManager.getCurrentPresentation()) {
+      console.error('Cannot add slide: No presentation loaded');
+      alert('Por favor, crea una presentación primero.');
+      return;
+    }
+
+    try {
+      // Generate unique slide ID
+      const slideId = `slide-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+      // Capture current state using StateEngine
+      const stateEngine = new StateEngine();
+      const currentState = stateEngine.captureState({
+        mindmapEngine: this.mindmapEngine,
+        camera: window.camera
+      });
+
+      // Create slide object
+      const slideData = {
+        id: slideId,
+        actionType: 'manual-capture',
+        actionData: { note: 'Manual state capture' },
+        timestamp: new Date(),
+        state: currentState
+      };
+
+      // Add slide to presentation
+      this.presentationManager.addSlide(slideData);
+
+      // Refresh UI
+      this._renderSlidesList();
+      this._updateTimeline();
+      this._updateNavigationUI();
+
+      console.log('✅ Current state added as new slide');
+    } catch (error) {
+      console.error('Failed to add current state as slide:', error);
+      alert('Error al agregar el slide. Ver consola para detalles.');
+    }
+  }
+
+  /**
+   * Handles deleting a slide
+   * @private
+   * @param {string} slideId - ID of slide to delete
+   */
+  _handleDeleteSlide(slideId) {
+    // Confirm deletion
+    if (!confirm('¿Estás seguro de que quieres eliminar este slide?')) {
+      return;
+    }
+
+    try {
+      // Delete slide using PresentationManager
+      this.presentationManager.deleteSlide(slideId);
+
+      // If no slides remain, reset mindmap state to clean slate
+      const presentation = this.presentationManager.getCurrentPresentation();
+      if (presentation && presentation.slides.length === 0) {
+        console.log('🧹 All slides deleted - resetting mindmap state');
+        this._resetMindmapState();
+      }
+
+      // Refresh UI
+      this._renderSlidesList();
+      this._updateTimeline();
+      this._updateNavigationUI();
+
+      console.log(`✅ Slide ${slideId} deleted successfully`);
+    } catch (error) {
+      console.error(`Failed to delete slide ${slideId}:`, error);
+      alert('Error al eliminar el slide. Ver consola para detalles.');
+    }
+  }
+
+  /**
+   * Resets mindmap state to clean slate (closes all info panels, modals, etc.)
+   * @private
+   */
+  _resetMindmapState() {
+    if (!this.mindmapEngine) {
+      return;
+    }
+
+    // Close all info panels
+    for (const nodeId in this.mindmapEngine.nodeData) {
+      if (this.mindmapEngine.nodeData[nodeId].showInfo) {
+        console.log(`Closing info panel for node: ${nodeId}`);
+        this.mindmapEngine.toggleInfo(nodeId);
+      }
+    }
+
+    // Close image modal if open
+    const overlay = document.getElementById('lightboxOverlay');
+    if (overlay && overlay.classList.contains('active')) {
+      console.log('Closing image modal');
+      overlay.classList.remove('show');
+      setTimeout(() => {
+        overlay.classList.remove('active');
+      }, 300);
+    }
+
+    // Clear image modal state
+    if (this.mindmapEngine.imageModalState) {
+      this.mindmapEngine.imageModalState = {
+        open: false,
+        nodeId: null,
+        imageIndex: null,
+        imageSrc: null
+      };
+    }
+
+    // Exit focus mode if active
+    if (this.mindmapEngine.focusedNodeId) {
+      console.log('Exiting focus mode');
+      this.mindmapEngine.toggleFocusMode(this.mindmapEngine.focusedNodeId);
+    }
+
+    // Force re-render
+    if (window.renderMindmap) {
+      window.renderMindmap();
+    } else if (this.mindmapEngine.draw) {
+      this.mindmapEngine.draw();
+    }
+  }
+
+  /**
+   * Formats action type for display
+   * @private
+   * @param {string} actionType - Action type
+   * @returns {string} Formatted action type
+   */
+  _formatActionType(actionType) {
+    const typeMap = {
+      'node_expand': 'Expandir Nodo',
+      'node_collapse': 'Colapsar Nodo',
+      'info_panel_open': 'Abrir Info',
+      'info_panel_close': 'Cerrar Info',
+      'focus_mode_focus': 'Activar Foco',
+      'focus_mode_unfocus': 'Desactivar Foco',
+      'camera_zoom': 'Zoom',
+      'camera_pan': 'Mover Cámara',
+      'manual-capture': 'Captura Manual'
+    };
+
+    return typeMap[actionType] || actionType.replace(/_/g, ' ');
+  }
+
+  /**
    * Creates a slide icon element for the timeline
    * @private
    * @param {Object} slide - Slide data
@@ -624,12 +952,13 @@ class PresentationUI {
   }
 
   /**
-   * Refreshes the full UI state (timeline + navigation)
+   * Refreshes the full UI state (timeline + navigation + slides list)
    * Call this method after any presentation state change
    */
   refreshUI() {
     this._updateTimeline();
     this._updateNavigationUI();
+    this._renderSlidesList();
   }
 
   /**
