@@ -720,6 +720,13 @@ class MindmapEngine {
             document.querySelectorAll('.focus-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
+
+            // Emit focus-mode-disabled event
+            if (window.appEventEmitter) {
+                window.appEventEmitter.emit('focus-mode-disabled', {
+                    previousZoom: this.camera?.zoom || 1
+                });
+            }
         } else {
             // Focus on this node and its children
             this.focusedNodeId = nodeId;
@@ -750,6 +757,14 @@ class MindmapEngine {
             const activeFocusBtn = document.querySelector(`[data-node-id="${nodeId}"] .focus-btn`);
             if (activeFocusBtn) {
                 activeFocusBtn.classList.add('active');
+            }
+
+            // Emit focus-mode-enabled event
+            if (window.appEventEmitter) {
+                window.appEventEmitter.emit('focus-mode-enabled', {
+                    nodeId: nodeId,
+                    zoom: this.camera?.zoom || 1
+                });
             }
         }
     }

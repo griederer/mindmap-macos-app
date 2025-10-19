@@ -2567,10 +2567,22 @@ document.addEventListener('DOMContentLoaded', async () => {
     window.mindmapRenderer.initializeThemeButtons();
     window.mindmapRenderer.loadTheme();
 
+    // Initialize EventEmitter for focus-camera integration
+    if (typeof EventEmitter !== 'undefined') {
+        window.appEventEmitter = new EventEmitter();
+        console.log('EventEmitter initialized');
+    }
+
     // Initialize AnimationEngine
     if (typeof AnimationEngine !== 'undefined' && window.mindmapEngine) {
         window.animationEngine = new AnimationEngine(window.mindmapEngine);
         console.log('AnimationEngine initialized');
+    }
+
+    // Initialize FocusIntegrator for camera auto-focus
+    if (typeof FocusIntegrator !== 'undefined' && window.appEventEmitter && window.camera) {
+        window.focusIntegrator = new FocusIntegrator(window.appEventEmitter, window.camera);
+        console.log('FocusIntegrator initialized for focus-camera integration');
     }
 
     // Initialize PresentationManager
